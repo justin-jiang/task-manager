@@ -39,14 +39,15 @@
     ]
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "tests/**/*.ts",
-    "tests/**/*.tsx",
-    "build/**/*.ts"
+    "src/client/**/*.ts",
+    "src/common/**/*.ts",
+    "src/client/**/*.tsx",
+    "src/client/**/*.vue",
+    "tests/client/**/*.ts",
+    "tests/client/**/*.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/server/**/*"
   ]
 }

@@ -1,8 +1,23 @@
 # task-manager
 
 ## Project setup
+1. install nvm following the link of https://github.com/creationix/nvm#install-script
+2. install the latest nodejs 
 ```
-npm install
+nvm install --lts
+```
+3. set the taobao registry
+```
+npm install -g cnpm --registry=https://registry.npm.taobao.org
+```
+4. install vue cli 3.X
+```
+cnpm install -g @vue/cli
+```
+5. download task-manager project from git
+6. install dependency packages
+```
+cnpm install
 ```
 
 ### Compiles and hot-reloads for development

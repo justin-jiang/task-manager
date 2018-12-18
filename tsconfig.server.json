@@ -1,0 +1,38 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "forceConsistentCasingInFileNames": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "noUnusedLocals": true,
+        "noUnusedParameters": false,
+        "sourceMap": true,
+        "target": "es5",
+        "traceResolution": false,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "lib": [
+            "es2015",
+            "es2017"
+        ],
+        "paths": {
+            "server/*": [
+                "src/server/*"
+            ],
+            "common/*": [
+                "src/common/*"
+            ]
+        }
+    },
+    "include": [
+        "src/server/**/*.ts",
+        "src/common/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ],
+    "compileOnSave": false,
+    "buildOnSave": false
+}
