@@ -1,31 +1,26 @@
 import { Model } from 'mongoose';
-import { ITemplateObject } from '../dataObjects/ITemplateObject';
+import { TemplateObject } from '../dataObjects/TemplateObject';
 import { MongoDBModelManager } from '../dbDrivers/mongoDB/MongoDBModelManager';
-import { LoggersManager } from '../libsWrapper/LoggersManager';
 import { BaseModelWrapper } from './BaseModelWrapper';
-import { ITemplateModel } from './mongoDB/ITemplateModel';
-import { keysOfSchema } from './mongoDB/IUserModel';
+import { ITemplateModel, keysOfSchema } from './mongoDB/ITemplateModel';
 
-export class TemplateModelWrapper extends BaseModelWrapper implements ITemplateObject {
-    [key: string]: any;
-    public static async $$getAll(): Promise<ITemplateModel[]> {
-        LoggersManager.debug('$$getAll');
-        const model: Model<ITemplateModel> = await MongoDBModelManager.$$getTemplateModel();
-        return await model.find();
-    }
+export class TemplateModelWrapper extends BaseModelWrapper {
+
     public static async $$warmUp(): Promise<void> {
         const model: Model<ITemplateModel> = await MongoDBModelManager.$$getTemplateModel();
         await model.createIndexes();
     }
-    // #region implement of TemplateModelWrapper
-    public name?: string;
-    public templateFileId?: string;
-
-    public async $$save(): Promise<void> {
-        const model: Model<ITemplateModel> = await MongoDBModelManager.$$getTemplateModel();
-        const modelInst: ITemplateModel = new model();
-        this.assembleModel(modelInst, keysOfSchema);
-        await modelInst.save();
+    protected static async getDBModel(): Promise<Model<ITemplateModel>> {
+        return await MongoDBModelManager.$$getTemplateModel();
     }
-    // #endregion
+
+    protected static convertModelToDBObject(modelData: ITemplateModel): TemplateObject {
+        const dbObj: TemplateObject = new TemplateObject();
+        keysOfSchema.forEach((item: string) => {
+            if (modelData[item] != null) {
+                dbObj[item] = modelData[item];
+            }
+        });
+        return dbObj;
+    }
 }

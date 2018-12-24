@@ -1,13 +1,14 @@
-import { Document, Schema, SchemaOptions } from 'mongoose';
-import { ITemplateObject } from 'server/dataObjects/ITemplateObject';
-import { BaseSchemaDef } from './IModel';
+import { Schema, SchemaOptions } from 'mongoose';
+import { BaseSchemaDef, IModel } from 'server/dataModels/mongoDB/IModel';
 
 const schemaOptions: SchemaOptions = {
 };
 const schemaDef = Object.assign({
-    uid: { type: String, required: true, index: { unique: true } },
     name: { type: String, required: true, index: true, unique: true },
+    version: { type: Number, required: true },
     templateFileId: { type: String, required: true },
+    note: { type: String },
+
 }, BaseSchemaDef);
 /**
  * User Schema
@@ -15,7 +16,7 @@ const schemaDef = Object.assign({
 export const schema: Schema = new Schema(schemaDef, schemaOptions);
 
 
-export interface ITemplateModel extends ITemplateObject, Document {
+export interface ITemplateModel extends IModel {
     // TODO: define methods
 
 }

@@ -18,9 +18,6 @@
       "chai"
     ],
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
       "server/*": [
         "src/server/*"
       ],

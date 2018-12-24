@@ -1,11 +1,9 @@
-import { IUserView } from '@/common/responseResults/IUserView';
+import { UserView } from 'common/responseResults/UserView';
 
-export interface IAdminStoreState {
-    /**
-     * user/accout related data
-     */
-    loginUser: IUserView | undefined;
-    userList: IUserView[];
-    // current selected user infos
-    selectedUser: IUserView | undefined;
+export interface IStoreState {
+    
+    // current login user
+    sessionInfo?: UserView;
+
+    redirectURLAfterLogin?: string;
 }

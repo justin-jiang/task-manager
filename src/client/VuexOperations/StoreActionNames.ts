@@ -1,13 +1,23 @@
 export enum StoreActionNames {
-    // #region User Actions
-    getUserList = 'getUserList',
-    removeUser = 'removeUser',
-    getUserById = 'getUserById',
-    updateUserById = 'updateUserById',
-    createUser = 'createUser',
+    // #region -- User Actions
+    userCreate = 'userCreate',
+    userQuery = 'userQuery',
     // #endregion
 
-    // #region File Actions
-    uploadFile = 'uploadFile',
+    // #region -- File Actions
+    fileCreate = 'fileCreate',
+    fileDownload = 'fileDownload',
+    // #endregion
+
+    // #region -- Session Actions
+    sessionCreate = 'sessionCreate',
+    sessionQuery = 'sessionQuery',
+    sessionRemove = 'sessionRemove',
+    // #endregion
+
+    // #region -- Template Actions
+    templateEdit = 'templateEdit',
+    templateQuery = 'templateQuery',
+    templateRemove = 'templateRemove',
     // #endregion
 }

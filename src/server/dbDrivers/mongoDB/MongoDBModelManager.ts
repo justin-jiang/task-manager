@@ -1,5 +1,5 @@
 import { IUserModel, schemaName as userSchemaName, schema as userSchema } from 'server/dataModels/mongoDB/IUserModel';
-import { LoggersManager } from 'server/libsWrapper/LoggersManager';
+import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { Connection, Model } from 'mongoose';
 import { mongodbName } from 'server/common/Constants';
 import { MongoDBDriver } from './MongoDBDriver';
@@ -9,7 +9,7 @@ import {
 export class MongoDBModelManager {
     public static async $$getUserModel(): Promise<Model<IUserModel>> {
         if (this.modelCache[this.userModelName] == null) {
-            LoggersManager.debug('creating UserModel');
+            LoggerManager.debug('creating UserModel');
             const conn: Connection = await MongoDBDriver.$$getConnection(mongodbName);
             this.modelCache[this.userModelName] = conn.model(userSchemaName, userSchema);
         }
@@ -18,7 +18,7 @@ export class MongoDBModelManager {
 
     public static async $$getTemplateModel(): Promise<Model<ITemplateModel>> {
         if (this.modelCache[this.templateModelName] == null) {
-            LoggersManager.debug('creating templateModel');
+            LoggerManager.debug('creating templateModel');
             const conn: Connection = await MongoDBDriver.$$getConnection(mongodbName);
             this.modelCache[this.templateModelName] = conn.model(templateSchemaName, templateSchema);
         }

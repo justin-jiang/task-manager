@@ -1,10 +1,18 @@
+import { FileAPIScenario } from 'common/FileAPIScenario';
+import { FileCreateParam } from 'common/requestParams/FileCreateParam';
+import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { NextFunction, Request, Response, Router } from 'express';
 import * as multer from 'multer';
 import { ApiError } from 'server/common/ApiError';
-import { ApiResultCode } from 'common/responseResults/ApiResultCode';
+import { AppStatus } from 'server/common/AppStatus';
+import { GlobalCache } from 'server/common/GlobalCache';
+import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
+import { UserObject } from 'server/dataObjects/UserObject';
+import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
+import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { ApiRouter } from '../ApiRouter';
-import { UPLOAD_TYPE_FILE } from 'common/Constants';
-import { CookieUtils } from 'server/expresses/CookieUtils';
+import { HttpPathItem } from 'common/HttpPathItem';
+import { HttpUploadKey } from 'common/HttpUploadKey';
 
 
 export enum UploadType {
@@ -31,18 +39,17 @@ export class ApiBuilder {
         const exPressRouter: Router = this.apiRooter.getExpRouter();
         if (uploadType === UploadType.File) {
             const upload: multer.Instance = (multer as any)();
-            exPressRouter.route(path).post(upload.single(UPLOAD_TYPE_FILE));
+            exPressRouter.route(path).post(upload.single(HttpUploadKey.File));
         }
 
         exPressRouter.route(path)
             .all((req: Request, res: Response, next: NextFunction) => {
                 (async () => {
                     if (handlers.all) {
-                        handlers.all.call(this, req, res, next);
-                    } else {
-                        this.all(req, res, next);
+                        LoggerManager.error('Request.all cannot be overridden');
                     }
-                })().catch((error) => {
+                    await this.all(req, res, next);
+                })().catch((error: ApiError) => {
                     this.handleError(req, res, error);
                 });
             })
@@ -53,7 +60,7 @@ export class ApiBuilder {
                     } else {
                         throw new ApiError(ApiResultCode.ApiNotImplemented);
                     }
-                })().catch((error) => {
+                })().catch((error: ApiError) => {
                     this.handleError(req, res, error);
                 });
             })
@@ -64,7 +71,7 @@ export class ApiBuilder {
                     } else {
                         throw new ApiError(ApiResultCode.ApiNotImplemented);
                     }
-                })().catch((error) => {
+                })().catch((error: ApiError) => {
                     this.handleError(req, res, error);
                 });
             })
@@ -75,7 +82,7 @@ export class ApiBuilder {
                     } else {
                         throw new ApiError(ApiResultCode.ApiNotImplemented);
                     }
-                })().catch((error) => {
+                })().catch((error: ApiError) => {
                     this.handleError(req, res, error);
                 });
             })
@@ -90,36 +97,91 @@ export class ApiBuilder {
                     } else {
                         throw new ApiError(ApiResultCode.ApiNotImplemented);
                     }
-                })().catch((error) => {
+                })().catch((error: ApiError) => {
                     this.handleError(req, res, error);
                 });
             });
     }
 
     protected async all(req: Request, res: Response, next: NextFunction) {
-        if (!this.isLogin(req)) {
+        LoggerManager.debug(`Request:${req.method} ${req.path}`, req.body);
+        // set no cache for all API
+        res.setHeader('Surrogate-Control', 'no-store');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
+        const loginUserInCookie: ILoginUserInfoInCookie | undefined = CookieUtils.getUserFromCookie(req);
+        if (loginUserInCookie != null) {
+            // cache cookie
+            GlobalCache.set(loginUserInCookie.uid as string, loginUserInCookie);
+        }
+
+        //  we should check filePost api before isSystemInitialized, because the system initialize
+        // depends on the filePost api(i.e. admin register)
+        const filePostPattern = new RegExp(`^\/${HttpPathItem.API}/${HttpPathItem.FILE}\/?$`, 'i');
+        if (req.method === 'POST' && filePostPattern.test(req.path)) {
+            const reqParam: FileCreateParam = req.body as FileCreateParam;
+            // parameter transform, which has been converted to string by el-uploader component
+            const scenario: FileAPIScenario = Number.parseInt(reqParam.scenario as any, 10);
+            reqParam.scenario = scenario;
+            if (reqParam.scenario === FileAPIScenario.CreateUser) {
+                // only postuser(i.e. user register) does not need to login check
+                next();
+                return;
+            }
+        }
+
+        // check whether system has been initialized
+        if (AppStatus.isSystemInitialized !== true) {
+            throw new ApiError(ApiResultCode.SystemNotInitialized);
+        }
+        // igore login request
+        const sessionPostPattern = new RegExp(`^\/${HttpPathItem.API}/${HttpPathItem.SESSION}\/?$`, 'i');
+        if (req.method === 'POST' && sessionPostPattern.test(req.path)) {
+            next();
+            return;
+        }
+        // check if cookie is available
+        if (await this.$$cookieChecking(loginUserInCookie) === false) {
             res.json({ code: ApiResultCode.Unauthorized }).end();
         } else {
+            CookieUtils.setUserToCookie(res, loginUserInCookie as ILoginUserInfoInCookie);
             next();
         }
     }
 
-
-    protected isLogin(req: Request): boolean {
-        // igore login request
-        if (req.method === 'POST' && req.path === '/api/session') {
-            return true;
+    protected async $$cookieChecking(loginUserInCookie: ILoginUserInfoInCookie | undefined): Promise<boolean> {
+        // verify the login user is still valid and password is still valid
+        if (loginUserInCookie != null) {
+            const loginUserInDBs: UserObject[] = await UserModelWrapper.$$find(
+                { uid: loginUserInCookie.uid } as UserObject) as UserObject[];
+            if (loginUserInDBs != null && loginUserInDBs.length > 0) {
+                if (loginUserInDBs.length === 1) {
+                    if (loginUserInDBs[0].password === loginUserInCookie.password) {
+                        return true;
+                    } else {
+                        LoggerManager.error(`uid:${loginUserInCookie.uid} password incorrect`);
+                    }
+                } else {
+                    LoggerManager.error(`Too many duplicated uid:${loginUserInCookie.uid}`);
+                }
+            } else {
+                LoggerManager.error(`uid:${loginUserInCookie.uid} not in DB`);
+            }
+        } else {
+            LoggerManager.debug('No LoginUser in Cookie');
         }
-        // ignore user(admin or publisher or executor) register
-        if (req.method === 'POST' && req.path === '/api/user') {
-            return true;
-        }
-
-        return CookieUtils.getUserFromCookie(req) != null;
+        return false;
     }
 
     protected handleError(req: Request, res: Response, error: any, statusCode = 200) {
-        // res.status(statusCode).json(error).end();
-        res.json(ApiError.fromError(error)).end();
+        let apiError: ApiError = error;
+        if (!(error instanceof ApiError)) {
+            apiError = ApiError.fromError(error);
+        }
+
+        LoggerManager.error('API Error:', apiError);
+        res.json(apiError).end();
     }
 }

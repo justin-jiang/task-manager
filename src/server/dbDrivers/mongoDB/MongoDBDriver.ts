@@ -1,4 +1,4 @@
-import { LoggersManager } from 'server/libsWrapper/LoggersManager';
+import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import * as mongoose from 'mongoose';
 import { ArgsParser } from 'server/common/ArgsParser';
 export class MongoDBDriver {
@@ -57,23 +57,23 @@ export class MongoDBDriver {
     private static connectionCache: { [key: string]: mongoose.Connection } = {};
 
     private static onDisconnected(info: any) {
-        LoggersManager.error('onDisconnected', info);
+        LoggerManager.error('onDisconnected', info);
         (async () => {
             // ToDo: remove cache item
         })().catch((ex) => {
-            LoggersManager.error(ex);
+            LoggerManager.error(ex);
         });
 
     }
     private static onConnected(info: any) {
-        LoggersManager.info('onConnected', info);
+        LoggerManager.info('onConnected', info);
     }
     private static onError(info: any) {
-        LoggersManager.info('onError', info);
+        LoggerManager.info('onError', info);
         (async () => {
             // ToDo: remove cache item
         })().catch((ex) => {
-            LoggersManager.error(ex);
+            LoggerManager.error(ex);
         });
     }
 }

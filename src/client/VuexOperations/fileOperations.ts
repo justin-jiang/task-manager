@@ -1,43 +1,28 @@
-import { API_PATH_API, API_PATH_USER, API_PATH_FILE, UPLOAD_TYPE_FILE } from '@/common/Constants';
-import { IUserPostParam } from '@/common/requestParams/IUserPostParam';
-import { ApiResultCode } from '@/common/responseResults/ApiResultCode';
-import { IUserView } from '@/common/responseResults/IUserView';
-import axios from 'axios';
+import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
+import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { Commit } from 'vuex';
-import { IStoreActionArgs } from './IStoreActionArgs';
-import { IAdminStoreState } from './IStoreState';
-import { StoreActionNames } from './StoreActionNames';
-import { StoreMutationNames } from './StoreMutationNames';
-import { Utils } from './Utils';
-import { IFilePostParam } from '@/common/requestParams/IFilePostParam';
-import { IAPIResult } from '@/common/responseResults/IAPIResult';
-async function $$getUserList(commit: Commit) {
-    const response = await axios.get('/api/users/');
-    const result = Utils.getApiResultFromResponse(response);
-    if (result.code === ApiResultCode.Success) {
-        commit(StoreMutationNames.updateUserList, result.data);
-    }
-    return result;
-}
+import axios from 'axios';
+import { HttpPathItem } from 'common/HttpPathItem';
+import { HttpUtils } from 'client/VuexOperations/HttpUtils';
+import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 export const actions = {
-
-    // async [StoreActionNames.uploadFile]({ commit }: { commit: Commit }, args: IStoreActionArgs): Promise<IAPIResult> {
-    //     const filePostParam: IFilePostParam = args.data;
-    //     const formData = new FormData();
-    //     formData.append(UPLOAD_TYPE_FILE, filePostParam.fileData);
-    //     formData.append('entryId', filePostParam.entryId);
-    //     formData.append('version', filePostParam.version.toString());
-    //     formData.append('metaData', filePostParam.metaData);
-    //     const response = await axios.post(`/${API_PATH_API}/${API_PATH_FILE}/`,
-    //         formData,
-    //         {
-    //             headers: {
-    //                 'Content-Type': 'multipart/form-data',
-    //             },
-    //         });
-    //     const result = Utils.getApiResultFromResponse(response);
-    //     return result;
-    // },
+    async [StoreActionNames.fileDownload]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
+        const response = await axios.post(
+            `${HttpPathItem.API}/${HttpPathItem.FILE}/${HttpPathItem.DOWNLOAD}`,
+            args.data || {},
+            {
+                responseType: 'blob',
+            });
+        const result: APIResult = { code: ApiResultCode.Success } as APIResult;
+        if (response.status === 200) {
+            result.data = response.data;
+        } else {
+            result.code = ApiResultCode.FILE_FAILED_DOWNLOAD;
+            result.data = `HttpStatus:${response.status}`;
+        }
+        return result;
+    },
 };
 
 export const mutations = {

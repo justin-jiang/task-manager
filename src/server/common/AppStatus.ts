@@ -1,3 +1,3 @@
 export class AppStatus {
-    public static isAppInitialized: boolean = false;
+    public static isSystemInitialized: boolean = false;
 }

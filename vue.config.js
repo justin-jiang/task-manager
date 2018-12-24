@@ -19,5 +19,7 @@ module.exports = {
         pluginElem.tsconfig = clientTSConfig;
       }
     });
+    config.resolve.alias['common'] = path.resolve(__dirname, 'src/common');
+    config.resolve.alias['client'] = path.resolve(__dirname, 'src/client');
   }
 }

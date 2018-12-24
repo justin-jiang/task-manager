@@ -1,6 +1,6 @@
 import * as express from 'express';
 import * as path from 'path';
-import { LoggersManager } from 'server/libsWrapper/LoggersManager';
+import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { ApiRouter } from '../routers/ApiRouter';
 import { BaseExpress } from './BaseExpress';
 
@@ -22,7 +22,7 @@ export class IndexExpress extends BaseExpress {
         super.configExpress();
         // add static paths
         const clientDir: string = path.join(__dirname, 'client');
-        LoggersManager.info(`clientDir:${clientDir}`);
+        LoggerManager.info(`clientDir:${clientDir}`);
         this.expressApp.use(express.static(clientDir));
     }
 
@@ -33,7 +33,7 @@ export class IndexExpress extends BaseExpress {
      * @method api
      */
     protected configRouters(): void {
-        LoggersManager.info('IndexExpress:routers');
+        LoggerManager.info('IndexExpress:routers');
         super.configRouters();
         const indexRouter = new ApiRouter(this.expressRouter);
         indexRouter.mount();
