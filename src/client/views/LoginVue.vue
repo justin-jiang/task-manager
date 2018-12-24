@@ -31,7 +31,8 @@
         type="primary"
         @click="submitForm()"
       >登录</el-button>
-      <el-button @click="goToUserRegister()">注册</el-button>
+      <el-button @click="goToExecutorRegister()">执行人注册</el-button>
+      <el-button @click="goToPublisherRegister()">发布人注册</el-button>
     </el-form-item>
   </el-form>
 </template>

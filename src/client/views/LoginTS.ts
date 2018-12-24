@@ -7,6 +7,7 @@ import { Store } from 'vuex';
 import { IStoreState } from '../VuexOperations/IStoreState';
 import { StoreActionNames } from '../VuexOperations/StoreActionNames';
 import { RouterUtils } from './RouterUtils';
+import { UserRole } from 'common/UserRole';
 interface IFormData {
     name?: string;
     password?: string;
@@ -80,8 +81,11 @@ export class LoginTS extends Vue {
             }
         });
     }
-    private goToUserRegister() {
-        RouterUtils.goToUserRegisterView(this.$router);
+    private goToExecutorRegister(): void {
+        RouterUtils.goToUserRegisterView(this.$router, UserRole.PersonalExecutor);
+    }
+    private goToPublisherRegister(): void {
+        RouterUtils.goToUserRegisterView(this.$router, UserRole.PersonalPublisher);
     }
     // #endregion
 

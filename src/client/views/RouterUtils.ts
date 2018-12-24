@@ -42,8 +42,11 @@ export class RouterUtils {
         router.push({ name: RouterName.Error } as RawLocation);
     }
 
-    public static goToUserRegisterView(router: VueRouter) {
-        router.push({ name: RouterName.UserRegister } as RawLocation);
+    public static goToUserRegisterView(router: VueRouter, role: UserRole) {
+        router.push({
+            name: RouterName.UserRegister,
+            query: { role: role.valueOf().toString() },
+        } as RawLocation);
     }
 
     /**

@@ -20,12 +20,12 @@ export class UserRegisterTS extends Vue {
     private readonly executorRegisterTabName: string = 'executor';
     private readonly publisherRegisterTabName: string = 'publisher';
 
-    private readonly personalPublisher: UserRole = UserRole.PersonalPublisher;
+    private userRole: UserRole = UserRole.PersonalExecutor;
     private activeTabName: string = this.executorRegisterTabName;
     // #endregion
     // #region -- vue life-circle methods
     private mounted(): void {
-
+        this.userRole = Number.parseInt(this.$route.query.role as string, 10);
         (async () => {
             if (this.storeState.sessionInfo == null) {
                 // consider async load, the sub page might be accessed before App.TS done,

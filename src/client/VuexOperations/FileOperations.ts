@@ -1,11 +1,10 @@
-import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
-import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
-import { Commit } from 'vuex';
 import axios from 'axios';
+import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
+import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { HttpPathItem } from 'common/HttpPathItem';
-import { HttpUtils } from 'client/VuexOperations/HttpUtils';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
+import { Commit } from 'vuex';
 export const actions = {
     async [StoreActionNames.fileDownload]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
         const response = await axios.post(
