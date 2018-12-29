@@ -28,7 +28,8 @@
     },
     "include": [
         "src/server/**/*.ts",
-        "src/common/**/*.ts"
+        "src/common/**/*.ts",
+        "src/adminScripts/**/*.ts"
     ],
     "exclude": [
         "node_modules"

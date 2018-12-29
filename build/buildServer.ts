@@ -1,7 +1,9 @@
 
 import * as chalk from 'chalk';
+import * as path from 'path';
 import * as webpack from 'webpack';
 import * as BuildConfig from './webpack.server.conf';
+import * as fs from 'fs';
 // import GitRevisionPlugin = require('git-revision-webpack-plugin');
 // import BundleAnalyzer = require('webpack-bundle-analyzer');
 
@@ -57,6 +59,22 @@ if ((process.env.ANALYZER as any) === 'true') {
     //     + gitRevision.branch() + ':'
     //     + gitRevision.commithash() + ':'
     //     + gitRevision.version());
+
+    console.log('copy other dependencies ...');
+    const dependencies: Array<{ src?: string, dest?: string }> = [];
+    dependencies.push({
+        src: path.join((webpackConfig as any).output.path, '../package.json'),
+        dest: path.join((webpackConfig as any).output.path, 'package.json'),
+    });
+
+    dependencies.push({
+        src: path.join((webpackConfig as any).output.path, '../src/adminScripts/pm2.config.js'),
+        dest: path.join((webpackConfig as any).output.path, 'pm2.config.js'),
+    });
+
+    for (const dep of dependencies) {
+        fs.copyFileSync((dep as any).src, (dep as any).dest);
+    }
 
     console.log((chalk as any).cyan('  Build complete.\n'));
 });

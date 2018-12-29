@@ -6,7 +6,7 @@
           class="upload-qualificationFile"
           drag
           :ref="uploaderRefName"
-          :action="uploadURL"
+          :action="uploadAPIURL"
           :data="uploadData"
           :auto-upload="false"
           :limit="countLimit"

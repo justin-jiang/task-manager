@@ -1,6 +1,6 @@
 <template>
   <el-form
-    v-loading="submitting"
+    v-loading="isSubmitting"
     :model="formDatas"
     status-icon
     :rules="formRules"

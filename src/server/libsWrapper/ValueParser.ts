@@ -1,7 +1,7 @@
-
-
 export class ValueParser {
-    public static parseBoolean(value: string | null | boolean | number, defaultValue: boolean): boolean {
+    public static parseBoolean(
+        value: string | null | boolean | number | undefined,
+        defaultValue: boolean): boolean {
         if (value == null) {
             return defaultValue;
         }
@@ -24,18 +24,16 @@ export class ValueParser {
         }
         return defaultValue;
     }
-    public static parseNumber(value: string, defaultValue: number) {
-        const parsedResult = parseInt(value, 10);
+    public static parseNumber(value: string | number | undefined, defaultValue: number) {
+        if (value == null) {
+            return defaultValue;
+        }
+        const parsedResult = parseInt(value as string, 10);
 
         if (isNaN(parsedResult)) {
             return defaultValue;
         }
 
-        if (parsedResult >= 0) {
-            return parsedResult;
-        }
-
-        return defaultValue;
+        return parsedResult;
     }
-
 }

@@ -1,11 +1,16 @@
 export enum HttpPathItem {
+    ACCEPT = 'accept',
     API = 'api',
+    APPLY = 'apply',
+    CHECK = 'check',
+    DENY = 'deny',
     DOWNLOAD = 'download',
     EDIT = 'edit',
     FILE = 'file',
     QUERY = 'query',
     REMOVE = 'remove',
     SESSION = 'session',
+    TASK = 'task',
     TEMPLATE = 'template',
     USER = 'user',
 }

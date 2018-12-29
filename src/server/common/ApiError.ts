@@ -1,6 +1,10 @@
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import * as mongoose from 'mongoose';
 import { CommonUtils } from 'common/CommonUtils';
+interface IErrorData {
+    originalCode: number;
+    message: string;
+}
 export class ApiError {
     public static fromError(error: any): ApiError {
         const outputError: ApiError = new ApiError(ApiResultCode.SystemError);
@@ -8,12 +12,10 @@ export class ApiError {
             outputError.code = ApiResultCode.DB_VALIDATION_ERROR;
         }
         if (error.code != null) {
-            outputError.data = `orignCode:${error.code}`;
-        } else {
-            outputError.data = error.message;
+            (outputError.data as IErrorData).originalCode = error.code;
         }
         if (error.message != null) {
-            outputError.message = error.message;
+            (outputError.data as IErrorData).message = error.message;
         }
         if (error.stack != null) {
             outputError.stack = error.stack;
@@ -27,21 +29,16 @@ export class ApiError {
     }
 
     public code: ApiResultCode;
-    public message: string;
-    public data?: any;
+    public data?: IErrorData;
     public stack?: string;
 
-    constructor(code: ApiResultCode, message?: string, data?: any) {
+    constructor(code: ApiResultCode, message?: string, data?: IErrorData) {
         this.code = code;
+        this.data = data || {} as IErrorData;
         if (message == null) {
-            this.message = ApiResultCode[code];
+            this.data = { message: ApiResultCode[code] } as IErrorData;
         } else {
-            this.message = message;
-        }
-        if (data) {
-            this.data = data;
-        } else {
-            this.data = message;
+            this.data.message = message;
         }
     }
 }

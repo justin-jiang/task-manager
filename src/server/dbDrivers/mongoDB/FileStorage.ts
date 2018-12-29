@@ -7,6 +7,7 @@ import { mongodbName } from 'server/common/Constants';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { Readable } from 'stream';
 import { MongoDBDriver } from './MongoDBDriver';
+import { FileType } from 'server/common/FileType';
 
 interface DBFiles {
     _id: mongo.ObjectId;
@@ -21,7 +22,13 @@ interface DBFiles {
 //     n: number;
 
 // }
+export interface IFileMetaData {
+    [key: string]: any;
+    type: FileType;
+    checked: boolean;
+}
 export class FileStorage {
+    private static readonly metadataKeyName = 'metadata';
     public static async initialize(): Promise<void> {
         if (this.dbInstance == null || this.grid == null) {
             const conn: mongoose.Connection = await MongoDBDriver.$$getConnection(mongodbName);
@@ -29,18 +36,19 @@ export class FileStorage {
             this.grid = new mongoose.mongo.GridFSBucket(this.dbInstance);
         }
     }
-    public static createWriteStream(fileId: string, version: number, metaData?: any): mongo.GridFSBucketWriteStream {
+    public static createWriteStream(
+        fileId: string, version: number, metadata?: IFileMetaData): mongo.GridFSBucketWriteStream {
         const entryId: string = `${fileId}_${version}`;
+        const options: any = {};
+        options[this.metadataKeyName] = metadata;
         return this.grid.openUploadStreamWithId(
             entryId,
             entryId,
-            {
-                metadata: metaData,
-            });
+            options);
     }
 
     public static async $$saveEntry(
-        fileId: string, version: number, metaData: any, data: Buffer | NodeJS.ReadableStream) {
+        fileId: string, version: number, metadata: IFileMetaData, data: Buffer | NodeJS.ReadableStream) {
         if (CommonUtils.isNullOrEmpty(fileId)) {
             throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM, 'fileId cannot be null on save');
         }
@@ -53,7 +61,7 @@ export class FileStorage {
         while (retryCount > 0) {
             retryCount--;
             try {
-                await this.$$tryToSaveEntry(fileId, version, metaData, data);
+                await this.$$tryToSaveEntry(fileId, version, metadata, data);
                 break;
             } catch (ex) {
                 if (ex.code === 11000) {
@@ -73,6 +81,16 @@ export class FileStorage {
     public static async $$getEntry(files: string[]) {
         const filesCollection: mongo.Collection = this.dbInstance.collection('fs.files');
         return await filesCollection.find({ _id: { $in: files } });
+    }
+    public static async $$updateEntryMeta(entryId: string, metadata: IFileMetaData) {
+        const filesCollection: mongo.Collection = this.dbInstance.collection('fs.files');
+        const valueParam: any = {};
+        Object.keys(metadata).forEach((key) => {
+            valueParam[`${this.metadataKeyName}.${key}`] = metadata[key];
+        });
+        await filesCollection.updateOne(
+            { _id: entryId },
+            { $set: valueParam });
     }
     public static async $$deleteEntry(fileId: string, version?: number): Promise<void> {
         let cursor: mongo.Cursor | undefined;

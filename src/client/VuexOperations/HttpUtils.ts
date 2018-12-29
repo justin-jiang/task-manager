@@ -1,6 +1,6 @@
+import { AxiosResponse } from 'axios';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { AxiosResponse } from 'axios';
 
 export class HttpUtils {
     public static getApiResultFromResponse(response: AxiosResponse<any>): APIResult {

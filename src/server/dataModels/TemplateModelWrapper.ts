@@ -8,7 +8,11 @@ export class TemplateModelWrapper extends BaseModelWrapper {
 
     public static async $$warmUp(): Promise<void> {
         const model: Model<ITemplateModel> = await MongoDBModelManager.$$getTemplateModel();
+        // create default indexes
         await model.createIndexes();
+        // create case-insensitive name index
+        await model.collection.createIndex({ name: 1 },
+            { unique: true, collation: this.caseInsensitiveCollation, name: 'name_1_collation' } as any);
     }
     protected static async getDBModel(): Promise<Model<ITemplateModel>> {
         return await MongoDBModelManager.$$getTemplateModel();

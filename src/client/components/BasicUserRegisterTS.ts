@@ -1,18 +1,26 @@
+import { msgConnectionIssue } from 'client/common/Constants';
+import { InputValidator } from 'client/common/InputValidator';
 import { LoggerManager } from 'client/LoggerManager';
-import { InputValidator } from 'client/views/InputValidator';
+import { CommonUtils } from 'common/CommonUtils';
 import { LIMIT_LOGO_SIZE_M } from 'common/Config';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
 import { HttpUploadKey } from 'common/HttpUploadKey';
-import { FileCreateParam } from 'common/requestParams/FileCreateParam';
+import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserRole } from 'common/UserRole';
 import VueCropper from 'vue-cropperjs';
 import { Component, Prop, Vue } from 'vue-property-decorator';
-import { BasicUserRegisterFormData } from './BasicUserRegisterFormData';
-import { FileAPIScenario } from 'common/FileAPIScenario';
-
+interface IFormData {
+    name?: string;
+    password?: string;
+    confirmPassword?: string;
+    email?: string;
+    telephone?: string;
+    logoBlob?: Blob;
+}
 enum EventNames {
     RegisterSuccess = 'success',
 }
@@ -32,16 +40,19 @@ export class BasicUserRegisterTS extends Vue {
     // #region -- referred props and methods by Vue Page
     private readonly formRefName: string = 'registerForm';
     private readonly uploaderRefName: string = 'logoUploader';
+
+    // used by el-uploader to be the key of the form parmater for the file
     private readonly keyNameOfuploadedFile: string = HttpUploadKey.File;
     // the model of form
-    private readonly formDatas: BasicUserRegisterFormData = {
+    private readonly formDatas: IFormData = {
         name: 'test',
         password: '123456!',
         confirmPassword: '123456!',
         email: 'fdfdfd@ddfd.com',
+        telephone: '1234567890',
     };
 
-    private readonly filePostParam: FileCreateParam = new FileCreateParam();
+    private readonly filePostParam: FileUploadParam = new FileUploadParam();
 
     private isCorpUser: boolean = true;
 
@@ -50,11 +61,11 @@ export class BasicUserRegisterTS extends Vue {
     }
 
     // logoUrl used to show log in client
-    private logoUrl?: string = '';
+    private logoUrl: string = '';
     private cropDialogVisible: boolean = false;
     private isSubmitting: boolean = false;
 
-    private readonly uploadURL = `${HttpPathItem.API}/${HttpPathItem.FILE}`;
+    private readonly uploadAPIURL = `${HttpPathItem.API}/${HttpPathItem.FILE}`;
 
     private readonly formRules: any = {
         name: [
@@ -76,9 +87,11 @@ export class BasicUserRegisterTS extends Vue {
         ],
     };
 
+    private isLogoURLReady(): boolean {
+        return !CommonUtils.isNullOrEmpty(this.logoUrl);
+    }
     /**
-     * 1, firstly upload logo image
-     * 2, if step 1 succeeds, create the admin user
+     *  upload logo image with new user info
      */
     private onSubmitForm() {
         (this.$refs[this.formRefName] as any).validate((valid: boolean) => {
@@ -102,14 +115,16 @@ export class BasicUserRegisterTS extends Vue {
                         finalUserRole = UserRole.PersonalPublisher;
                     }
                 }
-                const userPostParam: UserCreateParam = {
+                const metadataParam: UserCreateParam = {
                     name: this.formDatas.name as string,
                     password: this.formDatas.password as string,
                     email: this.formDatas.email as string,
                     telephone: this.formDatas.telephone as string,
-                    roles: [this.roleProp],
+                    roles: [finalUserRole],
                 };
-                this.filePostParam.metaData = JSON.stringify(userPostParam);
+                // NOTE: to serialize the metadata, otherwize the el-upload will
+                // invoke toString which cannot transfer the data to server correctly
+                this.filePostParam.metadata = JSON.stringify(metadataParam);
                 (this.$refs[this.uploaderRefName] as any).submit();
                 return true;
             } else {
@@ -120,10 +135,11 @@ export class BasicUserRegisterTS extends Vue {
     }
     private resetForm() {
         this.cropDialogVisible = false;
-        this.logoUrl = undefined;
+        this.logoUrl = '';
         (this.$refs[this.formRefName] as any).resetFields();
         (this.$refs[this.uploaderRefName] as any).clearFiles();
     }
+
     private onLogoCropDone(): void {
         this.logoUrl = (this.$refs.cropper as any).getCroppedCanvas().toDataURL();
         const canvas: HTMLCanvasElement = (this.$refs.cropper as any).getCroppedCanvas();
@@ -131,6 +147,7 @@ export class BasicUserRegisterTS extends Vue {
             if (blob != null) {
                 this.formDatas.logoBlob = blob;
             } else {
+                this.logoUrl = '';
                 this.$message.error('获取切图区域失败，请重试');
             }
 
@@ -138,18 +155,17 @@ export class BasicUserRegisterTS extends Vue {
         });
     }
     private onLogoCropCancel(): void {
-        this.logoUrl = undefined;
+        this.logoUrl = '';
         this.formDatas.logoBlob = undefined;
         this.cropDialogVisible = false;
     }
-    private onLogoChange(file: any, fileList: any) {
+    private onLogoChange(file: { raw: File }, fileList: []) {
         if (fileList.length > 0) {
             this.logoUrl = URL.createObjectURL(file.raw);
             if (this.formDatas.logoBlob == null) {
                 this.cropDialogVisible = true;
             }
         }
-
     }
     /**
      * check file size
@@ -157,45 +173,45 @@ export class BasicUserRegisterTS extends Vue {
      */
     private beforeLogoUpload(file: File) {
         const isJPG = file.type === 'image/jpeg';
-        const isLt2M = file.size / 1024 / 1024 < LIMIT_LOGO_SIZE_M;
+        const isLtLimit = file.size / 1024 / 1024 < LIMIT_LOGO_SIZE_M;
 
         if (!isJPG) {
             this.$message.error('上传头像图片只能是 JPG 格式!');
         }
-        if (!isLt2M) {
-            this.$message.error('上传头像图片大小不能超过 2MB!');
+        if (!isLtLimit) {
+            this.$message.error(`上传头像图片大小不能超过 ${LIMIT_LOGO_SIZE_M}MB!`);
         }
-        return isJPG && isLt2M;
+        return isJPG && isLtLimit;
     }
 
     /**
      * upload done and then check the result
-     * @param response 
+     * @param apiResult 
      * @param file 
      * @param fileList 
      */
-    private onLogoFileUploadDone(response: APIResult, file: { raw: File }, fileList: Array<{ raw: File }>) {
+    private onLogoFileUploadDone(apiResult: APIResult, file: { raw: File }, fileList: Array<{ raw: File }>) {
         this.isSubmitting = false;
-        if (response.code !== ApiResultCode.Success) {
-            this.$message.error(`注册失败，失败代码：${response.code}`);
-            this.logoUrl = undefined;
+        if (apiResult.code !== ApiResultCode.Success) {
+            this.$message.error(`注册失败，错误代码：${apiResult.code}`);
+            this.logoUrl = '';
             (this.$refs[this.uploaderRefName] as any).clearFiles();
             Vue.set(this.formDatas, 'logoBlob', undefined);
         } else {
-            this.$emit(EventNames.RegisterSuccess);
+            this.$emit(EventNames.RegisterSuccess, apiResult.data);
         }
     }
     private onLogoFileUploadError(err: Error, file: { raw: File }, fileList: Array<{ raw: File }>) {
         this.isSubmitting = false;
         this.resetForm();
-        this.$message.error('注册失败，请查看网络是否正常');
-        LoggerManager.error('template upload error', err);
+        this.$message.error(msgConnectionIssue);
+        LoggerManager.error('Error:', err);
     }
     // #endregion
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.filePostParam.scenario = FileAPIScenario.CreateUser;
+        this.filePostParam.scenario = FileAPIScenario.UploadUser;
         if (this.roleProp === UserRole.CorpExecutor || this.roleProp === UserRole.CorpPublisher) {
             this.isCorpUser = true;
         } else {
@@ -205,17 +221,6 @@ export class BasicUserRegisterTS extends Vue {
     // #endregion
 
     // #region -- private methods
-    private validatePassword(rule: any, value: string, callback: any) {
-        if (value === '') {
-            callback(new Error('请输入密码'));
-        } else {
-            if (this.formDatas.confirmPassword != null && this.formDatas.confirmPassword !== '') {
-                (this.$refs[this.formRefName] as any).validateField('confirmPassword');
-            }
-            callback();
-        }
-    }
-
     private validateConfirmPassword(rule: any, value: string, callback: any) {
         if (value === '') {
             callback(new Error('请再次输入密码'));
@@ -237,13 +242,6 @@ export class BasicUserRegisterTS extends Vue {
             } else {
                 callback(new Error('电子邮箱格式不正确'));
             }
-        }
-    }
-    private checkName(rule: any, value: string, callback: any) {
-        if (!value) {
-            return callback(new Error('账号名称不能为空'));
-        } else {
-            callback();
         }
     }
     // #endregion

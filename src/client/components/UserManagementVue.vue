@@ -3,7 +3,7 @@
     <el-row>
       <el-col :span="24">
         <el-table
-          :data="userObjs.filter(data => !search || data.name.toLowerCase().includes(search.toLowerCase()))"
+          :data="getUserObjs().filter(data => !search || data.name.toLowerCase().includes(search.toLowerCase()))"
           style="width: 100%"
         >
           <el-table-column
@@ -19,9 +19,10 @@
           <el-table-column
             label="状态"
             prop="state"
+            
           >
           </el-table-column>
-          <el-table-column align="right">
+          <el-table-column align="right" min-width="500">
             <template
               slot="header"
               slot-scope="scope"
@@ -30,17 +31,30 @@
                 v-model="search"
                 size="mini"
                 placeholder="输入关键字搜索"
+                style="width:500px;"
               />
             </template>
             <template slot-scope="scope">
               <el-button
                 size="mini"
-                @click="onTemplateSelect(scope.$index, scope.row)"
-              >编辑</el-button>
+                @click="onQualificationDownload(scope.$index, scope.row)"
+              >下载审核材料</el-button>
+              <el-button
+                size="mini"
+                @click="onUserCheckPass(scope.$index, scope.row)"
+              >通过审核</el-button>
+              <el-button
+                size="mini"
+                @click="onUserCheckDeny(scope.$index, scope.row)"
+              >拒绝审核</el-button>
+              <el-button
+                size="mini"
+                @click="onUserDisable(scope.$index, scope.row)"
+              >禁用</el-button>
               <el-button
                 size="mini"
                 type="danger"
-                @click="onTemplateDelete(scope.$index, scope.row)"
+                @click="onUserDelete(scope.$index, scope.row)"
               >删除</el-button>
             </template>
           </el-table-column>

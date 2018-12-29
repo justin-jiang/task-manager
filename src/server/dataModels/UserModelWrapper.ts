@@ -10,10 +10,13 @@ import { IUserModel, keysOfSchema } from './mongoDB/IUserModel';
 export class UserModelWrapper extends BaseModelWrapper {
     public static async $$warmUp(): Promise<void> {
         AppStatus.isSystemInitialized = false;
-        const userModel: Model<IUserModel> = await MongoDBModelManager.$$getUserModel();
-        await userModel.createIndexes();
-        const admin: IUserModel[] = await userModel.find({ roles: UserRole.Admin });
-
+        const model: Model<IUserModel> = await MongoDBModelManager.$$getUserModel();
+        await model.createIndexes();
+        await model.collection.createIndex({ name: 1 },
+            { unique: true, collation: this.caseInsensitiveCollation, name: 'name_1_collation' } as any);
+        await model.collection.createIndex({ email: 1 },
+            { unique: true, collation: this.caseInsensitiveCollation, name: 'email_1_collation' } as any);
+        const admin: IUserModel[] = await model.find({ roles: UserRole.Admin });
         if (admin != null && admin.length > 0) {
             if (admin.length === 1) {
                 AppStatus.isSystemInitialized = true;
@@ -22,7 +25,6 @@ export class UserModelWrapper extends BaseModelWrapper {
             }
         }
     }
-
 
     protected static async getDBModel(): Promise<Model<IUserModel>> {
         return await MongoDBModelManager.$$getUserModel();

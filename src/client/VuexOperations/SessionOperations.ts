@@ -21,7 +21,7 @@ export const actions = {
         const response = await axios.post(`${HttpPathItem.API}/${HttpPathItem.SESSION}/${HttpPathItem.QUERY}`);
         const result = HttpUtils.getApiResultFromResponse(response);
         if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.updateSessionInfo, result.data);
+            commit(StoreMutationNames.sessionInfoUpdate, result.data);
         }
         return result;
     },
@@ -36,7 +36,7 @@ export const actions = {
         const response = await axios.post(`${HttpPathItem.API}/${HttpPathItem.SESSION}/`, reqParam);
         const result = HttpUtils.getApiResultFromResponse(response);
         if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.updateSessionInfo, result.data);
+            commit(StoreMutationNames.sessionInfoUpdate, result.data);
         }
         return result;
     },
@@ -48,7 +48,7 @@ export const actions = {
             reqParam);
         const result = HttpUtils.getApiResultFromResponse(response);
         if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.updateSessionInfo, result.data);
+            commit(StoreMutationNames.sessionInfoUpdate, {});
         }
         return result;
     },
@@ -60,13 +60,7 @@ export const mutations = {
      * @param {IStoreState} stateInst
      * @param {IUser} user
      */
-    [StoreMutationNames.updateSessionInfo](stateInst: IStoreState, user: UserView) {
-        if (user == null) {
-            LoggerManager.error('sessionInfo should not be null');
-        } else if (user.uid == null || user.name == null) {
-            LoggerManager.error('sessionInfo.uid or sessionInfo.name should not be null');
-        } else {
-            stateInst.sessionInfo = user;
-        }
+    [StoreMutationNames.sessionInfoUpdate](stateInst: IStoreState, user: UserView) {
+        stateInst.sessionInfo = user;
     },
 };

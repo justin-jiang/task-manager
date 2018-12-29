@@ -18,9 +18,7 @@ export class MongoDBDriver {
         const connOptions: mongoose.ConnectionOptions = {
             poolSize: ArgsParser.getPoolSize(),
             keepAlive: 60 * 1000,
-            config: {
-                autoIndex: false,
-            },
+            autoIndex: false,
             useNewUrlParser: true,
         };
         if (ArgsParser.getReplicaSetName() != null) {

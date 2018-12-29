@@ -7,7 +7,7 @@ const compToBeRegistered: any = {
     components: compToBeRegistered,
 })
 export class ErrorTS extends Vue {
-    
+    private errorMessage: string = '服务出错了！';
 
     // #region Vue life-circle method
     private mounted(): void {

@@ -7,8 +7,8 @@
 </template>
 
 <script lang="ts">
-import { AdminUserRegisterTS } from './AdminUserRegisterTS';
-export default class AdminUserRegisterVue extends AdminUserRegisterTS {}
+import { AdminRegisterTS } from './AdminRegisterTS';
+export default class AdminRegisterVue extends AdminRegisterTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

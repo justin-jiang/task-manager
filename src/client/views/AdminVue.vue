@@ -1,5 +1,5 @@
 <template>
-  <div v-loading="!isAdminUserReady">
+  <div v-loading="isLoading">
     <el-row>
       <el-col :span="24">
         <el-menu

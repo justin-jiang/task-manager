@@ -1,5 +1,12 @@
 <template>
-  <ExecutorRegisterVue :userRoleProp="userRole" />
+  <div>
+    <el-row>
+      <el-col :span=24>
+        <ExecutorRegisterVue :userRoleProp="userRole" />
+      </el-col>
+    </el-row>
+  </div>
+
 </template>
 
 <script lang="ts">

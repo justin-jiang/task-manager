@@ -30,7 +30,7 @@
         </el-form-item>
         <el-form-item label="模板文档">
           <SingleFileUploadVue
-            :ref="uploaderForCreateRefName"
+            :ref="uploaderCreateRefName"
             :filePostParamProp="fileCreateParam"
             :fileTypesProp="templateFileTypes"
             :fileSizeMProp="templateFileSizeMLimit"
@@ -132,8 +132,8 @@
                 </el-col>
                 <el-col :span="12">
                   <SingleFileUploadVue
-                    :ref="uploaderForEditRefName"
-                    :filePostParamProp="fileEditParam"
+                    :ref="uploaderEditRefName"
+                    :filePostParamProp="fileUploadParam"
                     :fileTypesProp="templateFileTypes"
                     :fileSizeMProp="templateFileSizeMLimit"
                     buttonTextProp="更新模板文件"

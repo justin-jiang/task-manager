@@ -1,10 +1,16 @@
+import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
 import { IQueryConditions } from 'common/IQueryConditions';
-import { FileCreateParam } from 'common/requestParams/FileCreateParam';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
-import { FileRemoveParam } from 'common/requestParams/FileRemoveParam';
+import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
+import { TaskApplyAcceptParam } from 'common/requestParams/TaskApplyAcceptParam';
+import { TaskApplyDenyParam } from 'common/requestParams/TaskApplyDenyParam';
+import { TaskApplyParam } from 'common/requestParams/TaskApplyParam';
+import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
+import { TaskEditParam } from 'common/requestParams/TaskEditParam';
+import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
 import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
 import { TemplateRemoveParam } from 'common/requestParams/TemplateRemoveParam';
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
@@ -12,20 +18,24 @@ import { UserEditParam } from 'common/requestParams/UserEditParam';
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { ITemplateView } from 'common/responseResults/TemplateView';
+import { TaskView } from 'common/responseResults/TaskView';
+import { TemplateView } from 'common/responseResults/TemplateView';
 import { UserView } from 'common/responseResults/UserView';
+import { UserState } from 'common/UserState';
 import { NextFunction, Request, Response, Router } from 'express';
 import { ApiError } from 'server/common/ApiError';
 import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
 import { UserObject } from 'server/dataObjects/UserObject';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { SessionRequestHandler } from 'server/requestHandlers/SessionRequestHandler';
+import { TaskRequestHandler } from 'server/requestHandlers/TaskRequestHandler';
 import { LoggerManager } from '../libsWrapper/LoggerManager';
 import { FileRequestHandler } from '../requestHandlers/FileRequestHandler';
 import { TemplateRequestHandler } from '../requestHandlers/TemplateRequestHandler';
 import { UserRequestHandler } from '../requestHandlers/UserRequestHandler';
 import { BaseRouter } from './BaseRouter';
 import { ApiBuilder, IApiHandlers, UploadType } from './builders/ApiBuilder';
+import { UserCheckParam } from 'common/requestParams/UserCheckParam';
 /**
  * API Router for all the /api/* RESTful URI
  *
@@ -48,26 +58,26 @@ export class ApiRouter extends BaseRouter {
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.REMOVE}`, {
             post: this.$$userRemove.bind(this),
         } as IApiHandlers);
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.CHECK}`, {
+            post: this.$$userCheck.bind(this),
+        } as IApiHandlers);
         // #endregion
 
         // #region -- build template API
-        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TEMPLATE}`, {
-            post: this.$$templateCreate,
-        } as IApiHandlers);
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TEMPLATE}/${HttpPathItem.QUERY}`, {
-            post: this.$$templateQuery,
+            post: this.$$templateQuery.bind(this),
         } as IApiHandlers);
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TEMPLATE}/${HttpPathItem.REMOVE}`, {
-            post: this.$$templateRemove,
+            post: this.$$templateRemove.bind(this),
         } as IApiHandlers);
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TEMPLATE}/${HttpPathItem.EDIT}`, {
-            post: this.$$templateEdit,
+            post: this.$$templateInfoEdit.bind(this),
         } as IApiHandlers);
         // #endregion
 
         // #region -- build file API
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.FILE}`, {
-            post: this.$$fileCreate.bind(this),
+            post: this.$$fileUpload.bind(this),
         } as IApiHandlers,
             UploadType.File);
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.FILE}/${HttpPathItem.DOWNLOAD}`, {
@@ -86,6 +96,35 @@ export class ApiRouter extends BaseRouter {
             post: this.$$sessionRemove.bind(this),
         } as IApiHandlers);
         // #endregion
+
+        // #region -- build Task Api
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TASK}`, {
+            post: this.$$taskCreate.bind(this),
+        } as IApiHandlers);
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.QUERY}`, {
+            post: this.$$taskQuery.bind(this),
+        } as IApiHandlers);
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.EDIT}`, {
+            post: this.$$taskEdit.bind(this),
+        } as IApiHandlers);
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.REMOVE}`, {
+            post: this.$$taskRemove.bind(this),
+        } as IApiHandlers);
+        // api for executor to apply a task
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.APPLY}`, {
+            post: this.$$taskApply.bind(this),
+        } as IApiHandlers);
+        // api for publisher to accept a task
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.APPLY}/${HttpPathItem.ACCEPT}`, {
+                post: this.$$taskApplyAccept.bind(this),
+            } as IApiHandlers);
+        // api for publisher to deny a task
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.APPLY}/${HttpPathItem.DENY}`, {
+                post: this.$$taskApplyDeny.bind(this),
+            } as IApiHandlers);
+        // #endregion
     }
 
     // #region -- User relative API entry
@@ -98,6 +137,11 @@ export class ApiRouter extends BaseRouter {
     private async $$userQuery(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: IQueryConditions = req.body as IQueryConditions;
+        // only admin can do the user list query
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        if (!CommonUtils.isAdmin(currentUser.roles)) {
+            throw new ApiError(ApiResultCode.Auth_Forbidden);
+        }
         const views: UserView[] = await UserRequestHandler.$$find(reqParam);
         apiResult.data = views;
         res.json(apiResult).end();
@@ -106,15 +150,26 @@ export class ApiRouter extends BaseRouter {
     private async $$userEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: UserEditParam = req.body as UserEditParam;
-        // ToDo: support bulk edit
-        await UserRequestHandler.$$updateOne(reqParam);
+        // only admin or self user can update himself
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        if (!CommonUtils.isAdmin(currentUser.roles) && currentUser.uid !== reqParam.uid) {
+            throw new ApiError(ApiResultCode.Auth_Forbidden);
+        }
+        await UserRequestHandler.$$updateOne(reqParam, currentUser);
         res.json(apiResult).end();
     }
     private async $$userRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: UserRemoveParam = req.body as UserRemoveParam;
-        // then delete template item
-        await UserRequestHandler.$$deleteOne(reqParam.uid);
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        await UserRequestHandler.$$remove(reqParam, currentUser);
+        res.json(apiResult).end();
+    }
+    private async $$userCheck(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: UserCheckParam = req.body as UserCheckParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        apiResult.data = await UserRequestHandler.$$check(reqParam, currentUser);
         res.json(apiResult).end();
     }
     // #endregion
@@ -126,69 +181,88 @@ export class ApiRouter extends BaseRouter {
      * @param res 
      * @param next 
      */
-    private async $$templateCreate(req: Request, res: Response, next: NextFunction) {
-        throw new ApiError(ApiResultCode.ApiNotImplemented,
-            'please use file post api to creat template and upload template file');
-    }
     private async $$templateQuery(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: IQueryConditions = req.body as IQueryConditions;
-        const views: ITemplateView[] = await TemplateRequestHandler.$$find(reqParam);
+        // every one can query the template
+        const views: TemplateView[] = await TemplateRequestHandler.$$find(reqParam);
         apiResult.data = views;
         res.json(apiResult).end();
     }
     private async $$templateRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: TemplateRemoveParam = req.body as TemplateRemoveParam;
-        const fileDeleteParam: FileRemoveParam = {
-            fileId: reqParam.templateFileId,
-        } as FileRemoveParam;
-        // delete all template file
-        await FileRequestHandler.$$deleteOne(fileDeleteParam);
-        // then delete template item
-        await TemplateRequestHandler.$$deleteOne(reqParam.uid);
+        // only admin can remove template
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        await TemplateRequestHandler.$$remove(reqParam, currentUser);
         res.json(apiResult).end();
     }
 
-    private async $$templateEdit(req: Request, res: Response, next: NextFunction) {
+    private async $$templateInfoEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: TemplateEditParam = req.body as TemplateEditParam;
-        // ToDo: support bulk edit
-        await TemplateRequestHandler.$$updateOne(reqParam);
+        // only admin can edit template
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        if (!CommonUtils.isAdmin(currentUser.roles)) {
+            throw new ApiError(ApiResultCode.Auth_Forbidden);
+        }
+        apiResult.data = await TemplateRequestHandler.$$edit(reqParam);
+        if (apiResult.data == null) {
+            apiResult.code = ApiResultCode.DB_NOT_FOUND;
+        }
         res.json(apiResult).end();
     }
     // #endregion
 
     // #region -- File relative API entry
     /**
-     * post file(logo image or template file)
+     * upload file with or without DBObject, e.g. 
+     * 1, logo image with a new user to register a new user
+     * 2, template file with a new template to create a new template
+     * 3, log image without user object to update the crrent user log
+     * 4, template file without template object to update the template file
      * @param req 
      * @param res 
      * @param next 
      */
-    private async $$fileCreate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    private async $$fileUpload(req: Request, res: Response, next: NextFunction): Promise<void> {
         const apiResult: APIResult = { code: ApiResultCode.Success };
-        const reqParam: FileCreateParam = req.body as FileCreateParam;
+        const reqParam: FileUploadParam = req.body as FileUploadParam;
+        if (req.file == null) {
+            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM, 'req.file should not be null');
+        }
         let currentDBUser: UserObject | undefined;
         switch (reqParam.scenario) {
-            case FileAPIScenario.CreateQualification:
-            case FileAPIScenario.EditQualificationFile:
+            case FileAPIScenario.UpdateQualificationFile:
+                // don't need to check permission, every user can upload his owned qualification file
                 currentDBUser = await this.$$getCurrentUser(req);
-                await FileRequestHandler.$$createOrEditQualification(req.file, reqParam, currentDBUser);
+                await FileRequestHandler.$$updateQualification(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.CreateTemplate:
-            case FileAPIScenario.EditTemplateFile:
-                await FileRequestHandler.$$createTemplate(req.file, reqParam);
+            case FileAPIScenario.UploadTemplate:
+                //  only Admin can create or edit Template File
+                currentDBUser = await this.$$getCurrentUser(req);
+                await FileRequestHandler.$$createTemplate(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.CreateUser:
+            case FileAPIScenario.UpdateTemplateFile:
+                //  only Admin can create or edit Template File
+                currentDBUser = await this.$$getCurrentUser(req);
+                await FileRequestHandler.$$updateTemplateFile(req.file, reqParam, currentDBUser);
+                break;
+            case FileAPIScenario.UploadUser:
+                //  everyone can do the user(executor or publisher) register
                 const view: UserView = await FileRequestHandler.$$createUser(req.file, reqParam);
-                const metaData: UserCreateParam = JSON.parse(reqParam.metaData as string);
+                const metadata: UserCreateParam = JSON.parse(reqParam.metadata as string);
                 CookieUtils.setUserToCookie(
-                    res, { uid: view.uid, password: metaData.password } as ILoginUserInfoInCookie);
+                    res, { uid: view.uid, password: metadata.password } as ILoginUserInfoInCookie);
+                apiResult.data = view;
                 break;
-            case FileAPIScenario.EditUserLogo:
+            case FileAPIScenario.UpdateUserLogo:
                 currentDBUser = await this.$$getCurrentUser(req);
                 await FileRequestHandler.$$updateUserLogo(req.file, reqParam, currentDBUser);
+                break;
+            case FileAPIScenario.UpdateTaskResultFile:
+                currentDBUser = await this.$$getCurrentUser(req);
+                await FileRequestHandler.$$updateTaskResultFile(req.file, reqParam, currentDBUser);
                 break;
             default:
                 LoggerManager.error(`Invalid API Scenario:${reqParam.scenario}`);
@@ -199,11 +273,8 @@ export class ApiRouter extends BaseRouter {
 
     private async $$fileDownload(req: Request, res: Response, next: NextFunction): Promise<void> {
         const reqParam: FileDownloadParam = req.body as FileDownloadParam;
-        // transform request param
-        const scenario: FileAPIScenario = Number.parseInt(reqParam.scenario as any, 10);
-        reqParam.scenario = scenario;
-        reqParam.version = Number.parseInt(reqParam.version as any, 10);
-        await FileRequestHandler.$$getOne(reqParam, res);
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        await FileRequestHandler.$$download(reqParam, currentUser, res);
     }
     // #endregion
 
@@ -215,7 +286,7 @@ export class ApiRouter extends BaseRouter {
      * @param next 
      */
     private async $$sessionCreate(req: Request, res: Response, next: NextFunction) {
-        const apiResult: APIResult = { code: ApiResultCode.Unauthorized };
+        const apiResult: APIResult = { code: ApiResultCode.Auth_Unauthorized };
         const reqParam: SessionCreateParam = req.body as SessionCreateParam;
         const loginUser: UserView | undefined = await SessionRequestHandler.$$sessionCreate(reqParam, res);
         if (loginUser != null) {
@@ -231,7 +302,7 @@ export class ApiRouter extends BaseRouter {
      * @param next 
      */
     private async $$sessionQuery(req: Request, res: Response, next: NextFunction) {
-        const apiResult: APIResult = { code: ApiResultCode.Unauthorized };
+        const apiResult: APIResult = { code: ApiResultCode.Auth_Unauthorized };
         const userCookie: ILoginUserInfoInCookie | undefined = CookieUtils.getUserFromCookie(req);
         if (userCookie != null) {
             if (userCookie.uid != null) {
@@ -255,10 +326,127 @@ export class ApiRouter extends BaseRouter {
     }
     // #endregion
 
+    // #region -- task relative API
+    /**
+     * publisher publishes task
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskCreate(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: TaskCreateParam = req.body as TaskCreateParam;
+        const currentUser = await this.$$getCurrentUser(req);
+        const view: TaskView = await TaskRequestHandler.$$create(reqParam, currentUser);
+        apiResult.data = view;
+        res.json(apiResult).end();
+    }
+    /**
+     * Executor or Publisher to query available task
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskQuery(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        if (currentUser.state !== UserState.Ready) {
+            LoggerManager.error(`User:${currentUser.name} state(${currentUser.state}) is not ready`);
+            throw new ApiError(ApiResultCode.Auth_Forbidden);
+        }
+        const views: TaskView[] = await TaskRequestHandler.$$query(currentUser);
+        apiResult.data = views;
+        res.json(apiResult).end();
+    }
+
+    private async $$taskEdit(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: TaskEditParam = req.body as TaskEditParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        const view: TaskView | null = await TaskRequestHandler.$$edit(reqParam, currentUser);
+        apiResult.data = view;
+        res.json(apiResult).end();
+    }
+
+    /**
+     * Publisher or Admin remove specified task
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskRemove(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: TaskRemoveParam = req.body as TaskRemoveParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        // then delete task item
+        const view: TaskView = await TaskRequestHandler.$$remove(reqParam, currentUser);
+        apiResult.data = view;
+        res.json(apiResult).end();
+    }
+
+    /**
+     * Executor to apply the task
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskApply(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: TaskApplyParam = req.body as TaskApplyParam;
+        if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
+            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+                'TaskApplyParam.uid should not be null');
+        }
+        // only ready executor can apply task
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        apiResult.data = await TaskRequestHandler.$$apply(reqParam, currentUser);
+        res.json(apiResult).end();
+    }
+
+    /**
+     * publisher to accept a task apply
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskApplyAccept(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: TaskApplyAcceptParam = req.body as TaskApplyAcceptParam;
+        if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
+            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+                'TaskApplyAcceptParam.uid should not be null');
+        }
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        const taskView: TaskView = await TaskRequestHandler.$$applyAccept(reqParam, currentUser);
+        apiResult.data = taskView;
+        res.json(apiResult).end();
+    }
+
+    /**
+     * publisher to deny a task apply
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskApplyDeny(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: TaskApplyDenyParam = req.body as TaskApplyDenyParam;
+        if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
+            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+                'TaskApplyDenyParam.uid should not be null');
+        }
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        const taskView: TaskView = await TaskRequestHandler.$$applyDeny(reqParam, currentUser);
+        apiResult.data = taskView;
+        res.json(apiResult).end();
+    }
+    // #endregion
+
     // #region -- internal props and methods
     private async $$getCurrentUser(req: Request): Promise<UserObject> {
         const loginUserInCookie: ILoginUserInfoInCookie =
             CookieUtils.getUserFromCookie(req) as ILoginUserInfoInCookie;
+        // TODO: consider to use cache
         const dbUsers: UserObject[] = await UserModelWrapper.$$find(
             { uid: loginUserInCookie.uid } as UserObject) as UserObject[];
         if (dbUsers == null || dbUsers.length === 0) {
@@ -266,5 +454,5 @@ export class ApiRouter extends BaseRouter {
         }
         return dbUsers[0];
     }
-    // #end-region
+    // #endregion
 }

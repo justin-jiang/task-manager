@@ -1,13 +1,13 @@
 import { IQueryConditions } from 'common/IQueryConditions';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { Model } from 'mongoose';
+import { Model, ModelFindOneAndUpdateOptions } from 'mongoose';
 import { ApiError } from 'server/common/ApiError';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { DBObject } from '../dataObjects/DBObject';
 import { IModel } from './mongoDB/IModel';
-import { CommonUtils } from 'common/CommonUtils';
 
 export class BaseModelWrapper {
+    protected static caseInsensitiveCollation = { locale: 'en', strength: 2 };
     public static async $$create(dbObject: DBObject): Promise<DBObject> {
         const dbModel: Model<IModel> = await this.getDBModel();
         const modelData: IModel = await dbModel.create(dbObject);
@@ -22,34 +22,54 @@ export class BaseModelWrapper {
         });
         return dbObjs;
     }
-    // public static async $$update(conditions: IQueryConditions, dbObject: DBObject): Promise<DBObject[]> {
-    //     const userModel: Model<IModel> = await this.getDBModel();
-    //     const modelData: IModel[] = await userModel.find(conditions);
-    //     userModel.update();
-    //     const dbObjs: DBObject[] = [];
-    //     modelData.forEach((dbUser: IModel) => {
-    //         dbObjs.push(this.convertModelToDBObject(dbUser));
-    //     });
-    //     return dbObjs;
-    // }
-    public static async $$updateOne(dbObject: DBObject): Promise<void> {
-        if (CommonUtils.isNullOrEmpty(dbObject.uid)) {
-            LoggerManager.error('uid should not be null on $$updateOne', dbObject);
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM, 'uid should not be null on $$updateOne');
-        }
+    public static async $$findOne(conditions: IQueryConditions): Promise<DBObject | null> {
         const dbModel: Model<IModel> = await this.getDBModel();
-        const result = await dbModel.updateOne({ uid: dbObject.uid } as DBObject, dbObject);
+        const modelData: IModel | null = await dbModel.findOne(conditions);
+        if (modelData == null) {
+            return null;
+        }
+        return this.convertModelToDBObject(modelData);
+    }
+    public static async $$updateOne(conditions: IQueryConditions, dbObj: DBObject): Promise<void> {
+
+        const dbModel: Model<IModel> = await this.getDBModel();
+        const result = await dbModel.updateOne(conditions, dbObj);
         LoggerManager.debug('$$updateOne result:', result);
     }
-
-    public static async $$deleteOne(uid: string): Promise<void> {
-        if (CommonUtils.isNullOrEmpty(uid)) {
-            LoggerManager.error('uid should not be null on $$deleteOne');
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM, 'uid should not be null on $$deleteOne');
-        }
+    public static async $$findOneAndUpdate(conditions: IQueryConditions, dbObj: DBObject): Promise<DBObject | null> {
         const dbModel: Model<IModel> = await this.getDBModel();
-        const result = await dbModel.deleteOne({ uid } as DBObject);
+        const result = await dbModel.findOneAndUpdate(
+            conditions,
+            dbObj,
+            { new: true } as ModelFindOneAndUpdateOptions);
+        LoggerManager.debug('$$updateOne result:', result);
+        if (result == null) {
+            return null;
+        }
+        return this.convertModelToDBObject(result as IModel);
+    }
+
+    public static async $$findeOneAndDelete(conditions: IQueryConditions): Promise<DBObject | null> {
+        const dbModel: Model<IModel> = await this.getDBModel();
+        const result = await dbModel.findOneAndDelete(conditions);
         LoggerManager.debug('$$deleteOne result:', result);
+        if (result == null) {
+            return null;
+        } else {
+            return this.convertModelToDBObject(result);
+        }
+    }
+
+    public static async $$deleteOne(conditions: IQueryConditions): Promise<void> {
+        const dbModel: Model<IModel> = await this.getDBModel();
+        const result = await dbModel.deleteOne(conditions);
+        LoggerManager.debug('$$deleteOne result:', result);
+    }
+
+    public static async $$deleteMany(conditions: IQueryConditions): Promise<void> {
+        const dbModel: Model<IModel> = await this.getDBModel();
+        const result = await dbModel.deleteMany(conditions);
+        LoggerManager.debug('$$deleteMany result:', result);
     }
 
     protected static async getDBModel(): Promise<Model<IModel>> {

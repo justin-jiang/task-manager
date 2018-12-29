@@ -1,14 +1,13 @@
+import { msgConnectionIssue } from 'client/common/Constants';
+import { RouterUtils } from 'client/common/RouterUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
 import { LoggerManager } from 'client/LoggerManager';
-import { RouterUtils } from 'client/views/RouterUtils';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { FileAPIScenario } from 'common/FileAPIScenario';
-import { HttpPathItem } from 'common/HttpPathItem';
-import { FileCreateParam } from 'common/requestParams/FileCreateParam';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
-import { FileEditParam } from 'common/requestParams/FileEditParam';
+import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { TemplateCreateParam } from 'common/requestParams/TemplateCreateParam';
 import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
 import { TemplateFileEditParam } from 'common/requestParams/TemplateFileEditParam';
@@ -19,10 +18,6 @@ import { TemplateView } from 'common/responseResults/TemplateView';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ISingleFileUploadTS } from './SingleFileUploadTS';
-interface IFormData {
-    name: string;
-    note: string;
-}
 
 const compToBeRegistered: any = {
     SingleFileUploadVue,
@@ -32,7 +27,7 @@ const compToBeRegistered: any = {
     components: compToBeRegistered,
 })
 export class TemplateManagementTS extends Vue {
-    // #region -- props and methods for Vue Page or shared among child components
+    // #region -- props and methods for whole Vue Page
     private readonly templageCreationTabName: string = 'TemplateCreation';
     private readonly templateEditTabName: string = 'TemplateEdit';
     private activeTabName: string = this.templateEditTabName;
@@ -41,18 +36,12 @@ export class TemplateManagementTS extends Vue {
     // #endregion
 
     // #region -- referred props and methods by Template creation Tab
-    private readonly formCreateRefName = 'templateCreateForm';
-    private readonly uploaderForCreateRefName = 'uploaderForCreate';
-    private readonly uploadURL = `${HttpPathItem.API}/${HttpPathItem.FILE}`;
-
-    private readonly templateCountLimit = 1;
-    private templateFileList: File[] = [];
+    private readonly formCreateRefName = 'formCreate';
+    private readonly uploaderCreateRefName = 'uploaderCreate';
 
     private readonly formCreateDatas: TemplateCreateParam = new TemplateCreateParam();
 
-    private readonly fileCreateParam: FileCreateParam = new FileCreateParam();
-
-    private submitting: boolean = false;
+    private readonly fileCreateParam: FileUploadParam = new FileUploadParam();
 
     private readonly formRules: any = {
         name: [
@@ -61,24 +50,6 @@ export class TemplateManagementTS extends Vue {
         ],
     };
 
-    private templateFileReady(): boolean {
-        return this.templateFileList.length > 0;
-    }
-
-    private submitForm() {
-        (this.$refs[this.formCreateRefName] as any).validate((valid: boolean) => {
-            if (valid) {
-                this.submitting = true;
-                (this.$refs[this.uploaderForCreateRefName] as any).submit();
-            } else {
-                this.$message({
-                    message: '提交前，请检测表单是否填写正确',
-                    type: 'warning',
-                });
-                return false;
-            }
-        });
-    }
     private onTemplateCreateSuccess() {
         this.$message.success('模板创建成功');
         this.resetTemplateCreateForm();
@@ -97,10 +68,10 @@ export class TemplateManagementTS extends Vue {
     private search: string = '';
     private readonly activeCollapseNames: string[] = [];
     private readonly editCollapseName: string = 'edit';
-    private readonly formEditRefName = 'templateEditForm';
-    private readonly uploaderForEditRefName = 'uploaderForEdit';
-    private readonly formEditDatas: TemplateEditParam = new TemplateEditParam();
-    private readonly fileEditParam: FileEditParam = new FileEditParam();
+    private readonly formEditRefName = 'formEdit';
+    private readonly uploaderEditRefName = 'uploaderEdit';
+    private formEditDatas: TemplateEditParam = new TemplateEditParam();
+    private fileUploadParam: FileUploadParam = new FileUploadParam();
     private selectedTemplateIndex: number | undefined = undefined;
 
     private isBasicInfoUpdated(): boolean {
@@ -138,13 +109,12 @@ export class TemplateManagementTS extends Vue {
                     {
                         data: {
                             uid: item.uid,
-                            templateFileId: item.templateFileId,
                         } as TemplateRemoveParam,
                     } as IStoreActionArgs);
                 if (result.code === ApiResultCode.Success) {
                     this.templateObjs.splice(index, 1);
                 } else {
-                    this.$message.error(`删除模板信息失败，失败代码：${result.code}`);
+                    this.$message.error(`删除模板信息失败，错误代码：${result.code}`);
                 }
             })().catch((ex) => {
                 RouterUtils.goToErrorView(this.$router);
@@ -172,11 +142,12 @@ export class TemplateManagementTS extends Vue {
                 document.body.appendChild(link);
                 link.click();
             } else {
-                this.$message.error(`模板文件下载失败，失败代码：${result.code}`);
+                this.$message.error(`模板文件下载失败，错误代码：${result.code}`);
             }
 
         })().catch((ex) => {
             RouterUtils.goToErrorView(this.$router);
+            LoggerManager.error('Error:', ex);
         });
     }
 
@@ -221,16 +192,16 @@ export class TemplateManagementTS extends Vue {
     private mounted() {
         (async () => {
             // init template creation required data
-            this.fileCreateParam.scenario = FileAPIScenario.CreateTemplate;
-            this.fileCreateParam.metaData = this.formCreateDatas;
-            this.fileEditParam.scenario = FileAPIScenario.EditTemplateFile;
-            this.fileEditParam.metaData = new TemplateFileEditParam();
+            this.fileCreateParam.scenario = FileAPIScenario.UploadTemplate;
+            this.fileCreateParam.metadata = this.formCreateDatas;
+            this.fileUploadParam.scenario = FileAPIScenario.UpdateTemplateFile;
+            this.fileUploadParam.metadata = new TemplateFileEditParam();
 
             // init template edit required data
             this.$$pullTemplateObjs();
         })().catch((ex) => {
-            this.$message.error('链接失败，请检查网络连接是否正常');
-            LoggerManager.error(ex);
+            this.$message.error(msgConnectionIssue);
+            LoggerManager.error('ERROR:', ex);
         });
     }
     // #endregion
@@ -239,38 +210,43 @@ export class TemplateManagementTS extends Vue {
     private readonly store = (this.$store as Store<IStoreState>);
     private async $$pullTemplateObjs(): Promise<void> {
         const result: APIResult = await this.store.dispatch(
-            StoreActionNames.templateQuery, { data: {} } as IStoreActionArgs);
+            StoreActionNames.templateQuery, { notUseLocalData: true } as IStoreActionArgs);
         if (result.code === ApiResultCode.Success) {
             this.templateObjs = result.data;
         } else {
-            this.$message.error(`获取模板信息失败，失败代码${result.code}`);
+            this.$message.error(`获取模板信息失败，错误代码：${result.code}`);
+            RouterUtils.goToErrorView(this.$router);
         }
     }
 
     private resetTemplateCreateForm() {
         (this.$refs[this.formCreateRefName] as any).resetFields();
-        (this.$refs[this.uploaderForCreateRefName] as any as ISingleFileUploadTS).reset();
+        (this.$refs[this.uploaderCreateRefName] as any as ISingleFileUploadTS).reset();
     }
 
     private syncTemplateEditForm(): void {
+        const newFormEditData: TemplateEditParam = {};
+        const newFileUploadData: FileUploadParam = {};
+        newFileUploadData.metadata = new TemplateFileEditParam();
         if (this.selectedTemplateIndex == null) {
-            this.formEditDatas.uid = '';
-            this.formEditDatas.name = '';
-            this.formEditDatas.note = '';
-            (this.fileEditParam.metaData as TemplateFileEditParam).uid = '';
-            (this.fileEditParam.metaData as TemplateFileEditParam).version = -1;
+            newFormEditData.uid = '';
+            newFormEditData.name = '';
+            newFormEditData.note = '';
+            newFileUploadData.scenario = this.fileUploadParam.scenario;
+            newFileUploadData.metadata.templateId = '';
         } else {
             const selectedTemplate: TemplateView = this.templateObjs[this.selectedTemplateIndex];
-            this.formEditDatas.uid = selectedTemplate.uid;
-            this.formEditDatas.name = selectedTemplate.name;
-            this.formEditDatas.note = selectedTemplate.note;
-            (this.fileEditParam.metaData as TemplateFileEditParam).uid = selectedTemplate.templateFileId;
-            (this.fileEditParam.metaData as TemplateFileEditParam).version = selectedTemplate.version;
-
+            newFormEditData.uid = selectedTemplate.uid;
+            newFormEditData.name = selectedTemplate.name;
+            newFormEditData.note = selectedTemplate.note;
+            newFileUploadData.scenario = this.fileUploadParam.scenario;
+            newFileUploadData.metadata.templateId = selectedTemplate.templateFileId;
         }
+        this.formEditDatas = newFormEditData;
+        this.fileUploadParam = newFileUploadData;
     }
     private resetTemplateEditUploader(): void {
-        (this.$refs[this.uploaderForEditRefName] as any as ISingleFileUploadTS).reset();
+        (this.$refs[this.uploaderEditRefName] as any as ISingleFileUploadTS).reset();
     }
     // #endregion
 }

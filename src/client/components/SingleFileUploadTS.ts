@@ -1,10 +1,11 @@
 import { LoggerManager } from 'client/LoggerManager';
+import { CommonUtils } from 'common/CommonUtils';
 import { HttpPathItem } from 'common/HttpPathItem';
-import { FileCreateParam } from 'common/requestParams/FileCreateParam';
+import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { Component, Prop, Vue } from 'vue-property-decorator';
-import { CommonUtils } from 'common/CommonUtils';
+import { msgConnectionIssue } from 'client/common/Constants';
 enum EventNames {
     UploadSuccess = 'success',
 }
@@ -22,7 +23,9 @@ export interface ISingleFileUploadTS {
 })
 export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     // #region -- component props and methods
-    @Prop() public filePostParamProp!: FileCreateParam | undefined;
+    @Prop() public filePostParamProp!: FileUploadParam | undefined;
+
+    // the submit button text
     @Prop() public buttonTextProp!: | undefined;
 
     @Prop() public fileTypesProp!: string[] | undefined;
@@ -36,7 +39,7 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
 
     // #region -- referred props and methods for uploader
     private readonly uploaderRefName = 'fileUploader';
-    private readonly uploadURL = `${HttpPathItem.API}/${HttpPathItem.FILE}`;
+    private readonly uploadAPIURL = `${HttpPathItem.API}/${HttpPathItem.FILE}`;
 
     // defaut button text which will be overridden by buttonTextProp if it is not null
     private buttonText: string = '点击上传';
@@ -63,7 +66,9 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
         return `可上传文件类型：${fileTypes}，可上传文件最大值：${fileSizeLimit}`;
     }
 
-    private uploadData: FileCreateParam = new FileCreateParam();
+    // used by el-uploader to upload the data with file together
+    // which is used to create correponding DB object
+    private uploadData: FileUploadParam = new FileUploadParam();
 
     private beforeUpload(file: File): boolean {
         let isTypeMatched: boolean = true;
@@ -90,8 +95,8 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
             return;
         }
         Object.assign(this.uploadData, this.filePostParamProp);
-        if (this.uploadData.metaData instanceof Object) {
-            this.uploadData.metaData = JSON.stringify(this.uploadData.metaData);
+        if (this.uploadData.metadata instanceof Object) {
+            this.uploadData.metadata = JSON.stringify(this.uploadData.metadata);
         }
 
         (this.$refs[this.uploaderRefName] as any).submit();
@@ -110,16 +115,16 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
             this.$emit(EventNames.UploadSuccess);
         } else {
             if (response.code === ApiResultCode.DB_DUPLICATE_KEY) {
-                this.$message.error(`项目重复，上传失败，失败代码：${response.code}`);
+                this.$message.error(`所上传对象已存在，上传失败，错误代码：${response.code}`);
             } else {
-                this.$message.error(`上传失败，失败代码：${response.code}`);
+                this.$message.error(`上传失败，错误代码：${response.code}`);
             }
             (this.$refs[this.uploaderRefName] as any).clearFiles();
         }
     }
     private onFileUploadError(err: Error, file: { raw: File }, fileList: Array<{ raw: File }>) {
-        this.$message.error('上传失败，请查看网络是否正常');
-        LoggerManager.error('file upload error', err);
+        this.$message.error(msgConnectionIssue);
+        LoggerManager.error('Error:', err);
     }
     // #endregion
 

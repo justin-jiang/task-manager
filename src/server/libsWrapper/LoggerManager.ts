@@ -53,14 +53,6 @@ export class LoggerManager {
         });
 
         const customTransports: any = [];
-        customTransports.push(new transports.Console({
-            level: 'debug',
-            format: format.combine(
-                format.colorize(),
-                format.metadata(),
-                myFormat,
-            ),
-        }));
         if (!this.initParam.isDebug) {
             const rollingFaleTransport = new DailyRotateFile({
                 dirname: './logs',
@@ -70,11 +62,20 @@ export class LoggerManager {
                 maxsize: '100m',
                 level: 'info',
                 format: format.combine(
-                    format.splat(),
+                    format.metadata(),
                     myFormat,
                 ),
             });
             customTransports.push(rollingFaleTransport);
+        } else {
+            customTransports.push(new transports.Console({
+                level: 'debug',
+                format: format.combine(
+                    format.colorize(),
+                    format.metadata(),
+                    myFormat,
+                ),
+            }));
         }
         LoggerManager.loggerInst = createLogger({
             transports: customTransports,
@@ -120,6 +121,9 @@ export class LoggerManager {
             LoggerManager.initialize({});
         }
         LoggerManager.loggerInst.log(level, msg, callback);
+        if (this.initParam.isDebug && callback != null) {
+            callback();
+        }
     }
 
 

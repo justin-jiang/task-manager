@@ -9,7 +9,8 @@ function resolve(dir: any) {
 export const config: webpack.Configuration = {
     context: resolve('./'),
     entry: {
-        serverApp: './src/server/main.ts',
+        taskManager: './src/server/main.ts',
+        pm2Script: './src/adminScripts/pm2Script.ts',
     },
     target: 'node',
     node: {
@@ -35,6 +36,7 @@ export const config: webpack.Configuration = {
         alias: {
             server: resolve('./src/server'),
             common: resolve('./src/common'),
+            adminScripts: resolve('./src/adminScripts'),
         },
         extensions: ['.ts', '.tsx', '.js'],
     },
@@ -42,7 +44,7 @@ export const config: webpack.Configuration = {
         rules: [
             {
                 test: /\.ts$/,
-                include: [resolve('src/common'), resolve('src/server'), resolve('test')],
+                include: [resolve('src/common'), resolve('src/server'), resolve('src/adminScripts'), resolve('test')],
                 exclude: /node_modules/,
                 use: [{
                     loader: 'ts-loader',

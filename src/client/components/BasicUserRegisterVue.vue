@@ -44,6 +44,12 @@
           <el-input v-model="formDatas.email"></el-input>
         </el-form-item>
         <el-form-item
+          label="电话号码"
+          prop="telephone"
+        >
+          <el-input v-model="formDatas.telephone"></el-input>
+        </el-form-item>
+        <el-form-item
           label="用户类型"
           v-if="!isAdmin()"
         >
@@ -65,7 +71,7 @@
             class="avatar-uploader"
             :name="keyNameOfuploadedFile"
             :ref="uploaderRefName"
-            :action="uploadURL"
+            :action="uploadAPIURL"
             :show-file-list="false"
             :data="filePostParam"
             :auto-upload="false"
@@ -75,7 +81,7 @@
             :on-error="onLogoFileUploadError"
           >
             <img
-              v-if="logoUrl"
+              v-if="isLogoURLReady()"
               :src="logoUrl"
               class="avatar"
             >

@@ -1,10 +1,25 @@
 <template>
-  <el-container>
-    <img
-      alt="Error 5000"
-      src="../assets/error_500.jpg"
-    >
-  </el-container>
+  <div>
+    <el-row>
+      <el-col :span="24">
+        <el-alert
+          :title="errorMessage"
+          type="error"
+          center
+          show-icon
+        >
+        </el-alert>
+      </el-col>
+    </el-row>
+    <el-row>
+      <el-col :span="24">
+        <img
+          alt="Error 5000"
+          src="../assets/error_500.jpg"
+        ></el-col>
+    </el-row>
+
+  </div>
 </template>
 
 <script lang="ts">

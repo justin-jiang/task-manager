@@ -2,6 +2,7 @@ import { actions as fileActions, mutations as fileMutations } from 'client/VuexO
 import { actions as sessionActions, mutations as sessionMutations } from 'client/VuexOperations/SessionOperations';
 import { actions as templateActions, mutations as templateMutations } from 'client/VuexOperations/TemplateOperations';
 import { actions as userActions, mutations as userMutations } from 'client/VuexOperations/UserOperations';
+import { actions as taskActions, mutations as taskMutations } from 'client/VuexOperations/TaskOperations';
 import Vue from 'vue';
 import Vuex, { ActionTree, MutationTree } from 'vuex';
 import { IStoreState } from './VuexOperations/IStoreState';
@@ -16,6 +17,7 @@ Object.assign(
   fileMutations,
   sessionMutations,
   templateMutations,
+  taskMutations,
 );
 
 /**
@@ -30,14 +32,18 @@ Object.assign(
   fileActions,
   sessionActions,
   templateActions,
+  taskActions,
 );
 
 /**
  * the data structure in Vuex(local memory)
  */
 const state: IStoreState = {
-  sessionInfo: undefined,
-  redirectURLAfterLogin: undefined,
+  sessionInfo: {},
+  redirectURLAfterLogin: '',
+  taskObjs: [],
+  templateObjs: [],
+  userObjs: [],
 };
 
 Vue.use(Vuex);

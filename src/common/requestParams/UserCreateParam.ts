@@ -3,18 +3,11 @@ import { UserRole } from 'common/UserRole';
 
 export class UserCreateParam implements IRequestParam {
 
-    public name: string;
-    public email: string;
-    public password: string;
-    public telephone: string;
-    public roles: UserRole[];
-    constructor() {
-        this.name = '';
-        this.email = '';
-        this.password = '';
-        this.telephone = '';
-        this.roles = [];
-    }
+    public name?: string;
+    public email?: string;
+    public password?: string;
+    public telephone?: string;
+    public roles?: UserRole[];
 }
 
 

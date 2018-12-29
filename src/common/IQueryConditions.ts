@@ -1,3 +1,4 @@
 export interface IQueryConditions {
-    [key: string]: string;
+    [key: string]: any;
+    $or?: any[];
 }

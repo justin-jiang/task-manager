@@ -3,11 +3,11 @@ import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { UserView } from 'common/responseResults/UserView';
-import { Component, Vue } from 'vue-property-decorator';
+import { IUserView } from 'common/responseResults/UserView';
+import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { RouterUtils } from './common/RouterUtils';
 import { LoggerManager } from './LoggerManager';
-import { RouterUtils } from './views/RouterUtils';
 
 const compToBeRegistered: any = {
 };
@@ -25,9 +25,8 @@ export class AppTS extends Vue {
             if (command === this.LogoffCommand) {
                 const apiResult: APIResult = await this.store.dispatch(
                     StoreActionNames.sessionRemove, { data: null } as IStoreActionArgs);
-                this.storeState.sessionInfo = undefined;
                 if (apiResult.code === ApiResultCode.Success ||
-                    apiResult.code === ApiResultCode.Unauthorized) {
+                    apiResult.code === ApiResultCode.Auth_Unauthorized) {
                     RouterUtils.goToLoginView(this.$router);
                 } else {
                     const errStr: string = `退出登录失败（错误代码:${apiResult.code}）`;
@@ -52,15 +51,16 @@ export class AppTS extends Vue {
         (async () => {
 
             const apiResult: APIResult = await this.store.dispatch(
-                StoreActionNames.sessionQuery, { data: null } as IStoreActionArgs);
+                StoreActionNames.sessionQuery, { notUseLocalData: true } as IStoreActionArgs);
+
             if (apiResult.code === ApiResultCode.Success) {
                 if (RouterUtils.isHomeUrl() ||
                     RouterUtils.isLoginUrl() ||
                     RouterUtils.isErrorUrl()) {
                     RouterUtils.goToUserHomePage(this.$router,
-                        (this.storeState.sessionInfo as UserView).roles);
+                        (this.storeState.sessionInfo as IUserView).roles);
                 }
-            } else if (apiResult.code === ApiResultCode.Unauthorized) {
+            } else if (apiResult.code === ApiResultCode.Auth_Unauthorized) {
                 if (!RouterUtils.isHomeUrl() &&
                     !RouterUtils.isLoginUrl() &&
                     !RouterUtils.isErrorUrl()) {
@@ -78,6 +78,18 @@ export class AppTS extends Vue {
             this.$message.error('链接服务器失败，请检查网络连接是否正常');
             LoggerManager.error(ex);
         });
+    }
+
+    /**
+     * When Url is /admin, we should go to the default template management route
+     * @param val 
+     * @param oldVal 
+     */
+    @Watch('$route.path', { immediate: true, deep: true })
+    private onRouteChanged(val: string, oldVal: string) {
+        if (/\/admin\/?$/i.test(val)) {
+            RouterUtils.goToAdminTemplateManagementView(this.$router);
+        }
     }
     // #endregion
 

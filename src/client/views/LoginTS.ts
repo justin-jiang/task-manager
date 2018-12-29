@@ -1,13 +1,13 @@
+import { RouterUtils } from 'client/common/RouterUtils';
+import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { UserView } from 'common/responseResults/UserView';
+import { IUserView } from 'common/responseResults/UserView';
+import { UserRole } from 'common/UserRole';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { IStoreState } from '../VuexOperations/IStoreState';
-import { StoreActionNames } from '../VuexOperations/StoreActionNames';
-import { RouterUtils } from './RouterUtils';
-import { UserRole } from 'common/UserRole';
 interface IFormData {
     name?: string;
     password?: string;
@@ -26,7 +26,7 @@ export class LoginTS extends Vue {
         name: undefined,
         password: undefined,
     };
-    private submitting: boolean = false;
+    private isSubmitting: boolean = false;
 
     private readonly formRules: any = {
         name: [
@@ -40,13 +40,14 @@ export class LoginTS extends Vue {
     private submitForm() {
         (this.$refs[this.formRefName] as any).validate((valid: boolean) => {
             if (valid) {
-                this.submitting = true;
+                this.isSubmitting = true;
                 const store = (this.$store as Store<IStoreState>);
                 const storeState = store.state;
                 (async () => {
-                    const reqParam: SessionCreateParam = new SessionCreateParam(
-                        this.formDatas.name as string,
-                        this.formDatas.password as string);
+                    const reqParam: SessionCreateParam = {
+                        name: this.formDatas.name,
+                        password: this.formDatas.password,
+                    } as SessionCreateParam;
 
                     const apiResult: APIResult = await store.dispatch(
                         StoreActionNames.sessionCreate, { data: reqParam });
@@ -55,9 +56,9 @@ export class LoginTS extends Vue {
                             window.location.assign(storeState.redirectURLAfterLogin);
                         } else {
                             RouterUtils.goToUserHomePage(this.$router,
-                                (storeState.sessionInfo as UserView).roles);
+                                (storeState.sessionInfo as IUserView).roles as UserRole[]);
                         }
-                    } else if (apiResult.code === ApiResultCode.Unauthorized) {
+                    } else if (apiResult.code === ApiResultCode.Auth_Unauthorized) {
                         this.$message.error('用户名或密码错误，请重新输入');
                         Vue.set(this.formDatas, 'password', undefined);
                     } else {
@@ -69,7 +70,7 @@ export class LoginTS extends Vue {
                         type: 'error',
                     });
                 }).finally(() => {
-                    this.submitting = false;
+                    this.isSubmitting = false;
                 });
 
             } else {
@@ -88,5 +89,4 @@ export class LoginTS extends Vue {
         RouterUtils.goToUserRegisterView(this.$router, UserRole.PersonalPublisher);
     }
     // #endregion
-
 }

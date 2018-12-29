@@ -1,5 +1,5 @@
 import { FileAPIScenario } from 'common/FileAPIScenario';
-import { FileCreateParam } from 'common/requestParams/FileCreateParam';
+import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { NextFunction, Request, Response, Router } from 'express';
 import * as multer from 'multer';
@@ -121,11 +121,11 @@ export class ApiBuilder {
         // depends on the filePost api(i.e. admin register)
         const filePostPattern = new RegExp(`^\/${HttpPathItem.API}/${HttpPathItem.FILE}\/?$`, 'i');
         if (req.method === 'POST' && filePostPattern.test(req.path)) {
-            const reqParam: FileCreateParam = req.body as FileCreateParam;
+            const reqParam: FileUploadParam = req.body as FileUploadParam;
             // parameter transform, which has been converted to string by el-uploader component
             const scenario: FileAPIScenario = Number.parseInt(reqParam.scenario as any, 10);
             reqParam.scenario = scenario;
-            if (reqParam.scenario === FileAPIScenario.CreateUser) {
+            if (reqParam.scenario === FileAPIScenario.UploadUser) {
                 // only postuser(i.e. user register) does not need to login check
                 next();
                 return;
@@ -144,7 +144,7 @@ export class ApiBuilder {
         }
         // check if cookie is available
         if (await this.$$cookieChecking(loginUserInCookie) === false) {
-            res.json({ code: ApiResultCode.Unauthorized }).end();
+            res.json({ code: ApiResultCode.Auth_Unauthorized }).end();
         } else {
             CookieUtils.setUserToCookie(res, loginUserInCookie as ILoginUserInfoInCookie);
             next();
