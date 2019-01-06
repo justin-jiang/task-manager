@@ -3,7 +3,7 @@
     <el-row>
       <el-col :span="24">
         <el-alert
-          :title="errorMessage"
+          :title="errorMessage()"
           type="error"
           center
           show-icon

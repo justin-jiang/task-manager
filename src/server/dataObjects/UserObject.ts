@@ -1,30 +1,19 @@
-import { UserRole } from 'common/UserRole';
 import { CommonUtils } from 'common/CommonUtils';
-import { DBObject, IDBObject } from './DBObject';
+import { LogoState } from 'common/responseResults/LogoState';
+import { QualificationState } from 'common/responseResults/QualificationState';
+import { UserRole } from 'common/UserRole';
 import { UserState } from 'common/UserState';
-interface IUserObject extends IDBObject {
-    name?: string;
-    email?: string;
-    password?: string;
-    logoId?: string;
-    qualificationId?: string;
-    qualificationVersion?: number;
-    type?: number;
-    telephone?: string;
-    roles?: UserRole[];
-    lastLogonTime?: number;
-    state?: UserState;
-    nickName?: string;
-}
-
-export class UserObject extends DBObject implements IUserObject {
+import { DBObject } from './DBObject';
+export class UserObject extends DBObject {
     [key: string]: any;
     public name?: string;
     public email?: string;
     public password?: string;
     public logoId?: string;
+    public logoState?: LogoState;
     public qualificationId?: string;
     public qualificationVersion?: number;
+    public qualificationState?: QualificationState;
     public type?: number;
     public telephone?: string;
     public roles?: UserRole[];
@@ -37,14 +26,16 @@ export class UserObject extends DBObject implements IUserObject {
             this.email = '';
             this.lastLogonTime = 0;
             this.logoId = '';
+            this.logoState = LogoState.Missed;
             this.name = '';
             this.nickName = '';
             this.password = '';
 
             this.qualificationId = '';
             this.qualificationVersion = -1;
+            this.qualificationState = QualificationState.Missed;
             this.roles = [];
-            this.state = UserState.NONE;
+            this.state = UserState.None;
             this.telephone = '';
             this.type = -1;
         }

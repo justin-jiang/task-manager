@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { LoggerManager } from 'client/LoggerManager';
 import { HttpUtils } from 'client/VuexOperations/HttpUtils';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
@@ -22,9 +23,11 @@ export const actions = {
             `${HttpPathItem.API}/${HttpPathItem.TASK}`, args.data || {});
         const result = HttpUtils.getApiResultFromResponse(response);
         if (result.code === ApiResultCode.Success) {
-            const newTaskList = state.taskObjs || [];
-            newTaskList.push(result.data);
-            commit(StoreMutationNames.tasksUpdate, newTaskList);
+            if (result.data != null) {
+                commit(StoreMutationNames.taskItemInsert, result.data);
+            } else {
+                LoggerManager.warn('No InsertedItem');
+            }
         }
         return result;
     },
@@ -36,7 +39,11 @@ export const actions = {
                 `${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.QUERY}`, args.data || {});
             result = HttpUtils.getApiResultFromResponse(response);
             if (result.code === ApiResultCode.Success) {
-                commit(StoreMutationNames.tasksUpdate, result.data);
+                if (result.data != null) {
+                    commit(StoreMutationNames.tasksUpdate, result.data);
+                } else {
+                    LoggerManager.warn('No UpdatedItem');
+                }
             }
         } else {
             result.data = state.taskObjs;
@@ -52,9 +59,12 @@ export const actions = {
         result = HttpUtils.getApiResultFromResponse(response);
         if (result.code === ApiResultCode.Success) {
             const updatedTaskView: TaskView = result.data;
-            commit(StoreMutationNames.taskItemReplace, updatedTaskView);
+            if (updatedTaskView != null) {
+                commit(StoreMutationNames.taskItemReplace, updatedTaskView);
+            } else {
+                LoggerManager.warn('No UpdatedItem');
+            }
         }
-
         return result;
     },
 
@@ -66,7 +76,11 @@ export const actions = {
         result = HttpUtils.getApiResultFromResponse(response);
         if (result.code === ApiResultCode.Success) {
             const updatedTaskView: TaskView = result.data;
-            commit(StoreMutationNames.taskItemReplace, updatedTaskView);
+            if (updatedTaskView != null) {
+                commit(StoreMutationNames.taskItemReplace, updatedTaskView);
+            } else {
+                LoggerManager.warn('No UpdatedItem');
+            }
         }
 
         return result;
@@ -79,7 +93,9 @@ export const actions = {
         if (result.code === ApiResultCode.Success) {
             const removedTaskView: TaskView = result.data;
             if (removedTaskView != null) {
-                commit(StoreMutationNames.taskItemReplace, removedTaskView.uid);
+                commit(StoreMutationNames.taskItemRemove, removedTaskView.uid);
+            } else {
+                LoggerManager.warn('No RemovedItem');
             }
         }
         return result;
@@ -89,41 +105,52 @@ export const actions = {
             `${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.APPLY}`, args.data || {});
         const result = HttpUtils.getApiResultFromResponse(response);
         if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.taskItemReplace, result.data);
+            if (result.data != null) {
+                commit(StoreMutationNames.taskItemReplace, result.data);
+            } else {
+                LoggerManager.warn('No UpdatedItem');
+            }
         }
         return result;
     },
 };
 
 export const mutations = {
-    [StoreMutationNames.tasksUpdate](state: IStoreState, taskObjs: TaskView[]) {
-        state.taskObjs = taskObjs;
+    [StoreMutationNames.tasksUpdate](state: IStoreState, objViews: TaskView[]) {
+        state.taskObjs = objViews;
     },
 
-    [StoreMutationNames.taskItemReplace](state: IStoreState, updatedTaskView: TaskView) {
-        if (updatedTaskView == null) {
+    [StoreMutationNames.taskItemInsert](state: IStoreState, insertedItem: TaskView) {
+        if (insertedItem == null) {
+            return;
+        }
+        state.taskObjs.push(insertedItem);
+    },
+
+    [StoreMutationNames.taskItemReplace](state: IStoreState, updatedItem: TaskView) {
+        if (updatedItem == null) {
             return;
         }
         let indexToBeReplaced: number = -1;
-        (state.taskObjs as TaskView[]).forEach((task, index) => {
-            if (task.uid === updatedTaskView.uid) {
+        state.taskObjs.forEach((item: TaskView, index: number) => {
+            if (item.uid === updatedItem.uid) {
                 indexToBeReplaced = index;
             }
         });
         if (indexToBeReplaced !== -1) {
-            (state.taskObjs as TaskView[]).splice(indexToBeReplaced, 1, updatedTaskView);
+            state.taskObjs.splice(indexToBeReplaced, 1, updatedItem);
         }
     },
 
-    [StoreMutationNames.taskItemRemove](state: IStoreState, removedTaskUid: string) {
+    [StoreMutationNames.taskItemRemove](state: IStoreState, removedItemUid: string) {
         let indexToBeRemoved: number = -1;
-        (state.taskObjs as TaskView[]).forEach((task, index) => {
-            if (task.uid === removedTaskUid) {
+        state.taskObjs.forEach((item: TaskView, index: number) => {
+            if (item.uid === removedItemUid) {
                 indexToBeRemoved = index;
             }
         });
         if (indexToBeRemoved !== -1) {
-            (state.taskObjs as TaskView[]).splice(indexToBeRemoved, 1);
+            state.taskObjs.splice(indexToBeRemoved, 1);
         }
     },
 };

@@ -14,13 +14,14 @@ import { UserState } from 'common/UserState';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { UserView } from 'common/responseResults/UserView';
+import { QualificationState } from 'common/responseResults/QualificationState';
+import { LogoState } from 'common/responseResults/LogoState';
 
 enum RegisterStep {
-    NONE = 0,
-    BasicInfo = 1,
-    QualificationUpload = 2,
-    QualificationChecking = 3,
-    Done = 4,
+    BasicInfo = 0,
+    QualificationUpload = 1,
+    QualificationChecking = 2,
+    Done = 3,
 }
 
 const compToBeRegistered: any = {
@@ -39,7 +40,7 @@ export class ExecutorRegisterTS extends Vue {
 
 
     // #region -- referred props and methods for this page
-    private currentStep: RegisterStep = RegisterStep.NONE;
+    private currentStep: RegisterStep = RegisterStep.BasicInfo;
     private title(): string {
         if (this.userRole === UserRole.CorpExecutor ||
             this.userRole === UserRole.PersonalExecutor) {
@@ -71,7 +72,7 @@ export class ExecutorRegisterTS extends Vue {
 
     // #region -- referred props and methods for qualification uploader
     private readonly filePostParam: FileUploadParam = new FileUploadParam();
-    private qualificationFileTypes: string[] = ['application/zip'];
+    private qualificationFileTypes: string[] = ['application/zip', 'application/rar'];
     private qualificationFileSizeMLimit: number = 200;
 
     private onQualificationSuccess(): void {
@@ -132,15 +133,25 @@ export class ExecutorRegisterTS extends Vue {
             } else if (sessionInfo.roles.includes(UserRole.CorpPublisher)) {
                 this.userRole = UserRole.CorpPublisher;
             }
-            if (CommonUtils.isNullOrEmpty(sessionInfo.qualificationId)) {
+
+            if (sessionInfo.qualificationState == null ||
+                sessionInfo.qualificationState === QualificationState.Missed) {
                 this.currentStep = RegisterStep.QualificationUpload;
-            } else if (sessionInfo.state === UserState.toBeChecked) {
+            } else if (sessionInfo.qualificationState === QualificationState.ToBeChecked ||
+                sessionInfo.logoState === LogoState.ToBeChecked) {
                 this.currentStep = RegisterStep.QualificationChecking;
-            } else if (sessionInfo.state === UserState.failedToCheck) {
+            } else if (sessionInfo.qualificationState === QualificationState.FailedToCheck) {
                 this.$message.error(`资质审核失败，请重新上传资质文件`);
                 this.currentStep = RegisterStep.QualificationUpload;
+            } else if (sessionInfo.logoState === null || sessionInfo.logoState === LogoState.Missed) {
+                this.$message.error('头像缺失，请上传头像');
+                RouterUtils.goToUserInfoView(this.$router, sessionInfo.roles);
+            } else if (sessionInfo.logoState === LogoState.FailedToCheck) {
+                this.$message.error(`头像审核失败，请重新上传头像`);
+                RouterUtils.goToUserInfoView(this.$router, sessionInfo.roles);
             } else {
-                this.currentStep = RegisterStep.Done;
+                this.$message.success(`用户注册完成`);
+                RouterUtils.goToUserHomePage(this.$router, sessionInfo.roles);
             }
         }
     }

@@ -3,9 +3,11 @@ import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { IUserView } from 'common/responseResults/UserView';
+import { UserView } from 'common/responseResults/UserView';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { ApiErrorHandler } from './common/ApiErrorHandler';
+import { msgConnectionIssue } from './common/Constants';
 import { RouterUtils } from './common/RouterUtils';
 import { LoggerManager } from './LoggerManager';
 
@@ -26,12 +28,11 @@ export class AppTS extends Vue {
                 const apiResult: APIResult = await this.store.dispatch(
                     StoreActionNames.sessionRemove, { data: null } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success ||
-                    apiResult.code === ApiResultCode.Auth_Unauthorized) {
+                    apiResult.code === ApiResultCode.AuthUnauthorized) {
                     RouterUtils.goToLoginView(this.$router);
                 } else {
-                    const errStr: string = `退出登录失败（错误代码:${apiResult.code}）`;
-                    LoggerManager.error(errStr);
-                    RouterUtils.goToErrorView(this.$router);
+                    const errStr: string = `退出登录失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
+                    RouterUtils.goToErrorView(this.$router, this.storeState, errStr);
                 }
             } else if (command === this.SessionInfoCommand) {
                 this.$message.warning('开发中。。。');
@@ -52,15 +53,17 @@ export class AppTS extends Vue {
 
             const apiResult: APIResult = await this.store.dispatch(
                 StoreActionNames.sessionQuery, { notUseLocalData: true } as IStoreActionArgs);
-
+            if (RouterUtils.isUserRegisterUrl()) {
+                return;
+            }
             if (apiResult.code === ApiResultCode.Success) {
                 if (RouterUtils.isHomeUrl() ||
                     RouterUtils.isLoginUrl() ||
                     RouterUtils.isErrorUrl()) {
                     RouterUtils.goToUserHomePage(this.$router,
-                        (this.storeState.sessionInfo as IUserView).roles);
+                        (this.storeState.sessionInfo as UserView).roles);
                 }
-            } else if (apiResult.code === ApiResultCode.Auth_Unauthorized) {
+            } else if (apiResult.code === ApiResultCode.AuthUnauthorized) {
                 if (!RouterUtils.isHomeUrl() &&
                     !RouterUtils.isLoginUrl() &&
                     !RouterUtils.isErrorUrl()) {
@@ -70,13 +73,11 @@ export class AppTS extends Vue {
             } else if (apiResult.code === ApiResultCode.SystemNotInitialized) {
                 RouterUtils.goToAdminRegisterView(this.$router);
             } else {
-                const errStr: string = `系统错误（错误代码:${apiResult.code}）`;
-                LoggerManager.error(errStr);
-                RouterUtils.goToErrorView(this.$router);
+                const errStr: string = `系统错误：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
+                RouterUtils.goToErrorView(this.$router, this.storeState, errStr);
             }
         })().catch((ex) => {
-            this.$message.error('链接服务器失败，请检查网络连接是否正常');
-            LoggerManager.error(ex);
+            RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
         });
     }
 
@@ -88,7 +89,7 @@ export class AppTS extends Vue {
     @Watch('$route.path', { immediate: true, deep: true })
     private onRouteChanged(val: string, oldVal: string) {
         if (/\/admin\/?$/i.test(val)) {
-            RouterUtils.goToAdminTemplateManagementView(this.$router);
+            RouterUtils.goToAdminUserManagementView(this.$router);
         }
     }
     // #endregion

@@ -9,30 +9,30 @@ import * as PM2 from 'pm2';
 import { spawnSync } from 'child_process';
 
 // tslint:disable:no-console
-// function printHelp() {
-//     console.log((chalk as any).yellow('启动服务程序：'));
-//     console.log((chalk as any).cyan('   node pm2Script --start'));
-//     console.log((chalk as any).cyan('   参数"--config"可以指定自定义配置文件'));
-//     console.log((chalk as any).cyan('   node pm2Script --start --config:pm2_custom.config.js'));
-//     console.log((chalk as any).yellow('重启服务程序：（--config参数同适用）'));
-//     console.log((chalk as any).cyan('   node pm2Script --reload'));
-//     console.log((chalk as any).yellow('停止服务程序：'));
-//     console.log((chalk as any).cyan('   停止服务程序进程，但不从pm项目列表中移出'));
-//     console.log((chalk as any).cyan('   node pm2Script --stop'));
-//     console.log((chalk as any).cyan('   停止服务程序进程，并从pm项目列表中移出'));
-//     console.log((chalk as any).cyan('   node pm2Script --delete'));
-//     console.log((chalk as any).cyan('   停止PM2实例（daemon）'));
-//     console.log((chalk as any).cyan('   node pm2Script --kill'));
-//     console.log((chalk as any).cyan('   强行杀掉（pkill）PM2实例（daemon）,只针对Linux用户'));
-//     console.log((chalk as any).cyan('   node pm2Script --forcekill'));
-//     console.log((chalk as any).yellow('其它：'));
-//     console.log((chalk as any).cyan('   dump pm2信息'));
-//     console.log((chalk as any).cyan('   node pm2Script --dump'));
-//     console.log((chalk as any).cyan('   显示服务程序进程的详细信息'));
-//     console.log((chalk as any).cyan('   node pm2Script --describe'));
-//     console.log((chalk as any).cyan('   停止服务程序以及其依赖的服务（mongodb，elasticsearch）'));
-//     console.log((chalk as any).cyan('   node pm2Script --stopAll'));
-// }
+function printHelp() {
+    console.log((chalk as any).yellow('启动服务程序：'));
+    console.log((chalk as any).cyan('   node pm2Script --start'));
+    console.log((chalk as any).cyan('   参数"--config"可以指定自定义配置文件'));
+    console.log((chalk as any).cyan('   node pm2Script --start --config:pm2_custom.config.js'));
+    console.log((chalk as any).yellow('重启服务程序：（--config参数同适用）'));
+    console.log((chalk as any).cyan('   node pm2Script --reload'));
+    console.log((chalk as any).yellow('停止服务程序：'));
+    console.log((chalk as any).cyan('   停止服务程序进程，但不从pm项目列表中移出'));
+    console.log((chalk as any).cyan('   node pm2Script --stop'));
+    console.log((chalk as any).cyan('   停止服务程序进程，并从pm项目列表中移出'));
+    console.log((chalk as any).cyan('   node pm2Script --delete'));
+    console.log((chalk as any).cyan('   停止PM2实例（daemon）'));
+    console.log((chalk as any).cyan('   node pm2Script --kill'));
+    console.log((chalk as any).cyan('   强行杀掉（pkill）PM2实例（daemon）,只针对Linux用户'));
+    console.log((chalk as any).cyan('   node pm2Script --forcekill'));
+    console.log((chalk as any).yellow('其它：'));
+    console.log((chalk as any).cyan('   dump pm2信息'));
+    console.log((chalk as any).cyan('   node pm2Script --dump'));
+    console.log((chalk as any).cyan('   显示服务程序进程的详细信息'));
+    console.log((chalk as any).cyan('   node pm2Script --describe'));
+    console.log((chalk as any).cyan('   停止服务程序以及其依赖的服务（mongodb，elasticsearch）'));
+    console.log((chalk as any).cyan('   node pm2Script --stopAll'));
+}
 enum PM2API {
     None,
     Start,
@@ -324,10 +324,10 @@ function checkDBStatus(dbFolder: string, spinnerRef: any) {
             console.log((chalk as any).cyan(`mongod process: ${psOutput}`));
         }
         if (psOutput == null || psOutput === '') {
-            if (!file.existsSync(path.join(parentDir, dbDataPath)) ||
-                !file.existsSync(path.join(parentDir, dbLogPath))) {
+            if (!file.existsSync(dbDataPath) ||
+                !file.existsSync(dbLogPath)) {
                 if (spinnerRef != null) {
-                    spinnerRef.fail('MongoDB数据目录不存在');
+                    spinnerRef.fail(`MongoDB数据目录不存在：${dbDataPath} 和 ${dbLogPath}`);
                 }
             } else {
                 const mongodStart = spawnSync(`../${dbFolder}/bin/mongod`,
@@ -406,7 +406,7 @@ let needHelp = false;
 let isDebugMode = false;
 let dbVersion = 'v3.6.4';
 let dbDataPath = path.join(parentDir, 'data/db');
-let dbLogPath = path.join(parentDir, 'data/log/baichuan_db.log');
+let dbLogPath = path.join(parentDir, 'data/log/taskManager_db.log');
 if (process.argv) {
     paramApiName = PM2API.Start;
 }
@@ -452,7 +452,7 @@ for (const value of process.argv) {
 }
 
 if (needHelp || paramApiName === PM2API.None) {
-    // printHelp();
+    printHelp();
     process.exit();
 }
 

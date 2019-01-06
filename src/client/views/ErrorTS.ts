@@ -1,4 +1,7 @@
 import { Component, Vue } from 'vue-property-decorator';
+import { Store } from 'vuex';
+import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { CommonUtils } from 'common/CommonUtils';
 
 const compToBeRegistered: any = {
 };
@@ -7,29 +10,22 @@ const compToBeRegistered: any = {
     components: compToBeRegistered,
 })
 export class ErrorTS extends Vue {
-    private errorMessage: string = '服务出错了！';
+    private errorMessage(): string {
+        if (!CommonUtils.isNullOrEmpty(this.storeState.errorMessage)) {
+            return this.storeState.errorMessage;
+        } else {
+            return '服务出错了！';
+        }
+
+    }
 
     // #region Vue life-circle method
     private mounted(): void {
-        // (async () => {
-        //     await VueCompUtils.$$systemAdminCheck(this);
-        //     const wikiName = await VueCompUtils.$$getWikiName(this);
-        //     document.title = '一般配置-' + wikiName;
-        //     const store = this.$store as Vuex.Store<IAdminStoreState>;
-        //     if (store.state.loginUser.wikiLogo != null) {
-        //         this.wikiLogoUrl = Utils.getImageURLById(store.state.loginUser.wikiLogo);
-        //     }
-        //     if (store.state.wikiProject.spaceDefaultLogo != null) {
-        //         this.spaceDefaultLogoUrl = Utils.getImageURLById(store.state.loginUser.spaceDefaultLogo);
-        //     } else {
-        //         this.spaceDefaultLogoUrl = config.defaultAvatarForSpace;
-        //     }
-        //     this.isReadyToShowUI = true;
-        // })().catch((ex) => {
-        //     Utils.goToErrorComponent(this.$router, ex);
-        // });
     }
     // #endregion
-
+    // region -- internal props and methods
+    private readonly store = (this.$store as Store<IStoreState>);
+    private readonly storeState = (this.$store.state as IStoreState);
+    // #endregion
 
 }

@@ -5,6 +5,7 @@
         <el-steps
           direction="vertical"
           :active="currentStep"
+          finish-status="success"
         >
           <el-step title="基本信息"></el-step>
           <el-step title="资质上传"></el-step>
@@ -55,7 +56,7 @@
 </template>
 
 <script lang="ts">
-import { ExecutorRegisterTS } from './ExecutorRegisterTS';
+import { ExecutorRegisterTS } from "./ExecutorRegisterTS";
 export default class ExecutorRegisterVue extends ExecutorRegisterTS {}
 </script>
 

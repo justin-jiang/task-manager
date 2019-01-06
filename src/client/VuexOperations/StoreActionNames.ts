@@ -3,6 +3,11 @@ export enum StoreActionNames {
     userCreate = 'userCreate',
     userQuery = 'userQuery',
     userCheck = 'userCheck',
+    userEnable = 'userEnable',
+    userDisable = 'userDisable',
+    userRemove = 'userRemove',
+    userBasicInfoEdit = 'useBasicInfoEdit',
+    userPasswordEdit = 'userPasswordEdit',
     // #endregion
 
     // #region -- File Actions

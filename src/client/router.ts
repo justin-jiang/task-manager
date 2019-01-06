@@ -22,11 +22,6 @@ export default new Router({
       component: () => import('./views/AdminVue.vue'),
       children: [
         {
-          path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`,
-          name: RouterName.Admin_Template,
-          component: () => import('./components/TemplateManagementVue.vue'),
-        },
-        {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Notification}`,
           name: RouterName.Admin_Notification,
           component: () => import('./components/NotificationManagementVue.vue'),
@@ -65,6 +60,28 @@ export default new Router({
       path: `/${RoutePathItem.Publisher}`,
       name: RouterName.Publisher,
       component: () => import('./views/PublisherVue.vue'),
+      children: [
+        {
+          path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Task}`,
+          name: RouterName.Publisher_Task,
+          component: () => import('./components/PublisherTaskVue.vue'),
+        },
+        {
+          path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Template}`,
+          name: RouterName.Publisher_Template,
+          component: () => import('./components/TemplateManagementVue.vue'),
+        },
+        {
+          path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Notification}`,
+          name: RouterName.Publisher_Notification,
+          component: () => import('./components/NotificationManagementVue.vue'),
+        },
+        {
+          path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_UserInfo}`,
+          name: RouterName.Publisher_UserInfo,
+          component: () => import('./components/UserInfoVue.vue'),
+        },
+      ],
     },
 
     {
@@ -72,6 +89,23 @@ export default new Router({
       path: `/${RoutePathItem.Executor}`,
       name: RouterName.Executor,
       component: () => import('./views/ExecutorVue.vue'),
+      children: [
+        {
+          path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Task}`,
+          name: RouterName.Executor_Task,
+          component: () => import('./components/ExecutorTaskVue.vue'),
+        },
+        {
+          path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Notification}`,
+          name: RouterName.Executor_Notification,
+          component: () => import('./components/NotificationManagementVue.vue'),
+        },
+        {
+          path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_UserInfo}`,
+          name: RouterName.Executor_UserInfo,
+          component: () => import('./components/UserInfoVue.vue'),
+        },
+      ],
     },
   ],
 });

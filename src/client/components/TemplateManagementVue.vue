@@ -31,7 +31,7 @@
         <el-form-item label="模板文档">
           <SingleFileUploadVue
             :ref="uploaderCreateRefName"
-            :filePostParamProp="fileCreateParam"
+            :filePostParamProp="fileUpdateParam"
             :fileTypesProp="templateFileTypes"
             :fileSizeMProp="templateFileSizeMLimit"
             @success="onTemplateCreateSuccess"
@@ -44,7 +44,7 @@
       <el-row>
         <el-col :span="24">
           <el-table
-            :data="templateObjs.filter(data => !search || data.name.toLowerCase().includes(search.toLowerCase()))"
+            :data="getTemplateObjs().filter(data => !search || data.name.toLowerCase().includes(search.toLowerCase()))"
             style="width: 100%"
           >
             <el-table-column
@@ -66,6 +66,7 @@
                   v-model="search"
                   size="mini"
                   placeholder="输入关键字搜索"
+                  v-if="isSearchReady(scope.row)"
                 />
               </template>
               <template slot-scope="scope">
@@ -90,11 +91,12 @@
       <el-row style="padding-top:100px">
         <el-col :span="24">
           <el-collapse
+            accordion
             v-model="activeCollapseNames"
             @change="onCollapseChange"
           >
             <el-collapse-item
-              title="模板编辑"
+              title="模板信息编辑"
               :name="editCollapseName"
             >
               <el-row>
@@ -125,12 +127,19 @@
                         @click="onTemplateInfoEditSubmit()"
                       >更新基本信息</el-button>
                     </el-form-item>
-                    <el-form-item label="">
-
-                    </el-form-item>
                   </el-form>
                 </el-col>
-                <el-col :span="12">
+              </el-row>
+            </el-collapse-item>
+            <el-collapse-item
+              title="模板文件上传"
+              :name="fileUploadCollapseName"
+            >
+              <el-row>
+                <el-col
+                  :span="12"
+                  style="margin-left:200px;"
+                >
                   <SingleFileUploadVue
                     :ref="uploaderEditRefName"
                     :filePostParamProp="fileUploadParam"
@@ -141,9 +150,6 @@
                   />
                 </el-col>
               </el-row>
-              <el-row>
-
-              </el-row>
             </el-collapse-item>
           </el-collapse>
         </el-col>
@@ -153,7 +159,7 @@
 </template>
 
 <script lang="ts">
-import { TemplateManagementTS } from './TemplateManagementTS';
+import { TemplateManagementTS } from "./TemplateManagementTS";
 export default class TemplateManagementVue extends TemplateManagementTS {}
 </script>
 

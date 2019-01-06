@@ -9,7 +9,7 @@ export class ApiError {
     public static fromError(error: any): ApiError {
         const outputError: ApiError = new ApiError(ApiResultCode.SystemError);
         if (error instanceof mongoose.Error.ValidationError) {
-            outputError.code = ApiResultCode.DB_VALIDATION_ERROR;
+            outputError.code = ApiResultCode.DbValidationError;
         }
         if (error.code != null) {
             (outputError.data as IErrorData).originalCode = error.code;
@@ -21,7 +21,7 @@ export class ApiError {
             outputError.stack = error.stack;
             if (CommonUtils.isPrimitiveString(outputError.stack)) {
                 if ((outputError.stack as string).includes('E11000 duplicate key')) {
-                    outputError.code = ApiResultCode.DB_DUPLICATE_KEY;
+                    outputError.code = ApiResultCode.DbDuplicateKey;
                 }
             }
         }

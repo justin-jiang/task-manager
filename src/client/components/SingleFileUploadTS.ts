@@ -1,13 +1,17 @@
+import { msgConnectionIssue } from 'client/common/Constants';
 import { LoggerManager } from 'client/LoggerManager';
 import { CommonUtils } from 'common/CommonUtils';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
+import { HttpUploadKey } from 'common/HttpUploadKey';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { Component, Prop, Vue } from 'vue-property-decorator';
-import { msgConnectionIssue } from 'client/common/Constants';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 enum EventNames {
     UploadSuccess = 'success',
+    UploadFailure = 'failure',
 }
 
 
@@ -47,7 +51,14 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     private fileList: File[] = [];
 
     private isSubmitting: boolean = false;
+    private readonly keyNameOfuploadedFile: string = HttpUploadKey.File;
 
+    // used by el-uploader to upload the data with file together
+    // which is used to create correponding DB object if required
+    private fileUploadParam: FileUploadParam = {
+        scenario: FileAPIScenario.UpdateTemplateFile,
+        metadata: '',
+    } as FileUploadParam;
     private uploadTip(): string {
         let fileTypes: string = '不限';
         let fileSizeLimit: string = '不限';
@@ -66,9 +77,9 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
         return `可上传文件类型：${fileTypes}，可上传文件最大值：${fileSizeLimit}`;
     }
 
-    // used by el-uploader to upload the data with file together
-    // which is used to create correponding DB object
-    private uploadData: FileUploadParam = new FileUploadParam();
+    private isReadyToSubmit(): boolean {
+        return !this.isSubmitting && this.fileList.length > 0;
+    }
 
     private beforeUpload(file: File): boolean {
         let isTypeMatched: boolean = true;
@@ -83,7 +94,10 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
             this.$message.error(`上传头像图片只能是 ${this.fileTypesProp} 格式，实际格式：${file.type}`);
         }
         if (!isSizeMatched) {
-            this.$message.error(`上传头像图片大小不能超过 ${this.fileSizeMProp} Bytes.`);
+            this.$message.error(`上传头像图片大小不能超过 ${this.fileSizeMProp} MB.`);
+        }
+        if (!(isTypeMatched && isSizeMatched)) {
+            this.reset();
         }
         return isTypeMatched && isSizeMatched;
     }
@@ -94,9 +108,9 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
             this.$message.warning('请先选择文件');
             return;
         }
-        Object.assign(this.uploadData, this.filePostParamProp);
-        if (this.uploadData.metadata instanceof Object) {
-            this.uploadData.metadata = JSON.stringify(this.uploadData.metadata);
+        Object.assign(this.fileUploadParam, this.filePostParamProp);
+        if (this.fileUploadParam.metadata instanceof Object) {
+            this.fileUploadParam.metadata = JSON.stringify(this.fileUploadParam.metadata);
         }
 
         (this.$refs[this.uploaderRefName] as any).submit();
@@ -109,22 +123,24 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     private onFileCountExceed(files: { raw: File }, fileList: Array<{ raw: File }>) {
         this.$message.warning(`每次只能上传一个文件`);
     }
-    private onFileUploadDone(response: APIResult, file: { raw: File }, fileList: Array<{ raw: File }>) {
+    private onFileUploadDone(apiResult: APIResult, file: { raw: File }, fileList: Array<{ raw: File }>) {
         this.isSubmitting = false;
-        if (response.code === ApiResultCode.Success) {
-            this.$emit(EventNames.UploadSuccess);
+        if (apiResult.code === ApiResultCode.Success) {
+            this.$emit(EventNames.UploadSuccess, apiResult);
         } else {
-            if (response.code === ApiResultCode.DB_DUPLICATE_KEY) {
-                this.$message.error(`所上传对象已存在，上传失败，错误代码：${response.code}`);
+            if (apiResult.code === ApiResultCode.DbDuplicateKey) {
+                this.$message.error(`所上传对象已存在，上传失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
             } else {
-                this.$message.error(`上传失败，错误代码：${response.code}`);
+                this.$message.error(`上传失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
             }
-            (this.$refs[this.uploaderRefName] as any).clearFiles();
+            this.$emit(EventNames.UploadFailure);
         }
+        this.reset();
     }
     private onFileUploadError(err: Error, file: { raw: File }, fileList: Array<{ raw: File }>) {
         this.$message.error(msgConnectionIssue);
         LoggerManager.error('Error:', err);
+        this.$emit(EventNames.UploadFailure);
     }
     // #endregion
 

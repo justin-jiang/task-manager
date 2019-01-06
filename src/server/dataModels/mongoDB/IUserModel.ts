@@ -17,8 +17,10 @@ const schemaDef = Object.assign({
     // the email col index will be created in UserModelWrapper.$$warmUp
     email: { type: String },
     logoId: { type: String },
+    logoState: { type: Number },
     qualificationId: { type: String },
     qualificationVersion: { type: Number },
+    qualificationState: { type: Number },
     roles: { type: [Number] },
     type: { type: Number },
     state: { type: Number },
@@ -40,6 +42,6 @@ export const keysOfSchema: string[] = Object.keys(schemaDef);
 // do the prop check that all props in IXXXObject must be in keysOfSchema
 KeysOfIDBObject.forEach((item) => {
     if (!keysOfSchema.includes(item)) {
-        throw new ApiError(ApiResultCode.DB_SCHEMA_PROP_MISSED, `${item} missed in User Schema`);
+        throw new ApiError(ApiResultCode.DbSchemaPropMissed, `${item} missed in User Schema`);
     }
 });

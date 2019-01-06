@@ -16,7 +16,6 @@
               circle
             ></el-button>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item :command="SessionInfoCommand">个人信息</el-dropdown-item>
               <el-dropdown-item :command="LogoffCommand">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
@@ -31,7 +30,7 @@
   </el-container>
 </template>
 <script lang="ts">
-import { AppTS } from './AppTS';
+import { AppTS } from "./AppTS";
 export default class AppVue extends AppTS {}
 </script>
 <style lang="less">
@@ -67,6 +66,11 @@ export default class AppVue extends AppTS {}
 .avatar {
   width: 178px;
   height: 178px;
+  display: block;
+}
+.avatar-big {
+  width: 300px;
+  height: 300px;
   display: block;
 }
 .el-main {

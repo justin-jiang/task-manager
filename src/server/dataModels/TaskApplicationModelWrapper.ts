@@ -3,6 +3,8 @@ import { BaseModelWrapper } from 'server/dataModels/BaseModelWrapper';
 import { ITaskApplicationModel, keysOfSchema } from 'server/dataModels/mongoDB/ITaskApplicationModel';
 import { TaskApplicationObject } from 'server/dataObjects/TaskApplicationObject';
 import { MongoDBModelManager } from 'server/dbDrivers/mongoDB/MongoDBModelManager';
+import { CommonUtils } from 'common/CommonUtils';
+import { GlobalCache } from 'server/common/GlobalCache';
 
 export class TaskApplicationModelWrapper extends BaseModelWrapper {
 
@@ -27,6 +29,9 @@ export class TaskApplicationModelWrapper extends BaseModelWrapper {
                 dbObj[item] = modelData[item];
             }
         });
+        if (!CommonUtils.isNullOrEmpty(dbObj.uid)) {
+            GlobalCache.set(dbObj.uid as string, dbObj, 60);
+        }
         return dbObj;
     }
 }

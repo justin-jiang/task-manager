@@ -4,10 +4,11 @@ import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { IUserView } from 'common/responseResults/UserView';
+import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 interface IFormData {
     name?: string;
     password?: string;
@@ -56,13 +57,13 @@ export class LoginTS extends Vue {
                             window.location.assign(storeState.redirectURLAfterLogin);
                         } else {
                             RouterUtils.goToUserHomePage(this.$router,
-                                (storeState.sessionInfo as IUserView).roles as UserRole[]);
+                                (storeState.sessionInfo as UserView).roles as UserRole[]);
                         }
-                    } else if (apiResult.code === ApiResultCode.Auth_Unauthorized) {
+                    } else if (apiResult.code === ApiResultCode.AuthUnauthorized) {
                         this.$message.error('用户名或密码错误，请重新输入');
                         Vue.set(this.formDatas, 'password', undefined);
                     } else {
-                        this.$message.error(`登录失败，错误代码：${apiResult.code}`);
+                        this.$message.error(`登录失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
                     }
                 })().catch((ex) => {
                     this.$message({

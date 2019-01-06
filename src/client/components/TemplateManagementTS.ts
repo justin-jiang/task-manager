@@ -18,6 +18,8 @@ import { TemplateView } from 'common/responseResults/TemplateView';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ISingleFileUploadTS } from './SingleFileUploadTS';
+import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 
 const compToBeRegistered: any = {
     SingleFileUploadVue,
@@ -41,7 +43,7 @@ export class TemplateManagementTS extends Vue {
 
     private readonly formCreateDatas: TemplateCreateParam = new TemplateCreateParam();
 
-    private readonly fileCreateParam: FileUploadParam = new FileUploadParam();
+    private readonly fileUpdateParam: FileUploadParam = new FileUploadParam();
 
     private readonly formRules: any = {
         name: [
@@ -50,35 +52,36 @@ export class TemplateManagementTS extends Vue {
         ],
     };
 
-    private onTemplateCreateSuccess() {
+    private onTemplateCreateSuccess(apiResult: APIResult) {
         this.$message.success('模板创建成功');
         this.resetTemplateCreateForm();
-        (async () => {
-            await this.$$pullTemplateObjs();
-            this.activeTabName = this.templateEditTabName;
-        })().catch((ex) => {
-            this.$message.error('链接服务器失败，请检查网络连接是否正常');
-            LoggerManager.error(ex);
-        });
+        this.activeTabName = this.templateEditTabName;
+        this.store.commit(StoreMutationNames.templateItemInsert, apiResult.data);
     }
     // #endregion
 
     // #region -- referred props and methods by Template edit
-    private templateObjs: TemplateView[] = [];
+    private getTemplateObjs(): TemplateView[] {
+        return this.storeState.templateObjs;
+    };
     private search: string = '';
     private readonly activeCollapseNames: string[] = [];
-    private readonly editCollapseName: string = 'edit';
+    private readonly editCollapseName: string = 'editCollapse';
+    private readonly fileUploadCollapseName: string = 'fileUploadCollapse';
     private readonly formEditRefName = 'formEdit';
     private readonly uploaderEditRefName = 'uploaderEdit';
     private formEditDatas: TemplateEditParam = new TemplateEditParam();
     private fileUploadParam: FileUploadParam = new FileUploadParam();
     private selectedTemplateIndex: number | undefined = undefined;
+    private isSearchReady(): boolean {
+        return true;
+    }
 
     private isBasicInfoUpdated(): boolean {
         if (this.selectedTemplateIndex == null) {
             return true;
         }
-        const selectedTemplate: TemplateView = this.templateObjs[this.selectedTemplateIndex];
+        const selectedTemplate: TemplateView = this.getTemplateObjs()[this.selectedTemplateIndex];
         if (selectedTemplate.name !== this.formEditDatas.name ||
             selectedTemplate.note !== this.formEditDatas.note) {
             return false;
@@ -104,20 +107,23 @@ export class TemplateManagementTS extends Vue {
         confirm.then(() => {
             (async () => {
                 const store = (this.$store as Store<IStoreState>);
-                const result: APIResult = await store.dispatch(
+                const apiResult: APIResult = await store.dispatch(
                     StoreActionNames.templateRemove,
                     {
                         data: {
                             uid: item.uid,
                         } as TemplateRemoveParam,
                     } as IStoreActionArgs);
-                if (result.code === ApiResultCode.Success) {
-                    this.templateObjs.splice(index, 1);
+                if (apiResult.code === ApiResultCode.Success) {
+                    this.$message.success('模板删除成功');
+                } else if (apiResult.code === ApiResultCode.DbNotFound) {
+                    this.$message.warning('所删除模板已经不存在');
+                    await this.$$pullTemplateObjs();
                 } else {
-                    this.$message.error(`删除模板信息失败，错误代码：${result.code}`);
+                    this.$message.error(`删除模板信息失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
                 }
             })().catch((ex) => {
-                RouterUtils.goToErrorView(this.$router);
+                RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
             });
         }).catch(() => {
             // do nothing for cancel
@@ -125,29 +131,28 @@ export class TemplateManagementTS extends Vue {
     }
     private onTemplateDownload(index: number, item: TemplateView): void {
         (async () => {
-            const result: APIResult = await this.store.dispatch(
+            const apiResult: APIResult = await this.store.dispatch(
                 StoreActionNames.fileDownload,
                 {
                     data: {
                         scenario: FileAPIScenario.DownloadTemplateFile,
-                        fileId: item.templateFileId,
+                        fileId: item.templateFileUid,
                         version: item.version,
                     } as FileDownloadParam,
                 } as IStoreActionArgs);
-            if (result.code === ApiResultCode.Success) {
-                const url = window.URL.createObjectURL(new Blob([result.data]));
+            if (apiResult.code === ApiResultCode.Success) {
+                const url = window.URL.createObjectURL(new Blob([apiResult.data]));
                 const link = document.createElement('a');
                 link.href = url;
                 link.setAttribute('download', `${item.name}.zip`);
                 document.body.appendChild(link);
                 link.click();
             } else {
-                this.$message.error(`模板文件下载失败，错误代码：${result.code}`);
+                this.$message.error(`模板文件下载失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
             }
 
         })().catch((ex) => {
-            RouterUtils.goToErrorView(this.$router);
-            LoggerManager.error('Error:', ex);
+            RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
         });
     }
 
@@ -162,7 +167,6 @@ export class TemplateManagementTS extends Vue {
                         note: this.formEditDatas.note,
                     } as TemplateEditParam,
                 } as IStoreActionArgs);
-            await this.$$pullTemplateObjs();
             this.syncTemplateEditForm();
             this.$message.success('模板基础信息更新成功');
         })().catch((ex) => {
@@ -171,14 +175,8 @@ export class TemplateManagementTS extends Vue {
         });
     }
     private onTemplateEditSuccess(): void {
+        this.$message.success('模板文件更新成功');
         this.resetTemplateEditUploader();
-        (async () => {
-            await this.$$pullTemplateObjs();
-            this.$message.success('模板文件更新成功');
-        })().catch((ex) => {
-            this.$message.error('链接服务器失败，请检查网络连接是否正常');
-            LoggerManager.error(ex);
-        });
     }
     private onCollapseChange(): void {
         if (this.selectedTemplateIndex == null) {
@@ -190,13 +188,12 @@ export class TemplateManagementTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted() {
+        // init template creation required data
+        this.fileUpdateParam.scenario = FileAPIScenario.UploadTemplate;
+        this.fileUpdateParam.metadata = this.formCreateDatas;
+        this.fileUploadParam.scenario = FileAPIScenario.UpdateTemplateFile;
+        this.fileUploadParam.metadata = new TemplateFileEditParam();
         (async () => {
-            // init template creation required data
-            this.fileCreateParam.scenario = FileAPIScenario.UploadTemplate;
-            this.fileCreateParam.metadata = this.formCreateDatas;
-            this.fileUploadParam.scenario = FileAPIScenario.UpdateTemplateFile;
-            this.fileUploadParam.metadata = new TemplateFileEditParam();
-
             // init template edit required data
             this.$$pullTemplateObjs();
         })().catch((ex) => {
@@ -208,14 +205,16 @@ export class TemplateManagementTS extends Vue {
 
     // region -- internal variables and methods
     private readonly store = (this.$store as Store<IStoreState>);
+    private readonly storeState = (this.$store.state as IStoreState);
+
     private async $$pullTemplateObjs(): Promise<void> {
-        const result: APIResult = await this.store.dispatch(
+        const apiResult: APIResult = await this.store.dispatch(
             StoreActionNames.templateQuery, { notUseLocalData: true } as IStoreActionArgs);
-        if (result.code === ApiResultCode.Success) {
-            this.templateObjs = result.data;
-        } else {
-            this.$message.error(`获取模板信息失败，错误代码：${result.code}`);
-            RouterUtils.goToErrorView(this.$router);
+        if (apiResult.code !== ApiResultCode.Success) {
+            RouterUtils.goToErrorView(
+                this.$router,
+                this.storeState,
+                `获取模板信息失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
         }
     }
 
@@ -233,14 +232,14 @@ export class TemplateManagementTS extends Vue {
             newFormEditData.name = '';
             newFormEditData.note = '';
             newFileUploadData.scenario = this.fileUploadParam.scenario;
-            newFileUploadData.metadata.templateId = '';
+            newFileUploadData.metadata.templateUid = '';
         } else {
-            const selectedTemplate: TemplateView = this.templateObjs[this.selectedTemplateIndex];
+            const selectedTemplate: TemplateView = this.getTemplateObjs()[this.selectedTemplateIndex];
             newFormEditData.uid = selectedTemplate.uid;
             newFormEditData.name = selectedTemplate.name;
             newFormEditData.note = selectedTemplate.note;
             newFileUploadData.scenario = this.fileUploadParam.scenario;
-            newFileUploadData.metadata.templateId = selectedTemplate.templateFileId;
+            newFileUploadData.metadata.templateUid = selectedTemplate.uid;
         }
         this.formEditDatas = newFormEditData;
         this.fileUploadParam = newFileUploadData;

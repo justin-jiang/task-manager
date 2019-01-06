@@ -5,9 +5,10 @@
         <el-upload
           class="upload-qualificationFile"
           drag
+          :name="keyNameOfuploadedFile"
           :ref="uploaderRefName"
           :action="uploadAPIURL"
-          :data="uploadData"
+          :data="fileUploadParam"
           :auto-upload="false"
           :limit="countLimit"
           :before-upload="beforeUpload"
@@ -32,6 +33,7 @@
         <el-button
           size="small"
           type="primary"
+          :disabled="!isReadyToSubmit()"
           @click="onSubmit"
         >{{buttonText}}</el-button>
       </el-col>

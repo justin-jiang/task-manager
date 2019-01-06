@@ -44,6 +44,7 @@ const state: IStoreState = {
   taskObjs: [],
   templateObjs: [],
   userObjs: [],
+  errorMessage: '',
 };
 
 Vue.use(Vuex);

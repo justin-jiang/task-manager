@@ -3,6 +3,8 @@ import { TemplateObject } from '../dataObjects/TemplateObject';
 import { MongoDBModelManager } from '../dbDrivers/mongoDB/MongoDBModelManager';
 import { BaseModelWrapper } from './BaseModelWrapper';
 import { ITemplateModel, keysOfSchema } from './mongoDB/ITemplateModel';
+import { CommonUtils } from 'common/CommonUtils';
+import { GlobalCache } from 'server/common/GlobalCache';
 
 export class TemplateModelWrapper extends BaseModelWrapper {
 
@@ -25,6 +27,9 @@ export class TemplateModelWrapper extends BaseModelWrapper {
                 dbObj[item] = modelData[item];
             }
         });
+        if (!CommonUtils.isNullOrEmpty(dbObj.uid)) {
+            GlobalCache.set(dbObj.uid as string, dbObj, 60);
+        }
         return dbObj;
     }
 }

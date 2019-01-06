@@ -1,4 +1,6 @@
+import { CommonUtils } from 'common/CommonUtils';
 import { Model } from 'mongoose';
+import { GlobalCache } from 'server/common/GlobalCache';
 import { BaseModelWrapper } from 'server/dataModels/BaseModelWrapper';
 import { ITaskModel, keysOfSchema } from 'server/dataModels/mongoDB/ITaskModel';
 import { TaskObject } from 'server/dataObjects/TaskObject';
@@ -25,6 +27,9 @@ export class TaskModelWrapper extends BaseModelWrapper {
                 dbObj[item] = modelData[item];
             }
         });
+        if (!CommonUtils.isNullOrEmpty(dbObj.uid)) {
+            GlobalCache.set(dbObj.uid as string, dbObj, 60);
+        }
         return dbObj;
     }
 }

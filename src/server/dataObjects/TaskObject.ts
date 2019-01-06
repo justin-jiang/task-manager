@@ -4,7 +4,7 @@ import { TaskState } from 'common/TaskState';
 interface ITaskObject extends IDBObject {
     name?: string;
     reward?: string;
-    templateFileId?: string;
+    templateFileUid?: string;
     publisherId?: string;
     applicantId?: string;
     executorId?: string;
@@ -18,7 +18,7 @@ export class TaskObject extends DBObject implements ITaskObject {
     [key: string]: any;
     public name?: string;
     public reward?: string;
-    public templateFileId?: string;
+    public templateFileUid?: string;
     public publisherId?: string;
     public applicantId?: string;
     public executorId?: string;
@@ -38,7 +38,7 @@ export class TaskObject extends DBObject implements ITaskObject {
             this.resultFileversion = -1;
             this.reward = '';
             this.state = TaskState.None;
-            this.templateFileId = '';
+            this.templateFileUid = '';
         }
     }
 

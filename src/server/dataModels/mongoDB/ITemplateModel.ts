@@ -12,7 +12,8 @@ const schemaDef = Object.assign({
     // the case-insentive index will be created in TemplateWrapper.$$warmUp
     name: { type: String, required: true } as SchemaTypeOpts<any>,
     version: { type: Number, required: true },
-    templateFileId: { type: String, required: true },
+    templateFileUid: { type: String, required: true },
+    ownerUid: { type: String, required: true },
     note: { type: String },
 
 }, BaseSchemaDef);
@@ -32,6 +33,6 @@ export const keysOfSchema: string[] = Object.keys(schemaDef);
 // do the prop check that all props in IXXXObject must be in keysOfSchema
 KeysOfIDBObject.forEach((item) => {
     if (!keysOfSchema.includes(item)) {
-        throw new ApiError(ApiResultCode.DB_SCHEMA_PROP_MISSED, `${item} missed in Template Schema`);
+        throw new ApiError(ApiResultCode.DbSchemaPropMissed, `${item} missed in Template Schema`);
     }
 });

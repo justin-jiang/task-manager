@@ -7,7 +7,7 @@ import { mongodbName } from 'server/common/Constants';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { Readable } from 'stream';
 import { MongoDBDriver } from './MongoDBDriver';
-import { FileType } from 'server/common/FileType';
+import { FileType } from 'common/FileType';
 
 interface DBFiles {
     _id: mongo.ObjectId;
@@ -26,6 +26,7 @@ export interface IFileMetaData {
     [key: string]: any;
     type: FileType;
     checked: boolean;
+    userUid: string;
 }
 export class FileStorage {
     private static readonly metadataKeyName = 'metadata';
@@ -50,10 +51,10 @@ export class FileStorage {
     public static async $$saveEntry(
         fileId: string, version: number, metadata: IFileMetaData, data: Buffer | NodeJS.ReadableStream) {
         if (CommonUtils.isNullOrEmpty(fileId)) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM, 'fileId cannot be null on save');
+            throw new ApiError(ApiResultCode.InputInvalidParam, 'fileId cannot be null on save');
         }
         if (version == null || version < 0) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+            throw new ApiError(ApiResultCode.InputInvalidParam,
                 'file version cannot be null or less than 0 on save');
         }
 
@@ -78,9 +79,9 @@ export class FileStorage {
         return this.grid.openDownloadStreamByName(`${fileId}_${version}`);
     }
 
-    public static async $$getEntry(files: string[]) {
+    public static async $$getEntry(fileId: string) {
         const filesCollection: mongo.Collection = this.dbInstance.collection('fs.files');
-        return await filesCollection.find({ _id: { $in: files } });
+        return await filesCollection.find({ _id: fileId });
     }
     public static async $$updateEntryMeta(entryId: string, metadata: IFileMetaData) {
         const filesCollection: mongo.Collection = this.dbInstance.collection('fs.files');

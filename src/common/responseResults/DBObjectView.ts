@@ -1,5 +1,4 @@
 import { CommonUtils } from 'common/CommonUtils';
-import { DBObject } from 'server/dataObjects/DBObject';
 
 export interface IDBObjectView {
 
@@ -13,19 +12,6 @@ export class DBObjectView implements IDBObjectView {
         if (withFullProps === true) {
             this.uid = '';
         }
-    }
-
-    public assembleFromDBObject(dbObj: DBObject): void {
-        const keysOfDBView: string[] = this.getKeysOfDBView();
-        keysOfDBView.forEach((item: string) => {
-            if (dbObj[item] != null) {
-                this[item] = dbObj[item];
-            }
-        });
-    }
-
-    protected getKeysOfDBView(): string[] {
-        return keysOfIDBView;
     }
 }
 

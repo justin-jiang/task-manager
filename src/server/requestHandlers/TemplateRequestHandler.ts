@@ -1,6 +1,5 @@
 import { CommonUtils } from 'common/CommonUtils';
 import { IQueryConditions } from 'common/IQueryConditions';
-import { TemplateCreateParam } from 'common/requestParams/TemplateCreateParam';
 import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
 import { TemplateRemoveParam } from 'common/requestParams/TemplateRemoveParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
@@ -13,78 +12,75 @@ import { FileStorage } from 'server/dbDrivers/mongoDB/FileStorage';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 
 export class TemplateRequestHandler {
-    public static async $$create(reqParam: TemplateCreateParam): Promise<TemplateView> {
-        if (CommonUtils.isNullOrEmpty(reqParam.name)) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
-                'TemplateCreateParam.name should not be null');
-        }
-        let dbObj: TemplateObject = new TemplateObject();
-        dbObj.uid = CommonUtils.getUUIDForMongoDB();
-        dbObj.name = reqParam.name;
-        if (reqParam.note !== undefined) {
-            dbObj.note = reqParam.note;
-        }
-        dbObj.version = 0;
-        dbObj.templateFileId = CommonUtils.getUUIDForMongoDB();
-
-        dbObj = await TemplateModelWrapper.$$create(dbObj) as TemplateObject;
-        const view: TemplateView = new TemplateView();
-        view.assembleFromDBObject(dbObj);
-        return view;
-    }
 
     public static async $$find(conditions: IQueryConditions): Promise<TemplateView[]> {
         const dbObjs: TemplateObject[] = await TemplateModelWrapper.$$find(conditions) as TemplateObject[];
         const views: TemplateView[] = [];
-        dbObjs.forEach((obj: TemplateObject) => {
-            views.push(this.convertToDBView(obj));
-        });
+        if (dbObjs != null && dbObjs.length > 0) {
+            for (const obj of dbObjs) {
+                views.push(await this.$$convertToDBView(obj));
+            }
+        }
         return views;
     }
-    public static async $$edit(reqParam: TemplateEditParam): Promise<TemplateView | null> {
+    public static async $$basicInfoEdit(
+        reqParam: TemplateEditParam, currentUser: UserObject): Promise<TemplateView> {
         if (reqParam == null || CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+            throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TemplateEditParam or TemplateEditParam.uid should not be null');
         }
-        const dbObjParam: TemplateObject = {
+        const dbObj: TemplateObject = await TemplateModelWrapper.$$findOne(
+            { uid: reqParam.uid } as TemplateObject) as TemplateObject;
+        if (dbObj == null) {
+            throw new ApiError(ApiResultCode.DbNotFound);
+        }
+        if (dbObj.ownerUid !== currentUser.uid) {
+            throw new ApiError(ApiResultCode.AuthForbidden);
+        }
+        let hasUpdateItems: boolean = false;
+        const updateObjParam: TemplateObject = {
         } as TemplateObject;
-        if (reqParam.name != null) {
-            dbObjParam.name = reqParam.name;
+        if (!CommonUtils.isNullOrEmpty(reqParam.name)) {
+            updateObjParam.name = reqParam.name;
+            hasUpdateItems = true;
         }
         if (reqParam.note != null) {
-            dbObjParam.note = reqParam.note;
+            updateObjParam.note = reqParam.note;
+            hasUpdateItems = true;
         }
 
-        const updatedObj: TemplateObject | null = await TemplateModelWrapper.$$findOneAndUpdate(
-            { uid: reqParam.uid } as TemplateObject, dbObjParam) as TemplateObject;
-        if (updatedObj != null) {
-            return this.convertToDBView(updatedObj);
-        } else {
-            return null;
+        if (hasUpdateItems) {
+            await TemplateModelWrapper.$$updateOne({ uid: reqParam.uid } as TemplateObject, updateObjParam);
+            Object.assign(dbObj, updateObjParam);
         }
+
+        return await this.$$convertToDBView(dbObj);
     }
 
-    public static async $$remove(reqParam: TemplateRemoveParam, currentUser: UserObject): Promise<TemplateView | null> {
-        // only admin can remove template
-        if (!CommonUtils.isAdmin(currentUser.roles)) {
-            throw new ApiError(ApiResultCode.Auth_Forbidden);
+    public static async $$remove(reqParam: TemplateRemoveParam, currentUser: UserObject): Promise<TemplateView> {
+        if (reqParam == null || CommonUtils.isNullOrEmpty(reqParam.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'TemplateRemoveParam or TemplateRemoveParam.uid should not be null');
         }
-        const deletedDBObj: TemplateObject | null = await TemplateModelWrapper.$$findeOneAndDelete(
+        const dbObj: TemplateObject = await TemplateModelWrapper.$$findOne(
             { uid: reqParam.uid } as TemplateObject) as TemplateObject;
-        if (deletedDBObj != null) {
-            if (!CommonUtils.isNullOrEmpty(deletedDBObj.templateFileId)) {
-                // delete all template file
-                await FileStorage.$$deleteEntry(deletedDBObj.templateFileId as string);
-                // TODO: remove related tasks
-            }
-            return this.convertToDBView(deletedDBObj);
-
-        } else {
-            return null;
+        if (dbObj == null) {
+            throw new ApiError(ApiResultCode.DbNotFound);
         }
+
+        // only admin or owner can remove template
+        if (!CommonUtils.isAdmin(currentUser.roles) && dbObj.ownerUid !== currentUser.uid) {
+            throw new ApiError(ApiResultCode.AuthForbidden);
+        }
+        // remove template file
+        await FileStorage.$$deleteEntry(dbObj.templateFileUid as string);
+        // TODO: remove related tasks
+
+        await TemplateModelWrapper.$$deleteOne({ uid: reqParam.uid } as TemplateObject);
+        return await this.$$convertToDBView(dbObj);
     }
 
-    public static convertToDBView(dbObj: TemplateObject): TemplateView {
+    public static async $$convertToDBView(dbObj: TemplateObject): Promise<TemplateView> {
         const view: TemplateView = new TemplateView();
         keysOfITemplateView.forEach((key: string) => {
             if (key in dbObj) {

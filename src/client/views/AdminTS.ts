@@ -16,7 +16,6 @@ export class AdminTS extends Vue {
     private activeIndex: string = '';
     private isLoading: boolean = true;
 
-    private readonly templateIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`;
     private readonly notificationIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Notification}`;
     private readonly userIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_User}`;
 
@@ -49,7 +48,7 @@ export class AdminTS extends Vue {
                 RouterUtils.goToUserHomePage(this.$router, sessionInfo.roles);
             } else {
                 this.isLoading = false;
-                RouterUtils.goToAdminTemplateManagementView(this.$router);
+                RouterUtils.goToAdminUserManagementView(this.$router);
                 this.activeIndex = this.$route.name as string;
             }
         }

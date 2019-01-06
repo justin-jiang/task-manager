@@ -14,7 +14,7 @@ import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
 import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
 import { TemplateRemoveParam } from 'common/requestParams/TemplateRemoveParam';
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
-import { UserEditParam } from 'common/requestParams/UserEditParam';
+import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { APIResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
@@ -36,6 +36,9 @@ import { UserRequestHandler } from '../requestHandlers/UserRequestHandler';
 import { BaseRouter } from './BaseRouter';
 import { ApiBuilder, IApiHandlers, UploadType } from './builders/ApiBuilder';
 import { UserCheckParam } from 'common/requestParams/UserCheckParam';
+import { UserEnableParam } from 'common/requestParams/UserEnableParam';
+import { UserDisableParam } from 'common/requestParams/UserDisableParam';
+import { UserPasswordEditParam } from 'common/requestParams/UserPasswordEditParam';
 /**
  * API Router for all the /api/* RESTful URI
  *
@@ -53,7 +56,7 @@ export class ApiRouter extends BaseRouter {
             post: this.$$userQuery.bind(this),
         } as IApiHandlers);
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.EDIT}`, {
-            post: this.$$userEdit.bind(this),
+            post: this.$$userBasicInfoEdit.bind(this),
         } as IApiHandlers);
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.REMOVE}`, {
             post: this.$$userRemove.bind(this),
@@ -61,6 +64,16 @@ export class ApiRouter extends BaseRouter {
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.CHECK}`, {
             post: this.$$userCheck.bind(this),
         } as IApiHandlers);
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.ENABLE}`, {
+            post: this.$$userEnable.bind(this),
+        } as IApiHandlers);
+        apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.DISABLE}`, {
+            post: this.$$userDisable.bind(this),
+        } as IApiHandlers);
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.PASSWORD}/${HttpPathItem.EDIT}`, {
+                post: this.$$userPasswordEdit.bind(this),
+            } as IApiHandlers);
         // #endregion
 
         // #region -- build template API
@@ -71,7 +84,7 @@ export class ApiRouter extends BaseRouter {
             post: this.$$templateRemove.bind(this),
         } as IApiHandlers);
         apiBuilder.buildApiForPath(`/${HttpPathItem.API}/${HttpPathItem.TEMPLATE}/${HttpPathItem.EDIT}`, {
-            post: this.$$templateInfoEdit.bind(this),
+            post: this.$$templateBasicInfoEdit.bind(this),
         } as IApiHandlers);
         // #endregion
 
@@ -136,33 +149,42 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$userQuery(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
-        const reqParam: IQueryConditions = req.body as IQueryConditions;
         // only admin can do the user list query
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         if (!CommonUtils.isAdmin(currentUser.roles)) {
-            throw new ApiError(ApiResultCode.Auth_Forbidden);
+            throw new ApiError(ApiResultCode.AuthForbidden);
         }
-        const views: UserView[] = await UserRequestHandler.$$find(reqParam);
+        const views: UserView[] = await UserRequestHandler.$$find({ uid: { $ne: UserModelWrapper.adminUID } });
         apiResult.data = views;
         res.json(apiResult).end();
     }
 
-    private async $$userEdit(req: Request, res: Response, next: NextFunction) {
+    private async $$userBasicInfoEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
-        const reqParam: UserEditParam = req.body as UserEditParam;
+        const reqParam: UserBasicInfoEditParam = req.body as UserBasicInfoEditParam;
         // only admin or self user can update himself
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        if (!CommonUtils.isAdmin(currentUser.roles) && currentUser.uid !== reqParam.uid) {
-            throw new ApiError(ApiResultCode.Auth_Forbidden);
-        }
-        await UserRequestHandler.$$updateOne(reqParam, currentUser);
+        apiResult.data = await UserRequestHandler.$$basicInfoEdit(reqParam, currentUser);
+        res.json(apiResult).end();
+    }
+    private async $$userPasswordEdit(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: UserPasswordEditParam = req.body as UserPasswordEditParam;
+        // only admin or self user can update himself
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        await UserRequestHandler.$$passwordEdit(reqParam, currentUser);
         res.json(apiResult).end();
     }
     private async $$userRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: UserRemoveParam = req.body as UserRemoveParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        await UserRequestHandler.$$remove(reqParam, currentUser);
+        const view: UserView | null = await UserRequestHandler.$$remove(reqParam, currentUser);
+        if (view != null) {
+            apiResult.data = view;
+        } else {
+            apiResult.code = ApiResultCode.DbNotFound;
+        }
         res.json(apiResult).end();
     }
     private async $$userCheck(req: Request, res: Response, next: NextFunction) {
@@ -170,6 +192,20 @@ export class ApiRouter extends BaseRouter {
         const reqParam: UserCheckParam = req.body as UserCheckParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await UserRequestHandler.$$check(reqParam, currentUser);
+        res.json(apiResult).end();
+    }
+    private async $$userEnable(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: UserEnableParam = req.body as UserEnableParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        apiResult.data = await UserRequestHandler.$$enableOrDisable(reqParam.uid, UserState.Enabled, currentUser);
+        res.json(apiResult).end();
+    }
+    private async $$userDisable(req: Request, res: Response, next: NextFunction) {
+        const apiResult: APIResult = { code: ApiResultCode.Success };
+        const reqParam: UserDisableParam = req.body as UserDisableParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        apiResult.data = await UserRequestHandler.$$enableOrDisable(reqParam.uid, UserState.Disabled, currentUser);
         res.json(apiResult).end();
     }
     // #endregion
@@ -194,22 +230,21 @@ export class ApiRouter extends BaseRouter {
         const reqParam: TemplateRemoveParam = req.body as TemplateRemoveParam;
         // only admin can remove template
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        await TemplateRequestHandler.$$remove(reqParam, currentUser);
+        const dbView: TemplateView | null = await TemplateRequestHandler.$$remove(reqParam, currentUser);
+        if (dbView != null) {
+            apiResult.data = dbView;
+        } else {
+            apiResult.code = ApiResultCode.DbNotFound;
+        }
         res.json(apiResult).end();
     }
 
-    private async $$templateInfoEdit(req: Request, res: Response, next: NextFunction) {
+    private async $$templateBasicInfoEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: TemplateEditParam = req.body as TemplateEditParam;
         // only admin can edit template
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        if (!CommonUtils.isAdmin(currentUser.roles)) {
-            throw new ApiError(ApiResultCode.Auth_Forbidden);
-        }
-        apiResult.data = await TemplateRequestHandler.$$edit(reqParam);
-        if (apiResult.data == null) {
-            apiResult.code = ApiResultCode.DB_NOT_FOUND;
-        }
+        apiResult.data = await TemplateRequestHandler.$$basicInfoEdit(reqParam, currentUser);
         res.json(apiResult).end();
     }
     // #endregion
@@ -229,7 +264,7 @@ export class ApiRouter extends BaseRouter {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: FileUploadParam = req.body as FileUploadParam;
         if (req.file == null) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM, 'req.file should not be null');
+            throw new ApiError(ApiResultCode.InputInvalidParam, 'req.file should not be null');
         }
         let currentDBUser: UserObject | undefined;
         switch (reqParam.scenario) {
@@ -241,7 +276,7 @@ export class ApiRouter extends BaseRouter {
             case FileAPIScenario.UploadTemplate:
                 //  only Admin can create or edit Template File
                 currentDBUser = await this.$$getCurrentUser(req);
-                await FileRequestHandler.$$createTemplate(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$createTemplate(req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UpdateTemplateFile:
                 //  only Admin can create or edit Template File
@@ -266,7 +301,7 @@ export class ApiRouter extends BaseRouter {
                 break;
             default:
                 LoggerManager.error(`Invalid API Scenario:${reqParam.scenario}`);
-                throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_SCENARIO);
+                throw new ApiError(ApiResultCode.InputInvalidScenario);
         }
         res.json(apiResult).end();
     }
@@ -286,7 +321,7 @@ export class ApiRouter extends BaseRouter {
      * @param next 
      */
     private async $$sessionCreate(req: Request, res: Response, next: NextFunction) {
-        const apiResult: APIResult = { code: ApiResultCode.Auth_Unauthorized };
+        const apiResult: APIResult = { code: ApiResultCode.AuthUnauthorized };
         const reqParam: SessionCreateParam = req.body as SessionCreateParam;
         const loginUser: UserView | undefined = await SessionRequestHandler.$$sessionCreate(reqParam, res);
         if (loginUser != null) {
@@ -302,7 +337,7 @@ export class ApiRouter extends BaseRouter {
      * @param next 
      */
     private async $$sessionQuery(req: Request, res: Response, next: NextFunction) {
-        const apiResult: APIResult = { code: ApiResultCode.Auth_Unauthorized };
+        const apiResult: APIResult = { code: ApiResultCode.AuthUnauthorized };
         const userCookie: ILoginUserInfoInCookie | undefined = CookieUtils.getUserFromCookie(req);
         if (userCookie != null) {
             if (userCookie.uid != null) {
@@ -350,9 +385,9 @@ export class ApiRouter extends BaseRouter {
     private async $$taskQuery(req: Request, res: Response, next: NextFunction) {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        if (currentUser.state !== UserState.Ready) {
+        if (!CommonUtils.isUserReady(currentUser)) {
             LoggerManager.error(`User:${currentUser.name} state(${currentUser.state}) is not ready`);
-            throw new ApiError(ApiResultCode.Auth_Forbidden);
+            throw new ApiError(ApiResultCode.AuthForbidden);
         }
         const views: TaskView[] = await TaskRequestHandler.$$query(currentUser);
         apiResult.data = views;
@@ -394,7 +429,7 @@ export class ApiRouter extends BaseRouter {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: TaskApplyParam = req.body as TaskApplyParam;
         if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+            throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TaskApplyParam.uid should not be null');
         }
         // only ready executor can apply task
@@ -413,7 +448,7 @@ export class ApiRouter extends BaseRouter {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: TaskApplyAcceptParam = req.body as TaskApplyAcceptParam;
         if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+            throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TaskApplyAcceptParam.uid should not be null');
         }
         const currentUser: UserObject = await this.$$getCurrentUser(req);
@@ -432,7 +467,7 @@ export class ApiRouter extends BaseRouter {
         const apiResult: APIResult = { code: ApiResultCode.Success };
         const reqParam: TaskApplyDenyParam = req.body as TaskApplyDenyParam;
         if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.INPUT_VALIDATE_INVALID_PARAM,
+            throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TaskApplyDenyParam.uid should not be null');
         }
         const currentUser: UserObject = await this.$$getCurrentUser(req);
@@ -450,7 +485,7 @@ export class ApiRouter extends BaseRouter {
         const dbUsers: UserObject[] = await UserModelWrapper.$$find(
             { uid: loginUserInCookie.uid } as UserObject) as UserObject[];
         if (dbUsers == null || dbUsers.length === 0) {
-            throw new ApiError(ApiResultCode.DB_NOT_FOUND, `UserID:${loginUserInCookie.uid}`);
+            throw new ApiError(ApiResultCode.DbNotFound, `UserID:${loginUserInCookie.uid}`);
         }
         return dbUsers[0];
     }

@@ -1,7 +1,12 @@
 import { DBObjectView } from 'common/responseResults/DBObjectView';
+import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { DBObject } from 'server/dataObjects/DBObject';
 import * as uuidv4 from 'uuid/v4';
+import { LogoState } from './responseResults/LogoState';
+import { QualificationState } from './responseResults/QualificationState';
+import { UserState } from './UserState';
+import { UserObject } from 'server/dataObjects/UserObject';
 export class CommonUtils {
     public static getUUIDForMongoDB(): string {
         return `M-${(uuidv4 as any)().replace(/-/g, '')}`;
@@ -51,5 +56,11 @@ export class CommonUtils {
             return false;
         }
         return roles.includes(UserRole.Admin);
+    }
+
+    public static isUserReady(user: UserView | UserObject): boolean {
+        return user.logoState === LogoState.Checked &&
+            user.qualificationState === QualificationState.Checked &&
+            user.state === UserState.Enabled;
     }
 }

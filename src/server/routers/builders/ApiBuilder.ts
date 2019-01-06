@@ -134,6 +134,9 @@ export class ApiBuilder {
 
         // check whether system has been initialized
         if (AppStatus.isSystemInitialized !== true) {
+            await UserModelWrapper.$$adminCheck();
+        }
+        if (AppStatus.isSystemInitialized !== true) {
             throw new ApiError(ApiResultCode.SystemNotInitialized);
         }
         // igore login request
@@ -144,7 +147,7 @@ export class ApiBuilder {
         }
         // check if cookie is available
         if (await this.$$cookieChecking(loginUserInCookie) === false) {
-            res.json({ code: ApiResultCode.Auth_Unauthorized }).end();
+            res.json({ code: ApiResultCode.AuthUnauthorized }).end();
         } else {
             CookieUtils.setUserToCookie(res, loginUserInCookie as ILoginUserInfoInCookie);
             next();

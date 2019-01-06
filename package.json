@@ -8,7 +8,9 @@
     "dev:adminScript": "kill-port --port 9229 && TS_NODE_PROJECT='tsconfig.server.json' node -r ts-node/register --inspect-brk=127.0.0.1:9229 -r tsconfig-paths/register src/adminScripts/pm2Script.ts",
     "build:client": "vue-cli-service build src/client/main.ts --clearcache",
     "build:server": "tslint --config tslint.json --project tsconfig.server.json && TS_NODE_PROJECT='tsconfig.server.json' node -r ts-node/register -r tsconfig-paths/register build/buildServer.ts",
-    "prodInstall": "cnpm install --production --no-optional"
+    "build:all": "cnpm run build:client && cnpm run build:server && cnpm run prodPackage",
+    "prodInstall": "cnpm install --production --no-optional",
+    "prodPackage": "rm taskManager.tar.gz && tar -cvzf taskManager.tar.gz dist/*"
   },
   "dependencies": {
     "cookie-parser": "^1.4.3",

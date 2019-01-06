@@ -56,7 +56,7 @@ export class LoggerManager {
         if (!this.initParam.isDebug) {
             const rollingFaleTransport = new DailyRotateFile({
                 dirname: './logs',
-                filename: `${LoggerManager.filePrefix}_%DATE%_${process.pid}.log'`,
+                filename: `${LoggerManager.filePrefix}_%DATE%_${process.pid}.log`,
                 datePattern: 'YYYY-MM-DD',
                 maxFiles: '10',
                 maxsize: '100m',

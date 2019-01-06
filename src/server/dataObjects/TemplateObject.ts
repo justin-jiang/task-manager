@@ -1,25 +1,21 @@
 import { CommonUtils } from 'common/CommonUtils';
-import { DBObject, IDBObject } from './DBObject';
-interface ITemplateObject extends IDBObject {
-    name?: string;
-    version?: number;
-    note?: string;
-    templateFileId?: string;
-}
+import { DBObject } from 'server/dataObjects/DBObject';
 
-export class TemplateObject extends DBObject implements ITemplateObject {
+export class TemplateObject extends DBObject {
     [key: string]: any;
     public name?: string;
     public version?: number;
     public note?: string;
-    public templateFileId?: string;
+    public templateFileUid?: string;
+    public ownerUid?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
             this.name = '';
             this.note = '';
-            this.templateFileId = '';
+            this.templateFileUid = '';
             this.version = -1;
+            this.ownerUid = '';
         }
     }
 

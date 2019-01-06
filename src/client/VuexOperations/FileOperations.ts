@@ -17,7 +17,7 @@ export const actions = {
         if (response.status === 200) {
             result.data = response.data;
         } else {
-            result.code = ApiResultCode.FILE_FAILED_DOWNLOAD;
+            result.code = ApiResultCode.FileFailedDownload;
             result.data = `HttpStatus:${response.status}`;
         }
         return result;

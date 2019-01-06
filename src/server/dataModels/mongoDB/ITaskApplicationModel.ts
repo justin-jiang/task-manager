@@ -28,6 +28,6 @@ export const keysOfSchema: string[] = Object.keys(schemaDef);
 // do the prop check that all props in IXXXObject must be in keysOfSchema
 KeysOfIDBObject.forEach((item) => {
     if (!keysOfSchema.includes(item)) {
-        throw new ApiError(ApiResultCode.DB_SCHEMA_PROP_MISSED, `${item} missed in TaskApplications Schema`);
+        throw new ApiError(ApiResultCode.DbSchemaPropMissed, `${item} missed in TaskApplications Schema`);
     }
 });

@@ -4,7 +4,7 @@ import { Response } from 'express';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { UserModelWrapper } from '../dataModels/UserModelWrapper';
-import { UserObject } from '../dataObjects/UserObject';
+import { keysOfIUserObject, UserObject } from '../dataObjects/UserObject';
 
 export class SessionRequestHandler {
     /**
@@ -22,9 +22,7 @@ export class SessionRequestHandler {
                         password: userObjs[0].password,
                     };
                     CookieUtils.setUserToCookie(res, cookieData);
-                    const view: UserView = new UserView();
-                    view.assembleFromDBObject(userObjs[0]);
-                    return view;
+                    return await this.$$convertToDBView(userObjs[0]);
                 } else {
                     LoggerManager.error(`user:${reqParam.name} password not matched`);
                 }
@@ -42,9 +40,7 @@ export class SessionRequestHandler {
         const userObjs: UserObject[] = await UserModelWrapper.$$find({ uid } as UserObject) as UserObject[];
         if (userObjs != null && userObjs.length > 0) {
             if (userObjs.length === 1) {
-                const view: UserView = new UserView();
-                view.assembleFromDBObject(userObjs[0]);
-                return view;
+                return await this.$$convertToDBView(userObjs[0]);
             } else {
                 LoggerManager.error(`Too many duplicated userids:${uid}`);
             }
@@ -52,5 +48,15 @@ export class SessionRequestHandler {
             LoggerManager.error(`userid:${uid} not found`);
         }
         return undefined;
+    }
+
+    public static async  $$convertToDBView(dbObj: UserObject): Promise<UserView> {
+        const view: UserView = new UserView();
+        keysOfIUserObject.forEach((key: string) => {
+            if (key in dbObj) {
+                view[key] = dbObj[key];
+            }
+        });
+        return view;
     }
 }

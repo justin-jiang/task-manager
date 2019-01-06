@@ -5,6 +5,7 @@ import { ApiError } from 'server/common/ApiError';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { DBObject } from '../dataObjects/DBObject';
 import { IModel } from './mongoDB/IModel';
+import { GlobalCache } from 'server/common/GlobalCache';
 
 export class BaseModelWrapper {
     protected static caseInsensitiveCollation = { locale: 'en', strength: 2 };
@@ -30,8 +31,14 @@ export class BaseModelWrapper {
         }
         return this.convertModelToDBObject(modelData);
     }
+    public static async $$getOneFromCache(uid: string): Promise<DBObject | null> {
+        let dbObj: DBObject | null = GlobalCache.get(uid);
+        if (dbObj == null) {
+            dbObj = await this.$$findOne({ uid } as DBObject);
+        }
+        return dbObj;
+    }
     public static async $$updateOne(conditions: IQueryConditions, dbObj: DBObject): Promise<void> {
-
         const dbModel: Model<IModel> = await this.getDBModel();
         const result = await dbModel.updateOne(conditions, dbObj);
         LoggerManager.debug('$$updateOne result:', result);

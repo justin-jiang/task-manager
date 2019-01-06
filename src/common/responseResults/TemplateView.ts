@@ -1,29 +1,21 @@
 import { CommonUtils } from 'common/CommonUtils';
-import { DBObjectView, IDBObjectView } from './DBObjectView';
+import { DBObjectView } from './DBObjectView';
 
-interface ITemplateView extends IDBObjectView {
-    name?: string;
-    note?: string;
-    templateFileId?: string;
-    version?: number;
-}
-
-export class TemplateView extends DBObjectView implements ITemplateView {
+export class TemplateView extends DBObjectView {
     public name?: string;
     public note?: string;
-    public templateFileId?: string;
+    public templateFileUid?: string;
     public version?: number;
+    public ownerUid?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps) {
             this.name = '';
             this.note = '';
-            this.templateFileId = '';
+            this.templateFileUid = '';
             this.version = -1;
+            this.ownerUid = '';
         }
-    }
-    protected getKeysOfDBView(): string[] {
-        return keysOfITemplateView;
     }
 }
 
