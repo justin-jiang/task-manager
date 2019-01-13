@@ -1,25 +1,13 @@
-import { msgConnectionIssue } from 'client/common/Constants';
-import { RouterUtils, RoutePathItem, RouterName } from 'client/common/RouterUtils';
+import { RoutePathItem, RouterName, RouterUtils } from 'client/common/RouterUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
 import { LoggerManager } from 'client/LoggerManager';
-import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
-import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
-import { FileAPIScenario } from 'common/FileAPIScenario';
-import { FileUploadParam } from 'common/requestParams/FileUploadParam';
-import { TaskApplyParam } from 'common/requestParams/TaskApplyParam';
-import { TaskResultFileUploadParam } from 'common/requestParams/TaskResultFileUploadParam';
-import { APIResult } from 'common/responseResults/APIResult';
-import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { TaskView } from 'common/responseResults/TaskView';
 import { UserView } from 'common/responseResults/UserView';
-import { TaskState, getTaskStateText } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { UserState } from 'common/UserState';
-import { UserRole } from 'common/UserRole';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+import { NotificationState } from 'common/NotificationState';
+import { ComponentUtils } from 'client/components/ComponentUtils';
 const compToBeRegistered: any = {
     SingleFileUploadVue,
 };
@@ -28,18 +16,29 @@ const compToBeRegistered: any = {
     components: compToBeRegistered,
 })
 export class ExecutorTS extends Vue {
-
-
-
-
     // #region -- props and methods for Whole Page
-    private isLoading: boolean = true;
+    private isInitialized: boolean = false;
     private activeIndex: string = '';
     private readonly taskIndex: string = `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Task}`;
     private readonly notificationIndex: string = `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Notification}`;
     private readonly userInfoIndex: string = `/${RoutePathItem.Executor}/${RoutePathItem.Executor_UserInfo}`;
     private onMenuSelected(key: string, keyPath: string): void {
-        LoggerManager.debug('selectedMenu:', key, keyPath);
+        this.activeIndex = key;
+    }
+    // #endregion
+
+    // #region -- props and methods for notification
+    private get hasNotification(): boolean {
+        return this.newNotificationCount > 0;
+    }
+    private get newNotificationCount(): number {
+        let count: number = 0;
+        this.storeState.notificationObjs.forEach((item) => {
+            if (item.state === NotificationState.Unread) {
+                count++;
+            }
+        });
+        return count;
     }
     // #endregion
 
@@ -48,35 +47,45 @@ export class ExecutorTS extends Vue {
         this.initialize();
     }
 
-    @Watch('$store.state.sessionInfo', { immediate: true, deep: true })
-    private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
-        const sessionInfo = currentValue;
-        if (sessionInfo != null && sessionInfo.roles != null && this.isLoading) {
-            this.initialize();
-        }
-    }
-
     // #endregion
 
     // #region internal prop and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
-    private initialize() {
-        const sessionInfo = this.storeState.sessionInfo;
-        if (sessionInfo != null && sessionInfo.roles != null && this.isLoading) {
-            if (!CommonUtils.isExecutor(sessionInfo.roles)) {
-                RouterUtils.goToUserHomePage(this.$router, sessionInfo.roles);
-            } else {
-                this.isLoading = false;
-                if (this.$route.name === RouterName.Executor) {
-                    RouterUtils.goToExecutorView(this.$router);
-                } else {
-                    this.activeIndex = this.$route.name as string;
-                }
-            }
+
+    @Watch('$store.state.sessionInfo', { immediate: true })
+    private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
+        const sessionInfo = currentValue;
+        if (CommonUtils.isExecutor(sessionInfo.roles) && this.isInitialized === false) {
+            this.initialize();
         }
     }
-
+    private initialize() {
+        const sessionInfo = this.storeState.sessionInfo;
+        if (sessionInfo.roles == null) {
+            // session info is not ready, wait
+        } if (CommonUtils.isReadyExecutor(sessionInfo)) {
+            if (this.$route.name === RouterName.Executor) {
+                RouterUtils.goToExecutorDefaultView(this.$router);
+            } else {
+                switch (this.$route.name) {
+                    case RouterName.Executor_UserInfo:
+                        this.activeIndex = this.userInfoIndex;
+                        break;
+                    case RouterName.Executor_Notification:
+                        this.activeIndex = this.notificationIndex;
+                        break;
+                    default:
+                        this.activeIndex = this.taskIndex;
+                        break;
+                }
+            }
+            ComponentUtils.pullNotification(this);
+            this.isInitialized = true;
+        } else {
+            RouterUtils.goToUserHomePage(this.$router, sessionInfo);
+        }
+    }
     // #endregion
 
 }

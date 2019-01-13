@@ -3,6 +3,8 @@ export enum TaskState {
     ReadyToApply = 1,
     Applying = 2,
     Assigned = 3,
+    TaskResultUploaded = 4,
+    TaskResultDenied = 5,
     Completed = 10,
     Canceled = 11,
 
@@ -18,6 +20,8 @@ export function getTaskStateText(state: TaskState): string {
             return '申请中';
         case TaskState.Assigned:
             return '已指派';
+        case TaskState.TaskResultUploaded:
+            return '已提交结果';
         case TaskState.Completed:
             return '已完成';
         case TaskState.Canceled:

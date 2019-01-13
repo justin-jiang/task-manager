@@ -11,8 +11,9 @@ export enum StoreActionNames {
     // #endregion
 
     // #region -- File Actions
-    fileCreate = 'fileCreate',
+    fileUpload = 'fileUpload',
     fileDownload = 'fileDownload',
+    fileMetaDataQuery = 'fileMetaDataQuery',
     // #endregion
 
     // #region -- Session Actions
@@ -31,8 +32,14 @@ export enum StoreActionNames {
     taskCreation = 'taskCreation',
     taskQuery = 'taskQuery',
     taskApply = 'taskApply',
-    taskApplyAccept = 'taskAppyAccept',
+    taskApplyCheck = 'taskAppyCheck',
     taskApplyDeny = 'taskAppyDeny',
     taskRemove = 'taskRemove',
+    taskResultCheck = 'taskResultCheck',
+    // #endregion
+
+    // #region -- notfication actions
+    notificationQuery = 'notificationQuery',
+    notificationRead = 'notificationRead',
     // #endregion
 }

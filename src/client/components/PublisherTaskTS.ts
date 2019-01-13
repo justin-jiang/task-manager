@@ -1,26 +1,30 @@
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { msgConnectionIssue } from 'client/common/Constants';
+import { RouteQuery } from 'client/common/RouteQuery';
 import { RouterUtils } from 'client/common/RouterUtils';
+import { ComponentUtils } from 'client/components/ComponentUtils';
 import { LoggerManager } from 'client/LoggerManager';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
-import { TaskApplyAcceptParam } from 'common/requestParams/TaskApplyAcceptParam';
-import { TaskApplyDenyParam } from 'common/requestParams/TaskApplyDenyParam';
+import { FileAPIScenario } from 'common/FileAPIScenario';
+import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
+import { TaskApplyCheckParam } from 'common/requestParams/TaskApplyCheckParam';
+import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
 import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
-import { TaskEditParam } from 'common/requestParams/TaskEditParam';
 import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
-import { APIResult } from 'common/responseResults/APIResult';
+import { TaskResultCheckParam } from 'common/requestParams/TaskResultCheckParam';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
 import { TemplateView } from 'common/responseResults/TemplateView';
 import { UserView } from 'common/responseResults/UserView';
-import { TaskState, getTaskStateText } from 'common/TaskState';
+import { getTaskStateText, TaskState } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { UserState } from 'common/UserState';
-import { UserRole } from 'common/UserRole';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+export const taskListTabName: string = 'taskListTab';
+export const editCollapseName: string = 'taskEditCollapse';
 const compToBeRegistered: any = {
 };
 
@@ -54,7 +58,7 @@ export class PublisherTaskTS extends Vue {
                 if (valid) {
                     this.isSubmitting = true;
                     this.taskCreationFormDatas.templateFileUid = this.selectedTemplateUid;
-                    const apiResult: APIResult = await this.store.dispatch(
+                    const apiResult: ApiResult = await this.store.dispatch(
                         StoreActionNames.taskCreation, {
                             data: this.taskCreationFormDatas,
                         } as IStoreActionArgs);
@@ -88,18 +92,22 @@ export class PublisherTaskTS extends Vue {
     // #endregion
 
     // #region -- props and methods for task list tab
-    private readonly taskListTabName: string = 'taskListTab';
-    private readonly editCollapseName: string = 'taskEditCollapse';
+    private readonly taskListTabName: string = taskListTabName;
+    private readonly editCollapseName: string = editCollapseName;
     private readonly formEditRefName = 'taskEditForm';
-    private formEditDatas: TaskEditParam = new TaskEditParam();
+    private formEditDatas: TaskBasicInfoEditParam = new TaskBasicInfoEditParam();
     private readonly activeCollapseNames: string[] = [];
     private search: string = '';
-    private selectedTaskIndex: number | undefined;
+    private selectedTask: TaskView | undefined;
+    private taskResultCheckDialogVisible: boolean = false;
     private isSearchReady(): boolean {
         return true;
     }
     private taskStateToText(state: TaskState): string {
         return getTaskStateText(state);
+    }
+    private timestampToText(timestamp: number): string {
+        return CommonUtils.convertTimeStampToText(timestamp);
     }
     private getTaskObjs(): TaskView[] {
         return this.storeState.taskObjs;
@@ -107,32 +115,37 @@ export class PublisherTaskTS extends Vue {
     private isTaskApplying(task: TaskView) {
         return task.state === TaskState.Applying;
     }
+    private isTaskResultUploaded(index: number, task: TaskView): boolean {
+        return task.state === TaskState.TaskResultUploaded;
+    }
     private isBasicInfoUpdated(): boolean {
-        if (this.selectedTaskIndex == null) {
+        if (this.selectedTask == null) {
             return false;
         }
-        const selectedObj: TaskView = this.getTaskObjs()[this.selectedTaskIndex];
-        if (selectedObj.name !== this.formEditDatas.name ||
-            selectedObj.reward !== this.formEditDatas.reward ||
-            selectedObj.note !== this.formEditDatas.note) {
+
+        if (this.selectedTask.name !== this.formEditDatas.name ||
+            this.selectedTask.reward !== this.formEditDatas.reward ||
+            this.selectedTask.note !== this.formEditDatas.note) {
             return true;
+        } else {
+            return false;
         }
-        return false;
+
     }
     private onCollapseChange(): void {
-        if (this.selectedTaskIndex == null) {
+        if (this.selectedTask == null) {
             this.activeCollapseNames.splice(0, this.activeCollapseNames.length);
             this.$message.warning('请先选择要编辑的任务');
         }
     }
-    private onTaskSelect(index: number, task: TaskView) {
-        this.selectedTaskIndex = index;
+    private onTaskSelect(index: number, task: TaskView): void {
+        this.selectedTask = task;
         this.syncTaskEditForm();
         if (this.activeCollapseNames.length === 0) {
             this.activeCollapseNames.push(this.editCollapseName);
         }
     }
-    private onTaskApplyAccept(index: number, task: TaskView) {
+    private onTaskApplyAccept(index: number, task: TaskView): void {
         const confirm = this.$confirm(
             '确认要接受执行人的申请吗？',
             '提示', {
@@ -142,12 +155,13 @@ export class PublisherTaskTS extends Vue {
             });
         confirm.then(() => {
             (async () => {
-                const apiResult: APIResult = await this.store.dispatch(
-                    StoreActionNames.taskApplyAccept,
+                const apiResult: ApiResult = await this.store.dispatch(
+                    StoreActionNames.taskApplyCheck,
                     {
                         data: {
                             uid: task.uid,
-                        } as TaskApplyAcceptParam,
+                            pass: true,
+                        } as TaskApplyCheckParam,
                     } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success) {
                     this.$message.success(`任务申请接受成功`);
@@ -161,22 +175,25 @@ export class PublisherTaskTS extends Vue {
             // do nothing for cancel
         });
     }
-    private onTaskApplyDeny(index: number, task: TaskView) {
-        const confirm = this.$confirm(
-            '确认要拒绝执行人的申请吗？',
+    private onTaskApplyDeny(index: number, task: TaskView): void {
+        const confirm = this.$prompt(
+            '请输入拒绝的理由',
             '提示', {
                 type: 'warning',
                 center: true,
                 closeOnClickModal: false,
+                inputType: 'textarea'
             });
-        confirm.then(() => {
+        confirm.then(({ value }) => {
             (async () => {
-                const apiResult: APIResult = await this.store.dispatch(
-                    StoreActionNames.taskApplyDeny,
+                const apiResult: ApiResult = await this.store.dispatch(
+                    StoreActionNames.taskApplyCheck,
                     {
                         data: {
                             uid: task.uid,
-                        } as TaskApplyDenyParam,
+                            pass: false,
+                            note: value,
+                        } as TaskApplyCheckParam,
                     } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success) {
                     this.$message.success(`任务申请拒绝成功`);
@@ -190,7 +207,7 @@ export class PublisherTaskTS extends Vue {
             // do nothing for cancel
         });
     }
-    private onTaskDelete(index: number, task: TaskView) {
+    private onTaskDelete(index: number, task: TaskView): void {
         const confirm = this.$confirm(
             '确认要删除此任务吗？',
             '提示', {
@@ -200,7 +217,7 @@ export class PublisherTaskTS extends Vue {
             });
         confirm.then(() => {
             (async () => {
-                const apiResult: APIResult = await this.store.dispatch(
+                const apiResult: ApiResult = await this.store.dispatch(
                     StoreActionNames.taskRemove,
                     {
                         data: {
@@ -219,7 +236,28 @@ export class PublisherTaskTS extends Vue {
             // do nothing for cancel
         });
     }
+    private onTaskResultCheck(index: number, task: TaskView): void {
+        this.taskResultCheckDialogVisible = true;
+    }
+    private onTaskResultDownload(): void {
+        ComponentUtils.downloadFile(this,
+            {
+                scenario: FileAPIScenario.DownloadTaskResultFile,
+                fileId: (this.selectedTask as TaskView).resultFileUid,
+                version: (this.selectedTask as TaskView).resultFileversion,
+            } as FileDownloadParam,
+            `${(this.selectedTask as TaskView).name}.zip`);
+    }
 
+    private onTaskResultCheckAccepted(): void {
+        this.taskResultCheck(this.selectedTask as TaskView, true, '');
+    }
+    private onTaskResultCheckDenied(): void {
+        this.taskResultCheck(this.selectedTask as TaskView, false, '');
+    }
+    private onTaskResultCheckCancel(): void {
+        this.taskResultCheckDialogVisible = false;
+    }
     // #endregion
 
     // #region -- props and methods for Whole Template
@@ -228,12 +266,11 @@ export class PublisherTaskTS extends Vue {
     private readonly userInfoIndex: string = 'userInfoMenuItem';
     private readonly notificationIndex: string = '';
 
-    private activeTabName: string = this.taskCreationTabName;
+    private activeTabName: string = '';
     private isSubmitting: boolean = false;
-    private isLoading: boolean = true;
+    private isInitialized: boolean = false;
 
     // make sure initialize method only trigger one time
-    private initializeTriggered: boolean = false;
     private readonly formRules: any = {
         name: [
             { required: true, message: '请输入模板名称', trigger: 'blur' },
@@ -248,16 +285,12 @@ export class PublisherTaskTS extends Vue {
 
     // #region -- vue life-circle methods and events
     private mounted(): void {
-        if (this.initializeTriggered === false) {
-            this.initialize();
-        }
+        this.initialize();
     }
-    @Watch('$store.state.sessionInfo', { immediate: true, deep: true })
+    @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
         const sessionInfo = currentValue;
-        if (sessionInfo != null &&
-            sessionInfo.roles != null &&
-            this.initializeTriggered === false) {
+        if (CommonUtils.isPublisher(sessionInfo.roles) && this.isInitialized === false) {
             this.initialize();
         }
     }
@@ -268,62 +301,57 @@ export class PublisherTaskTS extends Vue {
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
     private syncTaskEditForm(): void {
-        const newData: TaskEditParam = {};
-        if (this.selectedTaskIndex == null) {
+        const newData: TaskBasicInfoEditParam = {};
+        if (this.selectedTask == null) {
             newData.uid = '';
             newData.name = '';
             newData.note = '';
         } else {
-            const selectedObj: TaskView = this.getTaskObjs()[this.selectedTaskIndex];
-            newData.uid = selectedObj.uid;
-            newData.reward = selectedObj.reward;
-            newData.name = selectedObj.name;
-            newData.note = selectedObj.note;
+            newData.uid = this.selectedTask.uid;
+            newData.reward = this.selectedTask.reward;
+            newData.name = this.selectedTask.name;
+            newData.note = this.selectedTask.note;
 
         }
         this.formEditDatas = newData;
     }
     private initialize() {
-        this.initializeTriggered = true;
         const sessionInfo = this.storeState.sessionInfo;
-        if (sessionInfo != null && sessionInfo.roles != null) {
+        if (CommonUtils.isReadyPublisher(sessionInfo)) {
+            this.isInitialized = true;
             (async () => {
                 // only publisher can see the page
-                if (CommonUtils.isPublisher(sessionInfo.roles)) {
-                    if (!CommonUtils.isUserReady(sessionInfo)) {
-                        RouterUtils.goToUserRegisterView(this.$router, UserRole.CorpPublisher);
-                        return;
-                    }
-                    let apiResult: APIResult = { code: ApiResultCode.Success };
-                    // #region -- init for task creation
-                    // get Template Objs
-                    apiResult = await this.store.dispatch(StoreActionNames.templateQuery,
-                        {
-                            notUseLocalData: true,
-                        } as IStoreActionArgs);
-                    if (apiResult.code !== ApiResultCode.Success) {
-                        RouterUtils.goToErrorView(this.$router,
-                            this.storeState,
-                            `获取模板列表失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
-                        return;
-                    }
-                    // #endregion
+                let apiResult: ApiResult = { code: ApiResultCode.Success };
+                // #region -- init for task creation
+                // get Template Objs
+                apiResult = await this.store.dispatch(StoreActionNames.templateQuery,
+                    {
+                        notUseLocalData: true,
+                    } as IStoreActionArgs);
+                if (apiResult.code !== ApiResultCode.Success) {
+                    RouterUtils.goToErrorView(this.$router,
+                        this.storeState,
+                        `获取模板列表失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                    return;
+                }
+                // #endregion
 
-                    // #region -- init for task edit
-                    apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
-                        {
-                            notUseLocalData: true,
-                        } as IStoreActionArgs);
-                    if (apiResult.code !== ApiResultCode.Success) {
-                        RouterUtils.goToErrorView(this.$router,
-                            this.storeState,
-                            `获取模任务列表失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
-                        return;
-                    }
-                    // #endregion
-                    this.isLoading = false;
+                // #region -- init for task edit
+                apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
+                    {
+                        notUseLocalData: true,
+                    } as IStoreActionArgs);
+                if (apiResult.code !== ApiResultCode.Success) {
+                    RouterUtils.goToErrorView(this.$router,
+                        this.storeState,
+                        `获取模任务列表失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                    return;
+                }
+                // #endregion
+                if (!CommonUtils.isNullOrEmpty((this.$route.query as RouteQuery).tabName)) {
+                    this.activeTabName = (this.$route.query as RouteQuery).tabName as string;
                 } else {
-                    RouterUtils.goToUserHomePage(this.$router, sessionInfo.roles);
+                    this.activeTabName = this.taskCreationTabName;
                 }
             })().catch((ex) => {
                 RouterUtils.goToErrorView(this.$router,
@@ -331,7 +359,47 @@ export class PublisherTaskTS extends Vue {
                     msgConnectionIssue,
                     ex);
             });
+        } else {
+            LoggerManager.warn('publisher not ready', sessionInfo);
         }
+    }
+
+    private taskResultCheck(task: TaskView, pass: boolean, note: string) {
+        const actionName: string = pass ? '通过' : '拒绝';
+
+        const confirm = this.$confirm(
+            `确认要${actionName}此用户的审核吗？`,
+            '提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                center: true,
+                closeOnClickModal: false,
+            });
+        confirm.then(() => {
+            (async () => {
+                const store = (this.$store as Store<IStoreState>);
+                const apiResult: ApiResult = await store.dispatch(
+                    StoreActionNames.taskResultCheck,
+                    {
+                        data: {
+                            uid: task.uid,
+                            pass,
+                            note,
+                        } as TaskResultCheckParam,
+                    } as IStoreActionArgs);
+                if (apiResult.code === ApiResultCode.Success) {
+                    this.$message.success(`${actionName}任务结果审核提交成功`);
+                } else {
+                    this.$message.error(`${actionName}任务结果审核提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                }
+            })().catch((ex) => {
+                RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
+            }).finally(() => {
+                this.taskResultCheckDialogVisible = false;
+            });
+        }).catch(() => {
+            // do nothing for cancel
+        });
     }
     // #endregion
 

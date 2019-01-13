@@ -1,29 +1,29 @@
+import { CommonObject } from 'common/commonDataObjects/CommonObject';
 import { IQueryConditions } from 'common/IQueryConditions';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { Model, ModelFindOneAndUpdateOptions } from 'mongoose';
 import { ApiError } from 'server/common/ApiError';
-import { LoggerManager } from 'server/libsWrapper/LoggerManager';
-import { DBObject } from '../dataObjects/DBObject';
-import { IModel } from './mongoDB/IModel';
 import { GlobalCache } from 'server/common/GlobalCache';
+import { IModel } from 'server/dataModels/mongoDB/IModel';
+import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 
 export class BaseModelWrapper {
     protected static caseInsensitiveCollation = { locale: 'en', strength: 2 };
-    public static async $$create(dbObject: DBObject): Promise<DBObject> {
+    public static async $$create(dbObject: CommonObject): Promise<CommonObject> {
         const dbModel: Model<IModel> = await this.getDBModel();
         const modelData: IModel = await dbModel.create(dbObject);
         return this.convertModelToDBObject(modelData);
     }
-    public static async $$find(conditions: IQueryConditions): Promise<DBObject[]> {
+    public static async $$find(conditions: IQueryConditions): Promise<CommonObject[]> {
         const dbModel: Model<IModel> = await this.getDBModel();
-        const modelData: IModel[] = await dbModel.find(conditions);
-        const dbObjs: DBObject[] = [];
+        const modelData: IModel[] = await dbModel.find(conditions).sort({ createTime: -1 });
+        const dbObjs: CommonObject[] = [];
         modelData.forEach((dbObj: IModel) => {
             dbObjs.push(this.convertModelToDBObject(dbObj));
         });
         return dbObjs;
     }
-    public static async $$findOne(conditions: IQueryConditions): Promise<DBObject | null> {
+    public static async $$findOne(conditions: IQueryConditions): Promise<CommonObject | null> {
         const dbModel: Model<IModel> = await this.getDBModel();
         const modelData: IModel | null = await dbModel.findOne(conditions);
         if (modelData == null) {
@@ -31,19 +31,19 @@ export class BaseModelWrapper {
         }
         return this.convertModelToDBObject(modelData);
     }
-    public static async $$getOneFromCache(uid: string): Promise<DBObject | null> {
-        let dbObj: DBObject | null = GlobalCache.get(uid);
+    public static async $$getOneFromCache(uid: string): Promise<CommonObject | null> {
+        let dbObj: CommonObject | null = GlobalCache.get(uid);
         if (dbObj == null) {
-            dbObj = await this.$$findOne({ uid } as DBObject);
+            dbObj = await this.$$findOne({ uid } as CommonObject);
         }
         return dbObj;
     }
-    public static async $$updateOne(conditions: IQueryConditions, dbObj: DBObject): Promise<void> {
+    public static async $$updateOne(conditions: IQueryConditions, dbObj: CommonObject): Promise<void> {
         const dbModel: Model<IModel> = await this.getDBModel();
         const result = await dbModel.updateOne(conditions, dbObj);
         LoggerManager.debug('$$updateOne result:', result);
     }
-    public static async $$findOneAndUpdate(conditions: IQueryConditions, dbObj: DBObject): Promise<DBObject | null> {
+    public static async $$findOneAndUpdate(conditions: IQueryConditions, dbObj: CommonObject): Promise<CommonObject | null> {
         const dbModel: Model<IModel> = await this.getDBModel();
         const result = await dbModel.findOneAndUpdate(
             conditions,
@@ -56,7 +56,7 @@ export class BaseModelWrapper {
         return this.convertModelToDBObject(result as IModel);
     }
 
-    public static async $$findeOneAndDelete(conditions: IQueryConditions): Promise<DBObject | null> {
+    public static async $$findeOneAndDelete(conditions: IQueryConditions): Promise<CommonObject | null> {
         const dbModel: Model<IModel> = await this.getDBModel();
         const result = await dbModel.findOneAndDelete(conditions);
         LoggerManager.debug('$$deleteOne result:', result);
@@ -83,7 +83,7 @@ export class BaseModelWrapper {
         throw new ApiError(ApiResultCode.MethodNotImplemented);
     }
 
-    protected static convertModelToDBObject(modelData: IModel): DBObject {
+    protected static convertModelToDBObject(modelData: IModel): CommonObject {
         throw new ApiError(ApiResultCode.MethodNotImplemented);
     }
 }

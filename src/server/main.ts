@@ -8,6 +8,8 @@ import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { LoggerManagerInitParam } from './libsWrapper/LoggersManagerInitParam';
 import { TaskModelWrapper } from './dataModels/TaskModelWrapper';
 import { TaskApplicationModelWrapper } from './dataModels/TaskApplicationModelWrapper';
+import { TaskCheckRecordModelWrapper } from './dataModels/TaskCheckRecordModelWrapper';
+import { UserNotificationModelWrapper } from './dataModels/UserNotificationModelWrapper';
 /**
  * Event listener for HTTP server "error" event.
  */
@@ -68,6 +70,8 @@ async function $$databaseWarmUp(): Promise<void> {
     await TemplateModelWrapper.$$warmUp();
     await TaskModelWrapper.$$warmUp();
     await TaskApplicationModelWrapper.$$warmUp();
+    await TaskCheckRecordModelWrapper.$$warmUp();
+    await UserNotificationModelWrapper.$$warmUp();
 
     await FileStorage.initialize();
 }

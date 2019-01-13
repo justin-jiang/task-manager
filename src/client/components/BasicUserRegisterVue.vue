@@ -13,12 +13,14 @@
           :disabled="isSubmitting"
         >
           <el-form-item
+            v-if="isNewUser"
             label="账号名称"
             prop="name"
           >
             <el-input v-model="formDatas.name"></el-input>
           </el-form-item>
           <el-form-item
+          v-if="isNewUser"
             label="密码"
             prop="password"
           >
@@ -29,6 +31,7 @@
             ></el-input>
           </el-form-item>
           <el-form-item
+          v-if="isNewUser"
             label="确认密码"
             prop="confirmPassword"
           >
@@ -39,12 +42,14 @@
             ></el-input>
           </el-form-item>
           <el-form-item
+          v-if="isNewUser"
             label="电子邮箱"
             prop="email"
           >
             <el-input v-model="formDatas.email"></el-input>
           </el-form-item>
           <el-form-item
+          v-if="isNewUser"
             label="电话号码"
             prop="telephone"
           >
@@ -52,7 +57,7 @@
           </el-form-item>
           <el-form-item
             label="用户类型"
-            v-if="!isAdmin()"
+            v-if="!isAdmin() && isNewUser"
           >
             <el-switch
               v-model="isCorpUser"
@@ -64,16 +69,13 @@
             </el-switch>
           </el-form-item>
 
-          <el-form-item
-            label="头像"
-            prop="logoBlob"
-          >
-            <LogoUploaderVue
+          <el-form-item label="头像">
+            <SingleImageUploaderVue
               :ref="uploaderRefName"
               :filePostParamProp="fileUploadParam"
-              @logoChanged="onLogoChanged"
+              @imageChanged="onLogoChanged"
               @success="onLogoUploadSuccess"
-            ></LogoUploaderVue>
+            ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item>
             <el-button

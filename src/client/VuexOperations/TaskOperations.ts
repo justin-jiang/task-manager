@@ -6,10 +6,11 @@ import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { HttpPathItem } from 'common/HttpPathItem';
-import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
 import { Commit } from 'vuex';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 export const actions = {
 
     /**
@@ -19,99 +20,127 @@ export const actions = {
      */
     async [StoreActionNames.taskCreation](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.TASK}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            if (result.data != null) {
-                commit(StoreMutationNames.taskItemInsert, result.data);
-            } else {
-                LoggerManager.warn('No InsertedItem');
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.Task}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                if (apiResult.data != null) {
+                    commit(StoreMutationNames.taskItemInsert, apiResult.data);
+                } else {
+                    LoggerManager.warn('No InsertedItem');
+                }
             }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
     async [StoreActionNames.taskQuery](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        let result: APIResult = { code: ApiResultCode.Success } as APIResult;
-        if (args.notUseLocalData) {
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            if (args.notUseLocalData) {
+                const response = await axios.post(
+                    `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Query}`, args.data || {});
+                apiResult = HttpUtils.getApiResultFromResponse(response);
+                if (apiResult.code === ApiResultCode.Success) {
+                    if (apiResult.data != null) {
+                        commit(StoreMutationNames.tasksUpdate, apiResult.data);
+                    } else {
+                        LoggerManager.warn('No UpdatedItem');
+                    }
+                }
+            } else {
+                apiResult.data = state.taskObjs;
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
+        }
+        return apiResult;
+    },
+    async [StoreActionNames.taskApplyCheck](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
             const response = await axios.post(
-                `${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.QUERY}`, args.data || {});
-            result = HttpUtils.getApiResultFromResponse(response);
-            if (result.code === ApiResultCode.Success) {
-                if (result.data != null) {
-                    commit(StoreMutationNames.tasksUpdate, result.data);
+                `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Check}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                const updatedTaskView: TaskView = apiResult.data;
+                if (updatedTaskView != null) {
+                    commit(StoreMutationNames.taskItemReplace, updatedTaskView);
                 } else {
                     LoggerManager.warn('No UpdatedItem');
                 }
             }
-        } else {
-            result.data = state.taskObjs;
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-
-        return result;
-    },
-    async [StoreActionNames.taskApplyAccept](
-        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        let result: APIResult = { code: ApiResultCode.Success } as APIResult;
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.APPLY}/${HttpPathItem.ACCEPT}`, args.data || {});
-        result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            const updatedTaskView: TaskView = result.data;
-            if (updatedTaskView != null) {
-                commit(StoreMutationNames.taskItemReplace, updatedTaskView);
-            } else {
-                LoggerManager.warn('No UpdatedItem');
-            }
-        }
-        return result;
-    },
-
-    async [StoreActionNames.taskApplyDeny](
-        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        let result: APIResult = { code: ApiResultCode.Success } as APIResult;
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.APPLY}/${HttpPathItem.DENY}`, args.data || {});
-        result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            const updatedTaskView: TaskView = result.data;
-            if (updatedTaskView != null) {
-                commit(StoreMutationNames.taskItemReplace, updatedTaskView);
-            } else {
-                LoggerManager.warn('No UpdatedItem');
-            }
-        }
-
-        return result;
+        return apiResult;
     },
 
     async [StoreActionNames.taskRemove]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.REMOVE}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            const removedTaskView: TaskView = result.data;
-            if (removedTaskView != null) {
-                commit(StoreMutationNames.taskItemRemove, removedTaskView.uid);
-            } else {
-                LoggerManager.warn('No RemovedItem');
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Remove}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                const removedTaskView: TaskView = apiResult.data;
+                if (removedTaskView != null) {
+                    commit(StoreMutationNames.taskItemRemove, removedTaskView.uid);
+                } else {
+                    LoggerManager.warn('No RemovedItem');
+                }
             }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
     async [StoreActionNames.taskApply]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.TASK}/${HttpPathItem.APPLY}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            if (result.data != null) {
-                commit(StoreMutationNames.taskItemReplace, result.data);
-            } else {
-                LoggerManager.warn('No UpdatedItem');
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                if (apiResult.data != null) {
+                    commit(StoreMutationNames.taskItemReplace, apiResult.data);
+                } else {
+                    LoggerManager.warn('No UpdatedItem');
+                }
             }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
+    },
+
+    async [StoreActionNames.taskResultCheck](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Result}/${HttpPathItem.Check}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                const updatedTaskView: TaskView = apiResult.data;
+                if (updatedTaskView != null) {
+                    commit(StoreMutationNames.taskItemReplace, updatedTaskView);
+                } else {
+                    LoggerManager.warn('No UpdatedItem');
+                }
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
+        }
+        return apiResult;
     },
 };
 

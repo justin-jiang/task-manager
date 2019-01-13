@@ -25,6 +25,7 @@
     "no-unused-variable": false,
     "member-ordering": false,
     "no-trailing-whitespace": false,
-    "no-empty": false
+    "no-empty": false,
+    "no-empty-interface": false,
   }
 }

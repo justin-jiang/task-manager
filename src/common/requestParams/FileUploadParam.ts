@@ -8,10 +8,12 @@ import { TaskResultFileUploadParam } from './TaskResultFileUploadParam';
 export class FileUploadParam implements IRequestParam {
     // NOTE: this value should be JSON stringify before submit
     // otherwize it will be wrongly serialized by file uploader
-    public metadata?: TemplateCreateParam |
+    public optionData?: TemplateCreateParam |
         UserCreateParam |
         TemplateFileEditParam |
         TaskResultFileUploadParam |
         string;
     public scenario?: FileAPIScenario;
+    public blob?: Blob;
+    public fileName?: string;
 }

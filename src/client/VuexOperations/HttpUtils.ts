@@ -1,12 +1,12 @@
 import { AxiosResponse } from 'axios';
-import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 
 export class HttpUtils {
-    public static getApiResultFromResponse(response: AxiosResponse<any>): APIResult {
+    public static getApiResultFromResponse(response: AxiosResponse<any>): ApiResult {
         if (response == null || response.data == null) {
-            return { code: ApiResultCode.SystemError } as APIResult;
+            return { code: ApiResultCode.ConnectionError } as ApiResult;
         }
-        return response.data as APIResult;
+        return response.data as ApiResult;
     }
 }

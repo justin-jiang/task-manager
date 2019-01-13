@@ -7,13 +7,19 @@ export enum FileAPIScenario {
     UploadTemplate = 2,
 
 
-    DownloadUserLogo = 4,
-    DownloadTemplateFile = 5,
-    DownloadQualificationFile = 6,
+    DownloadTaskResultFile = 10,
+    DownloadUserLogo = 11,
+    DownloadTemplateFile = 12,
+    DownloadQualificationFile = 13,
+    DownloadFrontId = 14,
+    DownloadBackId = 15,
 
-    UpdateUserLogo = 7,
-    UpdateTemplateFile = 8,
-    UpdateQualificationFile = 9,
-    UpdateTaskResultFile = 10,
+    UpdateUserLogo = 20,
+    UpdateTemplateFile = 21,
+    UpdateQualificationFile = 22,
+    UpdateTaskResultFile = 23,
+
+    UpdateUserFrontId = 24,
+    UpdateUserBackId = 25,
 
 }

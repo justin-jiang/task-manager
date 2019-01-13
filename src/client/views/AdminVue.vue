@@ -3,9 +3,9 @@
     <el-row>
       <el-col :span="24">
         <el-menu
+          class="el-menu-view-page"
           :router="true"
           :default-active="userIndex"
-          class="el-menu-admin"
           mode="horizontal"
           @select="onMenuSelected"
         >

@@ -72,6 +72,7 @@ export class LoggerManager {
                 level: 'debug',
                 format: format.combine(
                     format.colorize(),
+                    format.splat(),
                     format.metadata(),
                     myFormat,
                 ),

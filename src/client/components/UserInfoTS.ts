@@ -1,8 +1,8 @@
 import { msgConnectionIssue } from 'client/common/Constants';
 import { InputValidator } from 'client/common/InputValidator';
 import { RouterUtils } from 'client/common/RouterUtils';
-import { ILogoUploaderTS } from 'client/components/LogoUploaderTS';
-import LogoUploaderVue from 'client/components/LogoUploaderVue.vue';
+import { ISingleImageUploaderTS } from 'client/components/SingleImageUploaderTS';
+import SingleImageUploaderVue from 'client/components/SingleImageUploaderVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
@@ -12,14 +12,14 @@ import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import { UserPasswordEditParam } from 'common/requestParams/UserPasswordEditParam';
-import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserRole } from 'common/UserRole';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 const compToBeRegistered: any = {
-    LogoUploaderVue,
+    SingleImageUploaderVue,
 };
 interface IBasicInfoFormDatas {
     name?: string;
@@ -94,7 +94,7 @@ export class UserInfoTS extends Vue {
             if (this.basicInfoFormDatas.telephone !== this.storeState.sessionInfo.telephone) {
                 updatedProps.telephone = this.basicInfoFormDatas.telephone;
             }
-            const apiResult: APIResult = await this.store.dispatch(
+            const apiResult: ApiResult = await this.store.dispatch(
                 StoreActionNames.userBasicInfoEdit,
                 {
                     data: updatedProps,
@@ -102,7 +102,7 @@ export class UserInfoTS extends Vue {
 
             if (apiResult.code === ApiResultCode.Success) {
                 this.$message.success('用户基础信息更新成功');
-                this.store.commit(StoreMutationNames.sessionInfoUpdate, apiResult.data);
+                this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
                 this.basicInfoFormDatas = apiResult.data;
             } else {
                 this.$message.error(`用户基础信息更新失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
@@ -121,7 +121,7 @@ export class UserInfoTS extends Vue {
     private isLogoChanged: boolean = false;
     private getLogoUid(): string {
         if (this.storeState.sessionInfo != null) {
-            return this.storeState.sessionInfo.logoId as string;
+            return this.storeState.sessionInfo.logoUid as string;
         } else {
             return '';
         }
@@ -131,18 +131,19 @@ export class UserInfoTS extends Vue {
     }
     private onLogoSubmit(): void {
         this.isSubmitting = true;
-        (this.$refs[this.uploaderRefName] as any as ILogoUploaderTS).submit();
+        (this.$refs[this.uploaderRefName] as any as ISingleImageUploaderTS).submit();
     }
     private onLogoChanged(): void {
         this.isSubmitting = false;
         this.isLogoChanged = true;
     }
-    private onLogoUploadSuccess(apiResult: APIResult): void {
+    private onLogoUploadSuccess(apiResult: ApiResult): void {
         this.isLogoChanged = false;
         this.isSubmitting = false;
+        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, {});
         this.$message.success('头像上传成功');
     }
-    private onLogoUploadFailure(apiResult: APIResult): void {
+    private onLogoUploadFailure(apiResult: ApiResult): void {
         this.isLogoChanged = false;
         this.isSubmitting = false;
     }
@@ -172,7 +173,7 @@ export class UserInfoTS extends Vue {
     private onPasswordSubmit(): void {
         this.isSubmitting = true;
         (async () => {
-            const apiResult: APIResult = await this.store.dispatch(
+            const apiResult: ApiResult = await this.store.dispatch(
                 StoreActionNames.userPasswordEdit,
                 {
                     data: {

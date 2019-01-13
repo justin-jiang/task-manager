@@ -14,9 +14,9 @@ export class TaskApplicationModelWrapper extends BaseModelWrapper {
         await model.createIndexes();
     }
 
-    public static async $$deleteByTaskId(taskId: string): Promise<void> {
+    public static async $$deleteByTaskId(taskUid: string): Promise<void> {
         const model: Model<ITaskApplicationModel> = await MongoDBModelManager.$$getTaskApplicationModel();
-        await model.deleteOne({ taskId } as TaskApplicationObject);
+        await model.deleteOne({ taskUid: taskUid } as TaskApplicationObject);
     }
     protected static async getDBModel(): Promise<Model<ITaskApplicationModel>> {
         return await MongoDBModelManager.$$getTaskApplicationModel();

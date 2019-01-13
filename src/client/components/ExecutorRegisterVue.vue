@@ -7,10 +7,31 @@
           :active="currentStep"
           finish-status="success"
         >
-          <el-step title="基本信息"></el-step>
-          <el-step title="资质上传"></el-step>
-          <el-step title="资质审查"></el-step>
-          <el-step title="注册完成"></el-step>
+          <el-step
+            title="基本信息"
+            :status="basicInfoStatus"
+            :description="basicInfoDesc"
+          ></el-step>
+          <el-step
+            title="身份信息"
+            :status="idInfoStatus"
+            :description="idInfoDesc"
+          ></el-step>
+          <el-step
+            title="资质上传"
+            :status="qualificationStatus"
+            :description="qualificationDesc"
+          ></el-step>
+          <el-step
+            title="资质审查"
+            :status="checkStatus"
+            :description="checkDesc"
+          ></el-step>
+          <el-step
+            title="注册完成"
+            :status="doneStatus"
+            :description="doneDesc"
+          ></el-step>
         </el-steps>
       </div>
     </el-aside>
@@ -26,6 +47,13 @@
           <BasicUserRegisterVue
             :roleProp="userRole"
             @success="onBasicUserSuccess"
+          />
+        </el-col>
+      </el-row>
+      <el-row v-else-if="isIdUpload()">
+        <el-col :span=24>
+          <UserIdentityInfoUploadVue
+            @success="onIdUploadSuccess"
           />
         </el-col>
       </el-row>

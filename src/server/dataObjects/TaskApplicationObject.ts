@@ -1,20 +1,15 @@
 import { CommonUtils } from 'common/CommonUtils';
-import { DBObject, IDBObject } from './DBObject';
-interface ITaskApplicationObject extends IDBObject {
+import { DBObject } from './DBObject';
 
-    taskId?: string;
-    applicantId?: string;
-}
-
-export class TaskApplicationObject extends DBObject implements ITaskApplicationObject {
+export class TaskApplicationObject extends DBObject {
     [key: string]: any;
-    public taskId?: string;
-    public applicantId?: string;
+    public taskUid?: string;
+    public applicantUid?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
-            this.applicantId = '';
-            this.taskId = '';
+            this.applicantUid = '';
+            this.taskUid = '';
         }
     }
 

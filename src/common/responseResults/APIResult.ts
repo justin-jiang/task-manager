@@ -1,6 +1,6 @@
 import { ApiResultCode } from './ApiResultCode';
 
-export class APIResult {
+export class ApiResult {
     public code: ApiResultCode;
     public data?: any;
     constructor() {

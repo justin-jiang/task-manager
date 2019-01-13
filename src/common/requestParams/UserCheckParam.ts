@@ -1,12 +1,19 @@
 import { IRequestParam } from 'common/requestParams/IRequestParam';
-import { FileType } from 'common/FileType';
+import { IdentityState } from 'common/responseResults/IdentityState';
+import { LogoState } from 'common/responseResults/LogoState';
+import { QualificationState } from 'common/responseResults/QualificationState';
 
 export class UserCheckParam implements IRequestParam {
     // user uid
     public uid?: string;
-    public type?: FileType;
-
-    public pass?: boolean;
+    public noteForLogo?: string;
+    public logoState?: LogoState;
+    public noteForFrontId?: string;
+    public frontIdState?: IdentityState;
+    public noteForBackId?: string;
+    public backIdState?: IdentityState;
+    public noteForQualification?: string;
+    public qualitificationState?: QualificationState;
 }
 
 

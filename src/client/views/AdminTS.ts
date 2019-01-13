@@ -28,7 +28,7 @@ export class AdminTS extends Vue {
     private mounted(): void {
         this.initialize();
     }
-    @Watch('$store.state.sessionInfo', { immediate: true, deep: true })
+    @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
         const sessionInfo = currentValue;
         if (sessionInfo != null && sessionInfo.roles != null && this.isLoading) {
@@ -45,7 +45,7 @@ export class AdminTS extends Vue {
         const sessionInfo = this.storeState.sessionInfo;
         if (sessionInfo != null && sessionInfo.roles != null && this.isLoading) {
             if (!CommonUtils.isAdmin(sessionInfo.roles)) {
-                RouterUtils.goToUserHomePage(this.$router, sessionInfo.roles);
+                RouterUtils.goToUserHomePage(this.$router, sessionInfo);
             } else {
                 this.isLoading = false;
                 RouterUtils.goToAdminUserManagementView(this.$router);

@@ -119,7 +119,7 @@ export class ApiBuilder {
 
         //  we should check filePost api before isSystemInitialized, because the system initialize
         // depends on the filePost api(i.e. admin register)
-        const filePostPattern = new RegExp(`^\/${HttpPathItem.API}/${HttpPathItem.FILE}\/?$`, 'i');
+        const filePostPattern = new RegExp(`^\/${HttpPathItem.Api}/${HttpPathItem.File}\/?$`, 'i');
         if (req.method === 'POST' && filePostPattern.test(req.path)) {
             const reqParam: FileUploadParam = req.body as FileUploadParam;
             // parameter transform, which has been converted to string by el-uploader component
@@ -140,7 +140,7 @@ export class ApiBuilder {
             throw new ApiError(ApiResultCode.SystemNotInitialized);
         }
         // igore login request
-        const sessionPostPattern = new RegExp(`^\/${HttpPathItem.API}/${HttpPathItem.SESSION}\/?$`, 'i');
+        const sessionPostPattern = new RegExp(`^\/${HttpPathItem.Api}/${HttpPathItem.Session}\/?$`, 'i');
         if (req.method === 'POST' && sessionPostPattern.test(req.path)) {
             next();
             return;

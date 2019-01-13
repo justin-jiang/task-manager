@@ -1,12 +1,16 @@
 import { InputValidator } from 'client/common/InputValidator';
-import LogoUploaderVue from 'client/components/LogoUploaderVue.vue';
+import SingleImageUploaderVue from 'client/components/SingleImageUploaderVue.vue';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
-import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { UserRole } from 'common/UserRole';
 import { Component, Prop, Vue } from 'vue-property-decorator';
-import { ILogoUploaderTS } from './LogoUploaderTS';
+import { ISingleImageUploaderTS } from './SingleImageUploaderTS';
+import { UserType } from 'common/UserTypes';
+import { Store } from 'vuex';
+import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { CommonUtils } from 'common/CommonUtils';
 interface IFormData {
     name?: string;
     password?: string;
@@ -19,7 +23,7 @@ enum EventNames {
 }
 
 const compToBeRegistered: any = {
-    LogoUploaderVue,
+    SingleImageUploaderVue,
 };
 
 @Component({
@@ -34,6 +38,10 @@ export class BasicUserRegisterTS extends Vue {
     private readonly formRefName: string = 'registerForm';
     private readonly uploaderRefName: string = 'logoUploader';
 
+    private get isNewUser(): boolean {
+        return CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.uid);
+    }
+
     // the model of form
     private readonly formDatas: IFormData = {
         name: '',
@@ -44,7 +52,7 @@ export class BasicUserRegisterTS extends Vue {
     };
 
     private readonly fileUploadParam: FileUploadParam = {
-        metadata: '',
+        optionData: '',
         scenario: FileAPIScenario.UploadUser,
     } as FileUploadParam;
 
@@ -104,17 +112,25 @@ export class BasicUserRegisterTS extends Vue {
                         finalUserRole = UserRole.PersonalPublisher;
                     }
                 }
-                const metadataParam: UserCreateParam = {
-                    name: this.formDatas.name as string,
-                    password: this.formDatas.password as string,
-                    email: this.formDatas.email as string,
-                    telephone: this.formDatas.telephone as string,
-                    roles: [finalUserRole],
-                };
+
                 // NOTE: to serialize the metadata, otherwize the el-upload will
                 // invoke toString which cannot transfer the data to server correctly
-                this.fileUploadParam.metadata = JSON.stringify(metadataParam);
-                (this.$refs[this.uploaderRefName] as any).submit();
+                if (this.isNewUser) {
+                    const metadataParam: UserCreateParam = {
+                        name: this.formDatas.name as string,
+                        password: this.formDatas.password as string,
+                        email: this.formDatas.email as string,
+                        telephone: this.formDatas.telephone as string,
+                        roles: [finalUserRole],
+                        type: this.isCorpUser ? UserType.Corp : UserType.Individual,
+                    };
+                    this.fileUploadParam.scenario = FileAPIScenario.UploadUser;
+                    this.fileUploadParam.optionData = JSON.stringify(metadataParam);
+                } else {
+                    this.fileUploadParam.scenario = FileAPIScenario.UpdateUserLogo;
+                }
+
+                (this.$refs[this.uploaderRefName] as any as ISingleImageUploaderTS).submit();
             } else {
                 this.$message.warning('提交内容不合格，请检测表单是否填写正确');
                 result = false;
@@ -125,19 +141,19 @@ export class BasicUserRegisterTS extends Vue {
     }
     private resetForm() {
         (this.$refs[this.formRefName] as any).resetFields();
+        (this.$refs[this.uploaderRefName] as any as ISingleImageUploaderTS).reset();
     }
 
     private onLogoChanged(): void {
         this.isLogoChanged = true;
     }
-    private onLogoUploadSuccess(apiResult: APIResult) {
+    private onLogoUploadSuccess(apiResult: ApiResult) {
+        this.$message.success('用户基本信息注册成功');
+        this.$emit(EventNames.RegisterSuccess, apiResult.data);
         this.isSubmitting = false;
         this.isLogoChanged = false;
-        this.$message.success('用户基本信息注册成功');
-        this.resetForm();
-        this.$emit(EventNames.RegisterSuccess);
     }
-    private onLogoUploadFailure(apiResult: APIResult): void {
+    private onLogoUploadFailure(apiResult: ApiResult): void {
         this.isLogoChanged = false;
         this.isSubmitting = false;
     }
@@ -146,7 +162,6 @@ export class BasicUserRegisterTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.fileUploadParam.scenario = FileAPIScenario.UploadUser;
         if (this.roleProp === UserRole.CorpExecutor ||
             this.roleProp === UserRole.CorpPublisher) {
             this.isCorpUser = true;
@@ -157,6 +172,8 @@ export class BasicUserRegisterTS extends Vue {
     // #endregion
 
     // #region -- inner props and methods
+    private readonly store = (this.$store as Store<IStoreState>);
+    private readonly storeState = (this.$store.state as IStoreState);
     private validateConfirmPassword(rule: any, value: string, callback: any) {
         if (value === '') {
             callback(new Error('请再次输入密码'));

@@ -9,8 +9,8 @@ const schemaOptions: SchemaOptions = {
 };
 const schemaDef = Object.assign({
 
-    taskId: { type: String, required: true, index: true, unique: true } as SchemaTypeOpts<any>,
-    applicantId: { type: String, required: true },
+    taskUid: { type: String, required: true, index: true, unique: true } as SchemaTypeOpts<any>,
+    applicantUid: { type: String, required: true },
 }, BaseSchemaDef);
 /**
  * User Schema

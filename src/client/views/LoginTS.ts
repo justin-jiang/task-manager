@@ -2,13 +2,17 @@ import { RouterUtils } from 'client/common/RouterUtils';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
-import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+import { CommonUtils } from 'common/CommonUtils';
+import { ComponentUtils } from 'client/components/ComponentUtils';
+import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 interface IFormData {
     name?: string;
     password?: string;
@@ -50,14 +54,17 @@ export class LoginTS extends Vue {
                         password: this.formDatas.password,
                     } as SessionCreateParam;
 
-                    const apiResult: APIResult = await store.dispatch(
+                    const apiResult: ApiResult = await store.dispatch(
                         StoreActionNames.sessionCreate, { data: reqParam });
                     if (apiResult.code === ApiResultCode.Success) {
-                        if (storeState.redirectURLAfterLogin != null) {
+                        const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
+                        if (logoUrl != null) {
+                            this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView);
+                        }
+                        if (!CommonUtils.isNullOrEmpty(storeState.redirectURLAfterLogin)) {
                             window.location.assign(storeState.redirectURLAfterLogin);
                         } else {
-                            RouterUtils.goToUserHomePage(this.$router,
-                                (storeState.sessionInfo as UserView).roles as UserRole[]);
+                            RouterUtils.goToUserHomePage(this.$router, (storeState.sessionInfo as UserView));
                         }
                     } else if (apiResult.code === ApiResultCode.AuthUnauthorized) {
                         this.$message.error('用户名或密码错误，请重新输入');
@@ -89,5 +96,9 @@ export class LoginTS extends Vue {
     private goToPublisherRegister(): void {
         RouterUtils.goToUserRegisterView(this.$router, UserRole.PersonalPublisher);
     }
+    // #endregion
+    // #region internal prop and methods
+    private readonly store = (this.$store as Store<IStoreState>);
+    private readonly storeState = (this.$store.state as IStoreState);
     // #endregion
 }

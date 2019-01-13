@@ -2,19 +2,18 @@
   <el-container id="app">
     <el-header id="nav">
       <el-row>
-        <el-col :span="20">
+        <el-col :span="16">
           <span>替换为图片。。。</span>
         </el-col>
         <el-col
-          :span="4"
+          :span="8"
           style="text-align:right;"
         >
           <el-dropdown @command="handleCommand">
-            <el-button
-              type="primary"
-              icon="el-icon-menu"
-              circle
-            ></el-button>
+            <AvatarWithNameVue
+              :nameProp="logUserName"
+              :logoUrlProp="logoUrl"
+            ></AvatarWithNameVue>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item :command="LogoffCommand">退出登录</el-dropdown-item>
             </el-dropdown-menu>
@@ -43,8 +42,9 @@ export default class AppVue extends AppTS {}
   min-height: 800px;
 }
 #nav {
+  height: 50px;
 }
-// there is bug for scoped style which will not generate the data-v-XXX attr on el-uploader element
+
 .avatar-uploader .el-upload {
   border: 1px dashed #d9d9d9;
   border-radius: 6px;
@@ -68,12 +68,11 @@ export default class AppVue extends AppTS {}
   height: 178px;
   display: block;
 }
-.avatar-big {
-  width: 300px;
-  height: 300px;
-  display: block;
-}
 .el-main {
   padding: 0px;
+}
+
+.el-menu-view-page {
+  margin-bottom: 10px;
 }
 </style>

@@ -1,12 +1,14 @@
 import { DBObjectView } from 'common/responseResults/DBObjectView';
+import { IdentityState } from 'common/responseResults/IdentityState';
+import { QualificationState } from 'common/responseResults/QualificationState';
 import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
+import * as moment from 'moment';
 import { DBObject } from 'server/dataObjects/DBObject';
+import { UserObject } from 'server/dataObjects/UserObject';
 import * as uuidv4 from 'uuid/v4';
 import { LogoState } from './responseResults/LogoState';
-import { QualificationState } from './responseResults/QualificationState';
 import { UserState } from './UserState';
-import { UserObject } from 'server/dataObjects/UserObject';
 export class CommonUtils {
     public static getUUIDForMongoDB(): string {
         return `M-${(uuidv4 as any)().replace(/-/g, '')}`;
@@ -61,6 +63,20 @@ export class CommonUtils {
     public static isUserReady(user: UserView | UserObject): boolean {
         return user.logoState === LogoState.Checked &&
             user.qualificationState === QualificationState.Checked &&
+            user.frontIdState === IdentityState.Checked &&
+            user.backIdState === IdentityState.Checked &&
             user.state === UserState.Enabled;
+    }
+
+    public static isReadyExecutor(user: UserView): boolean {
+        return this.isExecutor(user.roles) && this.isUserReady(user);
+    }
+
+    public static isReadyPublisher(user: UserView): boolean {
+        return this.isPublisher(user.roles) && this.isUserReady(user);
+    }
+
+    public static convertTimeStampToText(timestamp: number): string {
+        return (moment as any)(timestamp).format('YYYY-MM-DD HH:mm:ss');
     }
 }

@@ -64,14 +64,14 @@
       >
         <el-row>
           <el-col :span="24">
-            <LogoUploaderVue
+            <SingleImageUploaderVue
               :ref="uploaderRefName"
               :filePostParamProp="fileUploadParam"
-              :logoUidProp="getLogoUid()"
-              @logoChanged="onLogoChanged"
+              :imageUidProp="getLogoUid()"
+              @imageChanged="onLogoChanged"
               @success="onLogoUploadSuccess"
               @failure="onLogoUploadFailure"
-            ></LogoUploaderVue>
+            ></SingleImageUploaderVue>
           </el-col>
         </el-row>
         <el-row>

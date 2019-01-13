@@ -4,10 +4,14 @@ export enum StoreMutationNames {
     userItemInsert = 'userItemInsert',
     userItemReplace = 'userItemReplace',
     userItemDelete = 'userItemDelete',
+    userItemUpdate = 'userItemUpdate',
     // #endregion
 
     // #region -- session relative mutations
     sessionInfoUpdate = 'sessionInfoUpdate',
+    sessionInfoPropUpdate = 'sessionInfoPropUpdate',
+    sessionRedirectUrlUpdate = 'sessionRedirectUrlUpdate',
+    sessionReset = 'sessionReset',
     // #endregion
 
     // #region -- template relative
@@ -22,5 +26,11 @@ export enum StoreMutationNames {
     taskItemInsert = 'taskItemInsert',
     taskItemReplace = 'taskItemReplace',
     taskItemRemove = 'taskItemRemove',
+    // #endregion
+
+    // #region -- notification relative
+    notificationUpdate = 'notificationUpdate',
+    notificationItemReplace = 'notificationItemReplace',
+    notificationItemInsert = 'notificationItemInsert',
     // #endregion
 }

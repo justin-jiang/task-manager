@@ -3,7 +3,6 @@
     type="border-card"
     style="min-height:600px; padding:0px;"
     v-model="activeTabName"
-    v-loading="isLoading"
   >
     <el-tab-pane
       label="可申请任务列表"
@@ -26,19 +25,19 @@
                 <span>{{ props.row.reward }}</span>
               </el-form-item>
               <el-form-item label="任务发布人">
-                <span>{{ props.row.publisherId }}</span>
+                <span>{{ props.row.publisherUid }}</span>
               </el-form-item>
               <el-form-item label="任务描述">
-                <span>{{ props.row.shopId }}</span>
+                <span>{{ props.row.note }}</span>
               </el-form-item>
               <el-form-item label="任务状态">
                 <span>{{ taskStateToText(props.row.state) }}</span>
               </el-form-item>
               <el-form-item label="任务申请人">
-                <span>{{ props.row.applicantId }}</span>
+                <span>{{ props.row.applicantUid }}</span>
               </el-form-item>
               <el-form-item label="任务执行人">
-                <span>{{ props.row.executorId }}</span>
+                <span>{{ props.row.executorUid }}</span>
               </el-form-item>
             </el-form>
           </template>
@@ -53,10 +52,15 @@
           prop="reward"
         >
         </el-table-column>
-        <el-table-column
-          label="备注"
-          prop="note"
-        >
+        <el-table-column label="状态">
+          <template slot-scope="scope">
+            <span>{{taskStateToText(scope.row.state)}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="发布时间">
+          <template slot-scope="scope">
+            <span>{{timestampToText(scope.row.createTime)}}</span>
+          </template>
         </el-table-column>
         <el-table-column align="right">
           <template
@@ -130,10 +134,10 @@
               prop="reward"
             >
             </el-table-column>
-            <el-table-column
-              label="备注"
-              prop="note"
-            >
+            <el-table-column label="状态">
+              <template slot-scope="scope">
+                <span>{{taskStateToText(scope.row.state)}}</span>
+              </template>
             </el-table-column>
             <el-table-column align="right">
               <template
@@ -149,6 +153,7 @@
               </template>
               <template slot-scope="scope">
                 <el-button
+                  type="primary"
                   size="mini"
                   :disabled="!isTaskApplied(scope.$index, scope.row)"
                   @click="onSelectTaskResultUpload(scope.$index, scope.row)"

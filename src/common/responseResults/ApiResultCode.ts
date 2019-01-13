@@ -5,7 +5,7 @@ export enum ApiResultCode {
     ApiNotImplemented = 3,
     MethodNotImplemented = 4,
 
-    InputLogoTooLarge = 20,
+    InputImageTooLarge = 20,
     InputInvalidParam = 21,
     InputInvalidScenario = 22,
     InputInvalidPassword = 23,
@@ -21,6 +21,7 @@ export enum ApiResultCode {
     DbUnexpectedUserState = 64,
 
     FileFailedDownload = 80,
+    FileFailedUpload = 81,
 
-    SystemError = 500,
+    ConnectionError = 500,
 }

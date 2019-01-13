@@ -1,40 +1,27 @@
 import { CommonUtils } from 'common/CommonUtils';
-import { DBObject, IDBObject } from './DBObject';
 import { TaskState } from 'common/TaskState';
-interface ITaskObject extends IDBObject {
-    name?: string;
-    reward?: string;
-    templateFileUid?: string;
-    publisherId?: string;
-    applicantId?: string;
-    executorId?: string;
-    resultFileId?: string;
-    resultFileversion?: number;
-    note?: string;
-    state?: TaskState;
-}
-
-export class TaskObject extends DBObject implements ITaskObject {
+import { DBObject } from './DBObject';
+export class TaskObject extends DBObject {
     [key: string]: any;
     public name?: string;
     public reward?: string;
     public templateFileUid?: string;
-    public publisherId?: string;
-    public applicantId?: string;
-    public executorId?: string;
-    public resultFileId?: string;
+    public publisherUid?: string;
+    public applicantUid?: string;
+    public executorUid?: string;
+    public resultFileUid?: string;
     public resultFileversion?: number;
     public note?: string;
     public state?: TaskState;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
-            this.applicantId = '';
-            this.executorId = '';
+            this.applicantUid = '';
+            this.executorUid = '';
             this.name = '';
             this.note = '';
-            this.publisherId = '';
-            this.resultFileId = '';
+            this.publisherUid = '';
+            this.resultFileUid = '';
             this.resultFileversion = -1;
             this.reward = '';
             this.state = TaskState.None;

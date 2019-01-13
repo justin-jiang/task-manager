@@ -16,14 +16,17 @@
             prop="nickName"
           >
           </el-table-column>
-          <el-table-column label="状态">
+          <el-table-column
+            label="状态"
+            width="220"
+          >
             <template slot-scope="scope">
               <span style="margin-left: 10px">{{ getUserState(scope.row) }}</span>
             </template>
           </el-table-column>
           <el-table-column
             align="right"
-            min-width="500"
+            width="500"
           >
             <template
               slot="header"
@@ -39,10 +42,10 @@
             </template>
             <template slot-scope="scope">
               <el-button
-                v-if="isLogoToBeChecked(scope.row)"
+                v-if="isIdToBeChecked(scope.row)"
                 size="mini"
-                @click="onLogoCheck(scope.$index, scope.row)"
-              >头像审核</el-button>
+                @click="onIdCheck(scope.$index, scope.row)"
+              >身份审核</el-button>
               <el-button
                 v-if="isQualificationToBeChecked(scope.row)"
                 size="mini"
@@ -62,88 +65,23 @@
         </el-table>
       </el-col>
     </el-row>
-    <el-dialog
-      width="30%"
-      title="头像审核"
-      :show-close="false"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :visible.sync="logoCheckDialogVisible"
+    <IdentityCheckDialogVue
+      :userUidProp="selectedUserUid"
+      :visibleProp="idCheckDialogVisible"
+      @submit="onIdCheckSubmit"
+      @canceled="onIdCheckCanceled"
     >
-      <el-row>
-        <el-col :span="24">
-          <img
-            style="width:100%;height:100%"
-            :src="selectedUserLogoUrl"
-          >
-        </el-col>
-      </el-row>
-      <el-row>
-        <el-col :span="8">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="onLogoCheckAccepted()"
-          >通过</el-button>
-        </el-col>
-        <el-col :span="8">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="onLogoCheckDenied()"
-          >拒绝</el-button>
-        </el-col>
-        <el-col :span="8">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="onLogoCheckCanceled()"
-          >取消</el-button>
-        </el-col>
-      </el-row>
-    </el-dialog>
-    <el-dialog
-      width="30%"
-      title="资质文件审核"
-      :show-close="false"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :visible.sync="qualificationCheckDialogVisible"
+    </IdentityCheckDialogVue>
+
+    <FileCheckDialogVue
+      titleProp="资质文件审核"
+      :visibleProp="qualificationCheckDialogVisible"
+      @accepted="onQualificationCheckAccepted"
+      @denied="onQualificationCheckDenied"
+      @canceled="onQualificationCheckCanceled"
+      @download="onQualificationDownload"
     >
-      <el-row style="margin-bottom:20px;">
-        <el-col :span="24">
-          <span style="display:block;">点击下载</span>
-          <el-button
-            icon="el-icon-download"
-            circle
-            @click="onQualificationDownload"
-          ></el-button>
-        </el-col>
-      </el-row>
-      <el-row>
-        <el-col :span="8">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="onQualificationCheckAccepted()"
-          >通过</el-button>
-        </el-col>
-        <el-col :span="8">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="onQualificationCheckDenied()"
-          >拒绝</el-button>
-        </el-col>
-        <el-col :span="8">
-          <el-button
-            size="mini"
-            type="primary"
-            @click="onQualificationCheckCanceled()"
-          >取消</el-button>
-        </el-col>
-      </el-row>
-    </el-dialog>
+    </FileCheckDialogVue>
   </div>
 </template>
 

@@ -3,7 +3,7 @@
     type="border-card"
     style="min-height:600px; padding:0px;"
     v-model="activeTabName"
-    v-loading="isLoading"
+    v-loading="!isInitialized"
   >
     <el-tab-pane
       label="创建任务"
@@ -79,32 +79,54 @@
           >
             <el-table-column type="expand">
               <template slot-scope="props">
-                <el-form
-                  label-position="left"
-                  class="task-table-expand"
-                >
-                  <el-form-item label="名称">
-                    <span>{{ props.row.name }}</span>
-                  </el-form-item>
-                  <el-form-item label="金额">
-                    <span>{{ props.row.reward }}</span>
-                  </el-form-item>
-                  <el-form-item label="发布人">
-                    <span>{{ props.row.publisherName }}</span>
-                  </el-form-item>
-                  <el-form-item label="描述">
-                    <span>{{ props.row.note }}</span>
-                  </el-form-item>
-                  <el-form-item label="状态">
-                    <span>{{ taskStateToText(props.row.state) }}</span>
-                  </el-form-item>
-                  <el-form-item label="申请人">
-                    <span>{{ props.row.applicantName }}</span>
-                  </el-form-item>
-                  <el-form-item label="执行人">
-                    <span>{{ props.row.executorName }}</span>
-                  </el-form-item>
-                </el-form>
+                <el-row>
+                  <el-col :span="1">
+                    名称:
+                  </el-col>
+                  <el-col :span="4">
+                    {{props.row.name}}
+                  </el-col>
+                  <el-col :span="1">
+                    金额:
+                  </el-col>
+                  <el-col :span="4">
+                    {{props.row.reward}}
+                  </el-col>
+                  <el-col :span="1">
+                    状态:
+                  </el-col>
+                  <el-col :span="4">
+                    {{taskStateToText(props.row.state)}}
+                  </el-col>
+                  <el-col :span="1">
+                    发布人:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ props.row.publisherName }}
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="1">
+                    申请人:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ props.row.applicantName }}
+                  </el-col>
+                  <el-col :span="1">
+                    执行人:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ props.row.executorName }}
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="1">
+                    备注:
+                  </el-col>
+                  <el-col :span="23">
+                    {{ props.row.note }}
+                  </el-col>
+                </el-row>
               </template>
             </el-table-column>
             <el-table-column
@@ -122,7 +144,15 @@
                 <span>{{taskStateToText(scope.row.state)}}</span>
               </template>
             </el-table-column>
-            <el-table-column align="right">
+            <el-table-column label="创建时间">
+              <template slot-scope="scope">
+                <span>{{timestampToText(scope.row.createTime)}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              align="right"
+              min-width="300"
+            >
               <template
                 slot="header"
                 slot-scope="scope"
@@ -136,15 +166,6 @@
               </template>
               <template slot-scope="scope">
                 <el-button
-                  size="mini"
-                  @click="onTaskSelect(scope.$index, scope.row)"
-                >编辑</el-button>
-                <el-button
-                  size="mini"
-                  type="danger"
-                  @click="onTaskDelete(scope.$index, scope.row)"
-                >删除</el-button>
-                <el-button
                   v-if="isTaskApplying(scope.row)"
                   size="mini"
                   @click="onTaskApplyAccept(scope.$index, scope.row)"
@@ -154,6 +175,21 @@
                   size="mini"
                   @click="onTaskApplyDeny(scope.$index, scope.row)"
                 >拒绝申请</el-button>
+                <el-button
+                  type="primary"
+                  size="mini"
+                  v-if="isTaskResultUploaded(scope.$index, scope.row)"
+                  @click="onTaskResultCheck(scope.$index, scope.row)"
+                >任务结果下载审核</el-button>
+                <el-button
+                  size="mini"
+                  @click="onTaskSelect(scope.$index, scope.row)"
+                >编辑</el-button>
+                <el-button
+                  size="mini"
+                  type="danger"
+                  @click="onTaskDelete(scope.$index, scope.row)"
+                >删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -216,6 +252,48 @@
           </el-collapse>
         </el-col>
       </el-row>
+      <el-dialog
+        width="30%"
+        title="任务结果审核"
+        :show-close="false"
+        :close-on-click-modal="false"
+        :close-on-press-escape="false"
+        :visible.sync="taskResultCheckDialogVisible"
+      >
+        <el-row>
+          <el-col :span="24">
+            <span style="display:block;">点击下载</span>
+            <el-button
+              icon="el-icon-download"
+              circle
+              @click="onTaskResultDownload"
+            ></el-button>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="8">
+            <el-button
+              size="mini"
+              type="primary"
+              @click="onTaskResultCheckAccepted()"
+            >通过</el-button>
+          </el-col>
+          <el-col :span="8">
+            <el-button
+              size="mini"
+              type="primary"
+              @click="onTaskResultCheckDenied()"
+            >拒绝</el-button>
+          </el-col>
+          <el-col :span="8">
+            <el-button
+              size="mini"
+              type="primary"
+              @click="onTaskResultCheckCanceled()"
+            >取消</el-button>
+          </el-col>
+        </el-row>
+      </el-dialog>
     </el-tab-pane>
   </el-tabs>
 </template>
@@ -227,4 +305,7 @@ export default class PublisherVue extends PublisherTaskTS {}
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
+.el-row {
+  margin-bottom: 20px;
+}
 </style>

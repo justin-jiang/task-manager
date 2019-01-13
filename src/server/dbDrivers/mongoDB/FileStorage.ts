@@ -1,4 +1,5 @@
 import { CommonUtils } from 'common/CommonUtils';
+import { FileType } from 'common/FileType';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import * as mongo from 'mongodb';
 import * as mongoose from 'mongoose';
@@ -7,13 +8,13 @@ import { mongodbName } from 'server/common/Constants';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { Readable } from 'stream';
 import { MongoDBDriver } from './MongoDBDriver';
-import { FileType } from 'common/FileType';
 
 interface DBFiles {
     _id: mongo.ObjectId;
     filename: string;
     chunkSize: number;
     length: number;
+    metadata: any;
 
 }
 // interface DBChunks {
@@ -27,6 +28,7 @@ export interface IFileMetaData {
     type: FileType;
     checked: boolean;
     userUid: string;
+    originalFileName: string;
 }
 export class FileStorage {
     private static readonly metadataKeyName = 'metadata';
@@ -79,9 +81,15 @@ export class FileStorage {
         return this.grid.openDownloadStreamByName(`${fileId}_${version}`);
     }
 
-    public static async $$getEntry(fileId: string) {
+    public static async $$getEntryMetaData(fileId: string): Promise<IFileMetaData> {
         const filesCollection: mongo.Collection = this.dbInstance.collection('fs.files');
-        return await filesCollection.find({ _id: fileId });
+        const cursor: mongo.Cursor | undefined = await filesCollection.find({ _id: fileId });
+        let metadata: IFileMetaData = {} as IFileMetaData;
+        if (await cursor.hasNext()) {
+            const fileItem: DBFiles = await cursor.next();
+            metadata = fileItem.metadata;
+        }
+        return metadata;
     }
     public static async $$updateEntryMeta(entryId: string, metadata: IFileMetaData) {
         const filesCollection: mongo.Collection = this.dbInstance.collection('fs.files');
@@ -123,7 +131,7 @@ export class FileStorage {
 
             ws.on('finish', () => {
                 resolve();
-                LoggerManager.debug('ws finish');
+                LoggerManager.debug('ws finish: %s', 'test');
             });
 
             rs.on('error', (err) => {

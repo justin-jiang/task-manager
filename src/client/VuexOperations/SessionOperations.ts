@@ -10,6 +10,10 @@ import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserView } from 'common/responseResults/UserView';
 import { Commit } from 'vuex';
+import { StoreGetterNames } from './StoreGetterNames';
+import { blankStoreState } from 'client/store';
+import { ApiResult } from 'common/responseResults/APIResult';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 export const actions = {
 
     /**
@@ -18,12 +22,18 @@ export const actions = {
      * @param args 
      */
     async [StoreActionNames.sessionQuery]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(`${HttpPathItem.API}/${HttpPathItem.SESSION}/${HttpPathItem.QUERY}`);
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.sessionInfoUpdate, result.data);
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(`${HttpPathItem.Api}/${HttpPathItem.Session}/${HttpPathItem.Query}`);
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.sessionInfoUpdate, apiResult.data);
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+
+        return apiResult;
     },
 
     /**
@@ -32,30 +42,43 @@ export const actions = {
      * @param args 
      */
     async [StoreActionNames.sessionCreate]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const reqParam: SessionCreateParam = args.data as SessionCreateParam;
-        const response = await axios.post(`${HttpPathItem.API}/${HttpPathItem.SESSION}/`, reqParam);
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            if (result.data != null) {
-                commit(StoreMutationNames.sessionInfoUpdate, result.data);
-            } else {
-                LoggerManager.warn('No CreatedSession');
-            }
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const reqParam: SessionCreateParam = args.data as SessionCreateParam;
+            const response = await axios.post(`${HttpPathItem.Api}/${HttpPathItem.Session}/`, reqParam);
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                if (apiResult.data != null) {
+                    commit(StoreMutationNames.sessionInfoUpdate, apiResult.data);
+                } else {
+                    LoggerManager.warn('No CreatedSession');
+                }
 
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+
+        return apiResult;
     },
 
     async [StoreActionNames.sessionRemove]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const reqParam: SessionCreateParam = args.data as SessionCreateParam;
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.SESSION}/${HttpPathItem.REMOVE}`,
-            reqParam);
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.sessionInfoUpdate, {});
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const reqParam: SessionCreateParam = args.data as SessionCreateParam;
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.Session}/${HttpPathItem.Remove}`,
+                reqParam);
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.sessionInfoUpdate, {});
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+
+        return apiResult;
     },
 };
 
@@ -69,4 +92,22 @@ export const mutations = {
         user = user || {};
         stateInst.sessionInfo = user;
     },
+    [StoreMutationNames.sessionInfoPropUpdate](stateInst: IStoreState, user: UserView) {
+        user = user || {};
+        stateInst.sessionInfo = Object.assign({}, stateInst.sessionInfo, user);
+    },
+    [StoreMutationNames.sessionRedirectUrlUpdate](stateInst: IStoreState, redirectUrl: string) {
+        stateInst.redirectURLAfterLogin = redirectUrl;
+    },
+
+    [StoreMutationNames.sessionReset](stateInst: IStoreState) {
+        Object.assign(stateInst, blankStoreState);
+    }
+
 };
+
+export const getters = {
+    [StoreGetterNames.sessionInfoLogoUrl](stateInst: IStoreState) {
+        return stateInst.sessionInfo.logoUrl;
+    }
+}

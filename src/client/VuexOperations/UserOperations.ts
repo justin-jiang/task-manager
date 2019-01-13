@@ -8,68 +8,110 @@ import { HttpPathItem } from 'common/HttpPathItem';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserView } from 'common/responseResults/UserView';
 import { Commit } from 'vuex';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+import { ApiResult } from 'common/responseResults/APIResult';
 
 export const actions = {
     async [StoreActionNames.userQuery]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.QUERY}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.usersUpdate, result.data);
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Query}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.usersUpdate, apiResult.data);
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
 
     async [StoreActionNames.userCheck]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.CHECK}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.userItemReplace, result.data);
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Check}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.userItemReplace, apiResult.data);
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
     async [StoreActionNames.userEnable]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.ENABLE}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.userItemReplace, result.data);
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Enable}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.userItemReplace, apiResult.data);
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
     async [StoreActionNames.userDisable]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.DISABLE}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.userItemReplace, result.data);
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Disable}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.userItemReplace, apiResult.data);
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
     async [StoreActionNames.userBasicInfoEdit]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.EDIT}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.userItemReplace, result.data);
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Edit}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.userItemReplace, apiResult.data);
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
     async [StoreActionNames.userRemove]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.REMOVE}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        if (result.code === ApiResultCode.Success) {
-            commit(StoreMutationNames.userItemDelete, result.data);
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Remove}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+            if (apiResult.code === ApiResultCode.Success) {
+                commit(StoreMutationNames.userItemDelete, apiResult.data);
+            }
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
         }
-        return result;
+        return apiResult;
     },
     async [StoreActionNames.userPasswordEdit]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
-        const response = await axios.post(
-            `${HttpPathItem.API}/${HttpPathItem.USER}/${HttpPathItem.PASSWORD}/${HttpPathItem.EDIT}`, args.data || {});
-        const result = HttpUtils.getApiResultFromResponse(response);
-        return result;
+
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Edit}`, args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
+        }
+        return apiResult;
     },
 };
 
@@ -110,6 +152,22 @@ export const mutations = {
         });
         if (indexToBeReplaced !== -1) {
             state.userObjs.splice(indexToBeReplaced, 1);
+        }
+    },
+    [StoreMutationNames.userItemUpdate](state: IStoreState, updatedProps: UserView) {
+        if (updatedProps == null) {
+            return;
+        }
+        let indexToBeUpdated: number = -1;
+        state.userObjs.forEach((item, index) => {
+            if (item.uid === updatedProps.uid) {
+                indexToBeUpdated = index;
+            }
+        });
+        if (indexToBeUpdated !== -1) {
+            const origItem = state.userObjs[indexToBeUpdated];
+            const newItem = Object.assign({}, origItem, updatedProps);
+            state.userObjs.splice(indexToBeUpdated, 1, newItem);
         }
     },
 };

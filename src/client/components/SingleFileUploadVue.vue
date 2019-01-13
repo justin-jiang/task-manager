@@ -5,6 +5,7 @@
         <el-upload
           class="upload-qualificationFile"
           drag
+          :accept="acceptFileTypes"
           :name="keyNameOfuploadedFile"
           :ref="uploaderRefName"
           :action="uploadAPIURL"

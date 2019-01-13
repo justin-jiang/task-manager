@@ -8,6 +8,8 @@ import { ITemplateModel, schema as templateSchema, schemaName as templateSchemaN
 import { IUserModel, schema as userSchema, schemaName as userSchemaName } from 'server/dataModels/mongoDB/IUserModel';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { MongoDBDriver } from './MongoDBDriver';
+import { ITaskCheckRecordModel, schema as taskCheckRecordSchema, schemaName as taskCheckRecordSchemaName } from 'server/dataModels/mongoDB/ITaskCheckRecordModel';
+import { IUserNotificationModel, schema as userNotificationSchema, schemaName as userNotificationSchemaName } from 'server/dataModels/mongoDB/IUserNotificationModel';
 export class MongoDBModelManager {
     public static async $$getUserModel(): Promise<Model<IUserModel>> {
         if (this.modelCache[this.userModelName] == null) {
@@ -44,6 +46,25 @@ export class MongoDBModelManager {
         }
         return this.modelCache[this.taskApplicationModelName];
     }
+    public static async $$getTaskCheckRecordModel(): Promise<Model<ITaskCheckRecordModel>> {
+        if (this.modelCache[this.taskCheckRecordModelName] == null) {
+            LoggerManager.debug('creating TaskCheckRecordModel');
+            const conn: Connection = await MongoDBDriver.$$getConnection(mongodbName);
+            this.modelCache[this.taskCheckRecordModelName] = conn.model(
+                taskCheckRecordSchemaName, taskCheckRecordSchema);
+        }
+        return this.modelCache[this.taskCheckRecordModelName];
+    }
+
+    public static async $$getUserNotificationModel(): Promise<Model<IUserNotificationModel>> {
+        if (this.modelCache[this.userNotificationModelName] == null) {
+            LoggerManager.debug('creating UserNotificationModel');
+            const conn: Connection = await MongoDBDriver.$$getConnection(mongodbName);
+            this.modelCache[this.userNotificationModelName] = conn.model(
+                userNotificationSchemaName, userNotificationSchema);
+        }
+        return this.modelCache[this.userNotificationModelName];
+    }
 
     private static modelCache: { [key: string]: Model<any> } = {};
     private static readonly userModelName: string = 'userModel';
@@ -52,4 +73,6 @@ export class MongoDBModelManager {
     private static readonly taskModelName: string = 'taskModel';
 
     private static readonly taskApplicationModelName: string = 'taskApplicationModel';
+    private static readonly taskCheckRecordModelName: string = 'taskCheckRecordModel';
+    private static readonly userNotificationModelName: string = 'userNotificationModel';
 }

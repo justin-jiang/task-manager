@@ -7,7 +7,7 @@ interface IErrorData {
 }
 export class ApiError {
     public static fromError(error: any): ApiError {
-        const outputError: ApiError = new ApiError(ApiResultCode.SystemError);
+        const outputError: ApiError = new ApiError(ApiResultCode.ConnectionError);
         if (error instanceof mongoose.Error.ValidationError) {
             outputError.code = ApiResultCode.DbValidationError;
         }

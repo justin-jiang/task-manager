@@ -5,7 +5,7 @@ import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
 import { HttpUploadKey } from 'common/HttpUploadKey';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
-import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
@@ -43,7 +43,7 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
 
     // #region -- referred props and methods for uploader
     private readonly uploaderRefName = 'fileUploader';
-    private readonly uploadAPIURL = `${HttpPathItem.API}/${HttpPathItem.FILE}`;
+    private readonly uploadAPIURL = `${HttpPathItem.Api}/${HttpPathItem.File}`;
 
     // defaut button text which will be overridden by buttonTextProp if it is not null
     private buttonText: string = '点击上传';
@@ -52,12 +52,13 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
 
     private isSubmitting: boolean = false;
     private readonly keyNameOfuploadedFile: string = HttpUploadKey.File;
+    private acceptFileTypes: string = 'application/zip';
 
     // used by el-uploader to upload the data with file together
     // which is used to create correponding DB object if required
     private fileUploadParam: FileUploadParam = {
         scenario: FileAPIScenario.UpdateTemplateFile,
-        metadata: '',
+        optionData: '',
     } as FileUploadParam;
     private uploadTip(): string {
         let fileTypes: string = '不限';
@@ -65,7 +66,7 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
         if (this.fileTypesProp != null && this.fileTypesProp.length > 0) {
             const readableTypes: string[] = [];
             this.fileTypesProp.forEach((type) => {
-                if (/^\w+\/\w+$/i.test(type)) {
+                if (/^\w+\/[-\w]+$/i.test(type)) {
                     readableTypes.push(type.split('\/')[1]);
                 }
             });
@@ -109,10 +110,9 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
             return;
         }
         Object.assign(this.fileUploadParam, this.filePostParamProp);
-        if (this.fileUploadParam.metadata instanceof Object) {
-            this.fileUploadParam.metadata = JSON.stringify(this.fileUploadParam.metadata);
+        if (this.fileUploadParam.optionData instanceof Object) {
+            this.fileUploadParam.optionData = JSON.stringify(this.fileUploadParam.optionData);
         }
-
         (this.$refs[this.uploaderRefName] as any).submit();
     }
 
@@ -123,7 +123,7 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     private onFileCountExceed(files: { raw: File }, fileList: Array<{ raw: File }>) {
         this.$message.warning(`每次只能上传一个文件`);
     }
-    private onFileUploadDone(apiResult: APIResult, file: { raw: File }, fileList: Array<{ raw: File }>) {
+    private onFileUploadDone(apiResult: ApiResult, file: { raw: File }, fileList: Array<{ raw: File }>) {
         this.isSubmitting = false;
         if (apiResult.code === ApiResultCode.Success) {
             this.$emit(EventNames.UploadSuccess, apiResult);
@@ -148,6 +148,9 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     private mounted(): void {
         if (!CommonUtils.isNullOrEmpty(this.buttonTextProp)) {
             this.buttonText = this.buttonTextProp as any as string;
+        }
+        if (this.fileTypesProp != null && this.fileTypesProp.length > 0) {
+            this.acceptFileTypes = this.fileTypesProp.join(',');
         }
     }
     // #endregion

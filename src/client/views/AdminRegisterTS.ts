@@ -1,12 +1,14 @@
+import { msgConnectionIssue } from 'client/common/Constants';
 import { RouterUtils } from 'client/common/RouterUtils';
 import BasicUserRegisterVue from 'client/components/BasicUserRegisterVue.vue';
+import { ComponentUtils } from 'client/components/ComponentUtils';
+import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { IStoreState } from 'client/VuexOperations/IStoreState';
-import store from 'client/store';
-import { UserView } from 'common/responseResults/UserView';
-import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 const compToBeRegistered: any = {
     BasicUserRegisterVue,
 };
@@ -17,11 +19,16 @@ const compToBeRegistered: any = {
 export class AdminRegisterTS extends Vue {
     // #region -- referred props and methods by Vue Page
     private userRole: UserRole = UserRole.Admin;
-    private registerTitle: string = '管理员注册';
 
     private onSuccess(admin: UserView): void {
-        store.commit(StoreMutationNames.sessionInfoUpdate, admin);
-        RouterUtils.goToAdminView(this.$router);
+        (async () => {
+            admin.logoUrl = await ComponentUtils.$$getImageUrl(this, admin.logoUid as string, FileAPIScenario.DownloadUserLogo) || '';
+            this.store.commit(StoreMutationNames.sessionInfoUpdate, admin);
+            RouterUtils.goToAdminView(this.$router);
+        })().catch((ex) => {
+            RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
+        });
+
     }
     // #endregion
     // region -- internal props and methods

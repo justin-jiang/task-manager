@@ -4,6 +4,8 @@ import { CommonUtils } from 'common/CommonUtils';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { LoggerManager } from 'client/LoggerManager';
+import { RouteQuery } from './RouteQuery';
+import { UserView } from 'common/responseResults/UserView';
 
 export enum RoutePathItem {
     Admin = 'admin',
@@ -71,13 +73,19 @@ export class RouterUtils {
     public static goToUserRegisterView(router: VueRouter, role: UserRole) {
         router.push({
             name: RouterName.UserRegister,
-            query: { role: role.valueOf().toString() },
+            query: { role: role.valueOf().toString() } as RouteQuery,
         } as RawLocation);
     }
 
-    public static goToPublisherView(router: VueRouter) {
+    public static goToPublisherDefaultView(router: VueRouter) {
         router.push({
             name: RouterName.Publisher_Task,
+        } as RawLocation);
+    }
+    public static goToPublisherTaskView(router: VueRouter, tabName?: string) {
+        router.push({
+            name: RouterName.Publisher_Task,
+            query: { tabName } as RouteQuery
         } as RawLocation);
     }
     public static goToPublisherUserInfoView(router: VueRouter) {
@@ -85,7 +93,10 @@ export class RouterUtils {
             name: RouterName.Publisher_UserInfo,
         } as RawLocation);
     }
-    public static goToExecutorView(router: VueRouter) {
+    public static goToExecutorDefaultView(router: VueRouter) {
+        this.goToExecutorTaskView(router);
+    }
+    public static goToExecutorTaskView(router: VueRouter) {
         router.push({
             name: RouterName.Executor_Task,
         } as RawLocation);
@@ -107,16 +118,19 @@ export class RouterUtils {
      * @param router 
      * @param userRoles 
      */
-    public static goToUserHomePage(router: VueRouter, userRoles: UserRole[] | undefined) {
+    public static goToUserHomePage(router: VueRouter, user: UserView) {
+
         // according user type to go to different view
-        if (CommonUtils.isAdmin(userRoles)) {
+        if (CommonUtils.isAdmin(user.roles)) {
             RouterUtils.goToAdminView(router);
-        } else if (CommonUtils.isPublisher(userRoles)) {
-            RouterUtils.goToPublisherView(router);
-        } else if (CommonUtils.isExecutor(userRoles)) {
-            RouterUtils.goToExecutorView(router);
+        } else if (!CommonUtils.isUserReady(user)) {
+            RouterUtils.goToUserRegisterView(router, (user.roles as UserRole[])[0]);
+        } else if (CommonUtils.isPublisher(user.roles)) {
+            RouterUtils.goToPublisherDefaultView(router);
+        } else if (CommonUtils.isExecutor(user.roles)) {
+            RouterUtils.goToExecutorDefaultView(router);
         } else {
-            RouterUtils.goToErrorView(router);
+            RouterUtils.goToLoginView(router);
         }
     }
 
@@ -135,6 +149,10 @@ export class RouterUtils {
     }
     public static isUserRegisterUrl(): boolean {
         const loginUrlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.UserRegister}`, 'i');
+        return loginUrlPattern.test(window.location.href);
+    }
+    public static isAdminRoot(): boolean {
+        const loginUrlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Admin}\/?$`, 'i');
         return loginUrlPattern.test(window.location.href);
     }
 }

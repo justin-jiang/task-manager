@@ -1,3 +1,5 @@
+import { AxiosResponse } from 'axios';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { msgConnectionIssue } from 'client/common/Constants';
 import { RouterUtils } from 'client/common/RouterUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
@@ -5,6 +7,7 @@ import { LoggerManager } from 'client/LoggerManager';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
+import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
@@ -12,15 +15,13 @@ import { TemplateCreateParam } from 'common/requestParams/TemplateCreateParam';
 import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
 import { TemplateFileEditParam } from 'common/requestParams/TemplateFileEditParam';
 import { TemplateRemoveParam } from 'common/requestParams/TemplateRemoveParam';
-import { APIResult } from 'common/responseResults/APIResult';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TemplateView } from 'common/responseResults/TemplateView';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ISingleFileUploadTS } from './SingleFileUploadTS';
-import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
-
+import { ComponentUtils } from './ComponentUtils';
 const compToBeRegistered: any = {
     SingleFileUploadVue,
 };
@@ -33,7 +34,7 @@ export class TemplateManagementTS extends Vue {
     private readonly templageCreationTabName: string = 'TemplateCreation';
     private readonly templateEditTabName: string = 'TemplateEdit';
     private activeTabName: string = this.templateEditTabName;
-    private templateFileTypes: string[] = ['application/zip'];
+    private templateFileTypes: string[] = ['application/zip', 'application/x-rar'];
     private templateFileSizeMLimit: number = 100;
     // #endregion
 
@@ -52,7 +53,7 @@ export class TemplateManagementTS extends Vue {
         ],
     };
 
-    private onTemplateCreateSuccess(apiResult: APIResult) {
+    private onTemplateCreateSuccess(apiResult: ApiResult) {
         this.$message.success('模板创建成功');
         this.resetTemplateCreateForm();
         this.activeTabName = this.templateEditTabName;
@@ -107,7 +108,7 @@ export class TemplateManagementTS extends Vue {
         confirm.then(() => {
             (async () => {
                 const store = (this.$store as Store<IStoreState>);
-                const apiResult: APIResult = await store.dispatch(
+                const apiResult: ApiResult = await store.dispatch(
                     StoreActionNames.templateRemove,
                     {
                         data: {
@@ -130,35 +131,19 @@ export class TemplateManagementTS extends Vue {
         });
     }
     private onTemplateDownload(index: number, item: TemplateView): void {
-        (async () => {
-            const apiResult: APIResult = await this.store.dispatch(
-                StoreActionNames.fileDownload,
-                {
-                    data: {
-                        scenario: FileAPIScenario.DownloadTemplateFile,
-                        fileId: item.templateFileUid,
-                        version: item.version,
-                    } as FileDownloadParam,
-                } as IStoreActionArgs);
-            if (apiResult.code === ApiResultCode.Success) {
-                const url = window.URL.createObjectURL(new Blob([apiResult.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `${item.name}.zip`);
-                document.body.appendChild(link);
-                link.click();
-            } else {
-                this.$message.error(`模板文件下载失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
-            }
-
-        })().catch((ex) => {
-            RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
-        });
+        ComponentUtils.downloadFile(
+            this,
+            {
+                scenario: FileAPIScenario.DownloadTemplateFile,
+                fileId: item.templateFileUid,
+                version: item.version,
+            } as FileDownloadParam,
+            `${item.name}.zip`);
     }
 
     private onTemplateInfoEditSubmit(): void {
         (async () => {
-            const result: APIResult = await this.store.dispatch(
+            const result: ApiResult = await this.store.dispatch(
                 StoreActionNames.templateEdit,
                 {
                     data: {
@@ -190,9 +175,9 @@ export class TemplateManagementTS extends Vue {
     private mounted() {
         // init template creation required data
         this.fileUpdateParam.scenario = FileAPIScenario.UploadTemplate;
-        this.fileUpdateParam.metadata = this.formCreateDatas;
+        this.fileUpdateParam.optionData = this.formCreateDatas;
         this.fileUploadParam.scenario = FileAPIScenario.UpdateTemplateFile;
-        this.fileUploadParam.metadata = new TemplateFileEditParam();
+        this.fileUploadParam.optionData = new TemplateFileEditParam();
         (async () => {
             // init template edit required data
             this.$$pullTemplateObjs();
@@ -208,7 +193,7 @@ export class TemplateManagementTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
 
     private async $$pullTemplateObjs(): Promise<void> {
-        const apiResult: APIResult = await this.store.dispatch(
+        const apiResult: ApiResult = await this.store.dispatch(
             StoreActionNames.templateQuery, { notUseLocalData: true } as IStoreActionArgs);
         if (apiResult.code !== ApiResultCode.Success) {
             RouterUtils.goToErrorView(
@@ -226,20 +211,20 @@ export class TemplateManagementTS extends Vue {
     private syncTemplateEditForm(): void {
         const newFormEditData: TemplateEditParam = {};
         const newFileUploadData: FileUploadParam = {};
-        newFileUploadData.metadata = new TemplateFileEditParam();
+        newFileUploadData.optionData = new TemplateFileEditParam();
         if (this.selectedTemplateIndex == null) {
             newFormEditData.uid = '';
             newFormEditData.name = '';
             newFormEditData.note = '';
             newFileUploadData.scenario = this.fileUploadParam.scenario;
-            newFileUploadData.metadata.templateUid = '';
+            newFileUploadData.optionData.templateUid = '';
         } else {
             const selectedTemplate: TemplateView = this.getTemplateObjs()[this.selectedTemplateIndex];
             newFormEditData.uid = selectedTemplate.uid;
             newFormEditData.name = selectedTemplate.name;
             newFormEditData.note = selectedTemplate.note;
             newFileUploadData.scenario = this.fileUploadParam.scenario;
-            newFileUploadData.metadata.templateUid = selectedTemplate.uid;
+            newFileUploadData.optionData.templateUid = selectedTemplate.uid;
         }
         this.formEditDatas = newFormEditData;
         this.fileUploadParam = newFileUploadData;

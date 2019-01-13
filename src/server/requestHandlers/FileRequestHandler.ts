@@ -15,6 +15,7 @@ import { QualificationState } from 'common/responseResults/QualificationState';
 import { TaskView } from 'common/responseResults/TaskView';
 import { TemplateView } from 'common/responseResults/TemplateView';
 import { UserView } from 'common/responseResults/UserView';
+import { UserState } from 'common/UserState';
 import { Response } from 'express';
 import { ApiError } from 'server/common/ApiError';
 import { AppStatus } from 'server/common/AppStatus';
@@ -29,7 +30,8 @@ import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { TemplateRequestHandler } from 'server/requestHandlers/TemplateRequestHandler';
 import { UserRequestHandler } from 'server/requestHandlers/UserRequestHandler';
 import { TaskRequestHandler } from './TaskRequestHandler';
-
+import { TaskState } from 'common/TaskState';
+import { IdentityState } from 'common/responseResults/IdentityState';
 export class FileRequestHandler {
     public static async $$createTemplate(
         fileData: Express.Multer.File | NodeJS.ReadableStream,
@@ -39,18 +41,18 @@ export class FileRequestHandler {
         if (!CommonUtils.isPublisher(currentUser.roles)) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
-        const metadata: TemplateCreateParam = JSON.parse(reqParam.metadata as string);
+        const optionData: TemplateCreateParam = JSON.parse(reqParam.optionData as string);
         const templateView: TemplateView = await this.$$createTemplateObject(
-            metadata, currentUser, fileData as Express.Multer.File);
+            optionData, currentUser, fileData as Express.Multer.File);
         return templateView;
     }
 
     public static async $$updateTemplateFile(
-        fileData: Express.Multer.File | NodeJS.ReadableStream,
+        fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TemplateView> {
 
-        const metadata: TemplateFileEditParam = JSON.parse(reqParam.metadata as string);
+        const metadata: TemplateFileEditParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.templateUid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TemplateFileEditParam.templateUid should not be null');
@@ -68,10 +70,15 @@ export class FileRequestHandler {
 
         const fileEntryId: string = dbObj.templateFileUid as string;
         dbObj.version = dbObj.version as number + 1;
+        const fileMetaData: IFileMetaData = {
+            type: FileType.Template,
+            checked: true,
+            originalFileName: fileData.originalname,
+        } as IFileMetaData;
         await FileStorage.$$saveEntry(
             fileEntryId,
             dbObj.version,
-            { type: FileType.Template, checked: true } as IFileMetaData,
+            fileMetaData,
             (fileData as Express.Multer.File).buffer);
 
         // update version
@@ -81,82 +88,138 @@ export class FileRequestHandler {
         return TemplateRequestHandler.$$convertToDBView(dbObj);
     }
     public static async $$updateQualification(
-        fileData: Express.Multer.File | NodeJS.ReadableStream,
+        fileData: Express.Multer.File,
         reqParam: FileUploadParam,
-        currentUser: UserObject): Promise<void> {
+        currentUser: UserObject): Promise<UserView> {
         let fileEntryId: string;
-        let version: number = 0;
-        if (CommonUtils.isNullOrEmpty(currentUser.qualificationId)) {
+        const updatedProps: UserObject = {};
+        if (CommonUtils.isNullOrEmpty(currentUser.qualificationUid)) {
             fileEntryId = CommonUtils.getUUIDForMongoDB();
+            updatedProps.qualificationUid = fileEntryId;
+            updatedProps.qualificationVersion = 0;
         } else {
-            fileEntryId = currentUser.qualificationId as string;
-            version = currentUser.qualificationVersion as number + 1;
+            fileEntryId = currentUser.qualificationUid as string;
+            updatedProps.qualificationVersion = currentUser.qualificationVersion as number + 1;
         }
-
+        updatedProps.qualificationState = QualificationState.ToBeChecked;
         await FileStorage.$$saveEntry(
             fileEntryId,
-            version,
-            { type: FileType.Qualification, checked: false, userUid: currentUser.uid } as IFileMetaData,
+            updatedProps.qualificationVersion,
+            {
+                type: FileType.Qualification,
+                checked: false,
+                userUid: currentUser.uid,
+                originalFileName: fileData.originalname,
+            } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
         // update the qualificationVersion. 
         // NOTE: for concurrent action, the above file save will be failed because of duplicated id
         UserModelWrapper.$$updateOne(
             { uid: currentUser.uid } as UserObject,
-            {
-                qualificationId: fileEntryId,
-                qualificationVersion: version,
-                qualificationState: QualificationState.ToBeChecked,
-            } as UserObject);
+            updatedProps);
+        Object.assign(currentUser, updatedProps);
+        return await UserRequestHandler.$$convertToDBView(currentUser);
     }
 
     public static async $$createUser(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam): Promise<UserView> {
-        if (reqParam == null || reqParam.metadata == null) {
+        if (reqParam == null || reqParam.optionData == null) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'FileUploadParam or FileUploadParam.metadata should not be null in $$createUser');
         }
 
-        const metadata: UserCreateParam = JSON.parse(reqParam.metadata as string);
-        if (metadata == null || CommonUtils.isNullOrEmpty(metadata.name)) {
+        const optionData: UserCreateParam = JSON.parse(reqParam.optionData as string);
+        if (optionData == null || CommonUtils.isNullOrEmpty(optionData.name)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'FileUploadParam.metadata should not be null in $$createUser');
         }
-        const userName: string = metadata.name as string;
+        const userName: string = optionData.name as string;
+        if (CommonUtils.isNullOrEmpty(userName)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, 'UserCreateParam.name');
+        }
         const logoSize: number = (fileData as Express.Multer.File).size;
-
         if (fileData.size / 1024 / 1024 > LIMIT_LOGO_SIZE_M) {
             LoggerManager.error(`LogoSize:${logoSize} too large for user:${userName}`);
-            throw new ApiError(ApiResultCode.InputLogoTooLarge);
+            throw new ApiError(ApiResultCode.InputImageTooLarge);
         }
 
         // create user db object
-        const view: UserView = await this.$$createUserObject(metadata, fileData);
+        const view: UserView = await this.$$createUserObject(optionData, fileData);
         if (CommonUtils.isAdmin(view.roles)) {
             AppStatus.isSystemInitialized = true;
         }
         return view;
     }
-    public static async $$updateUserLogo(
-        fileData: Express.Multer.File | NodeJS.ReadableStream,
+    public static async $$updateUserLogoOrId(
+        fileData: Express.Multer.File,
         reqParam: FileUploadParam,
-        currentDBUser: UserObject): Promise<void> {
-        const logoSize: number = (fileData as Express.Multer.File).size;
+        currentUser: UserObject): Promise<UserView> {
+        const imageSize: number = (fileData as Express.Multer.File).size;
         if ((fileData as Express.Multer.File).size / 1024 / 1024 > LIMIT_LOGO_SIZE_M) {
-            LoggerManager.error(`LogoSize:${logoSize} too large for user:${currentDBUser.name}`);
-            throw new ApiError(ApiResultCode.InputLogoTooLarge);
+            LoggerManager.error(`ImageSize:${imageSize} too large for user:${currentUser.name}`);
+            throw new ApiError(ApiResultCode.InputImageTooLarge);
         }
-        // we don't keep logo upload history, so here remove the old one and then add new one
-        await FileStorage.$$deleteEntry(currentDBUser.logoId as string, 0);
+        let fileId: string;
+        let fileType: FileType;
+        if (reqParam.scenario === FileAPIScenario.UpdateUserLogo) {
+            fileId = currentUser.logoUid as string;
+            fileType = FileType.UserLogo;
+            currentUser.logoState = LogoState.ToBeChecked;
+        } else if (reqParam.scenario === FileAPIScenario.UpdateUserFrontId) {
+            fileId = currentUser.frontIdUid as string;
+            fileType = FileType.FrontId;
+            currentUser.frontIdState = IdentityState.ToBeChecked;
+        } else {
+            fileId = currentUser.backIdUid as string;
+            fileType = FileType.BackId;
+            currentUser.backIdState = IdentityState.ToBeChecked;
+        }
+        // we don't keep logo/id upload history, so here remove the old one and then add new one
+        if (!CommonUtils.isNullOrEmpty(fileId)) {
+            await FileStorage.$$deleteEntry(fileId, 0);
+        } else {
+            fileId = CommonUtils.getUUIDForMongoDB();
+        }
         await FileStorage.$$saveEntry(
-            currentDBUser.logoId as string,
+            fileId,
             0, // version
-            { type: FileType.UserLogo, checked: false } as IFileMetaData,
+            {
+                type: fileType,
+                checked: false,
+                originalFileName: fileData.originalname,
+            } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
+
+        if (reqParam.scenario === FileAPIScenario.UpdateUserLogo) {
+            UserModelWrapper.$$updateOne(
+                { uid: currentUser.uid } as UserObject,
+                {
+                    logoState: currentUser.logoState,
+                } as UserObject);
+        } else if (reqParam.scenario === FileAPIScenario.UpdateUserFrontId) {
+            currentUser.frontIdUid = fileId;
+            UserModelWrapper.$$updateOne(
+                { uid: currentUser.uid } as UserObject,
+                {
+                    frontIdUid: currentUser.frontIdUid,
+                    frontIdState: currentUser.frontIdState,
+                } as UserObject);
+        } else if (reqParam.scenario === FileAPIScenario.UpdateUserBackId) {
+            currentUser.backIdUid = fileId;
+            UserModelWrapper.$$updateOne(
+                { uid: currentUser.uid } as UserObject,
+                {
+                    backIdUid: currentUser.backIdUid,
+                    backIdState: currentUser.backIdState,
+                } as UserObject);
+        }
+
+        return UserRequestHandler.$$convertToDBView(currentUser);
     }
 
     public static async $$updateTaskResultFile(
-        fileData: Express.Multer.File | NodeJS.ReadableStream,
+        fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentDBUser: UserObject): Promise<TaskView> {
         // only task executor can update Result file
@@ -164,7 +227,7 @@ export class FileRequestHandler {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
 
-        const metadata: TaskResultFileUploadParam = JSON.parse(reqParam.metadata as string);
+        const metadata: TaskResultFileUploadParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TaskResultFileUploadParam.uid should not be null');
@@ -174,28 +237,30 @@ export class FileRequestHandler {
         if (dbObj == null) {
             throw new ApiError(ApiResultCode.DbNotFound, `TaskId:${metadata.uid}`);
         }
-        if (dbObj.executorId !== currentDBUser.uid) {
+        if (dbObj.executorUid !== currentDBUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
-
-        if (CommonUtils.isNullOrEmpty(dbObj.resultFileId)) {
-            dbObj.resultFileId = CommonUtils.getUUIDForMongoDB();
-            dbObj.resultFileversion = 0;
+        const updatedProps: TaskObject = new TaskObject();
+        if (CommonUtils.isNullOrEmpty(dbObj.resultFileUid)) {
+            updatedProps.resultFileUid = CommonUtils.getUUIDForMongoDB();
+            updatedProps.resultFileversion = 0;
         } else {
-            dbObj.resultFileversion = dbObj.resultFileversion as number + 1;
+            updatedProps.resultFileversion = dbObj.resultFileversion as number + 1;
         }
-
-
+        updatedProps.state = TaskState.TaskResultUploaded;
+        Object.assign(dbObj, updatedProps);
         await FileStorage.$$saveEntry(
-            dbObj.resultFileId as string,
-            dbObj.resultFileversion,
-            { type: FileType.Template, checked: true } as IFileMetaData,
+            dbObj.resultFileUid as string,
+            dbObj.resultFileversion as number,
+            {
+                type: FileType.TaskResult,
+                checked: true,
+                originalFileName: fileData.originalname,
+            } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
         // update version
-        await TaskModelWrapper.$$updateOne(
-            { uid: dbObj.uid } as TaskObject,
-            { resultFileId: dbObj.resultFileId, resultFileversion: dbObj.resultFileversion } as TaskObject);
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
@@ -224,7 +289,7 @@ export class FileRequestHandler {
             case FileAPIScenario.DownloadQualificationFile:
                 // only admin or owner can download the qualification
                 if (!CommonUtils.isAdmin(currentUser.roles) &&
-                    currentUser.qualificationId !== reqParam.fileId) {
+                    currentUser.qualificationUid !== reqParam.fileId) {
                     throw new ApiError(ApiResultCode.AuthForbidden);
                 }
                 break;
@@ -234,7 +299,21 @@ export class FileRequestHandler {
             case FileAPIScenario.DownloadUserLogo:
                 // only admin or owner can download logo
                 if (!CommonUtils.isAdmin(currentUser.roles) &&
-                    currentUser.logoId !== reqParam.fileId) {
+                    currentUser.logoUid !== reqParam.fileId) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
+            case FileAPIScenario.DownloadBackId:
+                // only admin or owner can download logo
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.backIdUid !== reqParam.fileId) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
+            case FileAPIScenario.DownloadFrontId:
+                // only admin or owner can download logo
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.frontIdUid !== reqParam.fileId) {
                     throw new ApiError(ApiResultCode.AuthForbidden);
                 }
                 break;
@@ -242,6 +321,10 @@ export class FileRequestHandler {
                 throw new ApiError(ApiResultCode.InputInvalidScenario);
         }
         reqParam.version = Number.parseInt(reqParam.version as any, 10);
+        const metadata = await FileStorage.$$getEntryMetaData(`${reqParam.fileId}_${reqParam.version}`);
+        if (metadata != null && metadata.originalFileName != null) {
+            res.header('content-disposition', encodeURI(`filename=${metadata.originalFileName}`));
+        }
         const readStream = FileStorage.createReadStream(reqParam.fileId as string, reqParam.version);
         await FileStorage.$$pipeStreamPromise(readStream, res);
     }
@@ -257,31 +340,37 @@ export class FileRequestHandler {
         let dbObj: UserObject = new UserObject();
         if (CommonUtils.isNullOrEmpty(reqParam.name)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.name should not be null');
+                'UserCreateParam.name');
         }
         dbObj.name = reqParam.name;
 
         if (CommonUtils.isNullOrEmpty(reqParam.email)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.email should not be null');
+                'UserCreateParam.email');
         }
         dbObj.email = reqParam.email;
 
         if (CommonUtils.isNullOrEmpty(reqParam.password)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.password should not be null');
+                'UserCreateParam.password');
         }
         dbObj.password = reqParam.password;
 
         if (CommonUtils.isNullOrEmpty(reqParam.telephone)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.telephone should not be null');
+                'UserCreateParam.telephone');
         }
         dbObj.telephone = reqParam.telephone;
 
+        if (reqParam.type == null) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'UserCreateParam.type');
+        }
+        dbObj.type = reqParam.type;
+
         if (reqParam.roles == null || reqParam.roles.length === 0) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.roles should not be null');
+                'UserCreateParam.roles');
         }
         dbObj.roles = reqParam.roles;
 
@@ -290,15 +379,23 @@ export class FileRequestHandler {
         } else {
             dbObj.uid = CommonUtils.getUUIDForMongoDB();
         }
-        dbObj.logoId = CommonUtils.getUUIDForMongoDB();
+        dbObj.logoUid = CommonUtils.getUUIDForMongoDB();
         dbObj.logoState = LogoState.ToBeChecked;
         dbObj.qualificationState = QualificationState.Missed;
+        dbObj.frontIdState = IdentityState.Missed;
+        dbObj.backIdState = IdentityState.Missed;
+        dbObj.state = UserState.Enabled;
 
         // save logo file
         await FileStorage.$$saveEntry(
-            dbObj.logoId,
+            dbObj.logoUid,
             0, // version
-            { type: FileType.UserLogo, checked: false, userUid: dbObj.uid } as IFileMetaData,
+            {
+                type: FileType.UserLogo,
+                checked: false,
+                userUid: dbObj.uid,
+                originalFileName: fileData.originalname,
+            } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
         // if admin has been existing, the following sentence will throw dup error
@@ -308,7 +405,9 @@ export class FileRequestHandler {
     }
 
     public static async $$createTemplateObject(
-        reqParam: TemplateCreateParam, currentUser: UserObject, fileData: Express.Multer.File): Promise<TemplateView> {
+        reqParam: TemplateCreateParam,
+        currentUser: UserObject,
+        fileData: Express.Multer.File): Promise<TemplateView> {
         if (CommonUtils.isNullOrEmpty(reqParam.name)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TemplateCreateParam.name should not be null');
@@ -322,10 +421,15 @@ export class FileRequestHandler {
         dbObj.version = 0;
         dbObj.templateFileUid = CommonUtils.getUUIDForMongoDB();
         dbObj.ownerUid = currentUser.uid;
+        const fileMetaData: IFileMetaData = {
+            type: FileType.Template,
+            checked: true,
+            originalFileName: fileData.originalname,
+        } as IFileMetaData;
         await FileStorage.$$saveEntry(
             dbObj.templateFileUid as string,
             0, // for first file
-            { type: FileType.Template, checked: true } as IFileMetaData,
+            fileMetaData,
             fileData.buffer);
         dbObj = await TemplateModelWrapper.$$create(dbObj) as TemplateObject;
         return await TemplateRequestHandler.$$convertToDBView(dbObj);

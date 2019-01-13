@@ -2,20 +2,23 @@
   <div>
     <el-upload
       class="avatar-uploader"
+      accept="image/jpg,image/png"
+      :http-request="uploadCroppedFile"
       :name="keyNameOfuploadedFile"
       :ref="uploaderRefName"
       :action="uploadAPIURL"
-      :show-file-list="false"
+      :limit="1"
+      :show-file-list="true"
       :data="uploadData"
       :auto-upload="false"
       :before-upload="beforeUpload"
       :on-change="onFileChange"
-      :on-success="onFileUploadDone"
-      :on-error="onFileUploadError"
+      :on-remove="onFileRemove"
+      :on-exceed="onFileCountExceed"
     >
       <img
-        v-if="isLogoURLReady()"
-        :src="logoUrlForUploader"
+        v-if="isImageUrlReady"
+        :src="imageUrlForUploader"
         class="avatar"
       >
       <i
@@ -35,12 +38,14 @@
         :guides="true"
         :view-mode="2"
         drag-mode="crop"
-        :auto-crop-area="0.5"
+        :aspectRatio="1/1"
+        :initialAspectRatio="1/1"
+        :auto-crop-area="0.8"
         :min-container-width="250"
         :min-container-height="180"
         :background="true"
         :rotatable="true"
-        :src="logoUrlForCropper"
+        :src="imageUrlForCropper"
         alt="Source Image"
         :img-style="{ 'width': '400px', 'height': '300px' }"
       >
@@ -49,10 +54,10 @@
         slot="footer"
         class="dialog-footer"
       >
-        <el-button @click="onLogoCropCancel()">取 消</el-button>
+        <el-button @click="onImageCropCancel()">取 消</el-button>
         <el-button
           type="primary"
-          @click="onLogoCropDone()"
+          @click="onImageCropDone()"
         >确 定</el-button>
       </span>
     </el-dialog>
@@ -60,8 +65,8 @@
 </template>
 
 <script lang="ts">
-import { LogoUploaderTS } from "./LogoUploaderTS";
-export default class LogoUploaderVue extends LogoUploaderTS {}
+import { SingleImageUploaderTS } from "./SingleImageUploaderTS";
+export default class SingleImageUploaderVue extends SingleImageUploaderTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
