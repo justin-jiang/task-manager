@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { TaskState } from 'common/TaskState';
 import { DBObject } from './DBObject';
 export class TaskObject extends DBObject {
@@ -13,13 +13,21 @@ export class TaskObject extends DBObject {
     public resultFileversion?: number;
     public note?: string;
     public state?: TaskState;
+    public province?: string;
+    public city?: string;
+    public district?: string;
+    public address?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
+            this.address = '';
             this.applicantUid = '';
+            this.city = '';
+            this.district = '';
             this.executorUid = '';
             this.name = '';
             this.note = '';
+            this.province = '';
             this.publisherUid = '';
             this.resultFileUid = '';
             this.resultFileversion = -1;
@@ -34,4 +42,4 @@ export class TaskObject extends DBObject {
     }
 }
 
-export const keysOfITaskObject: string[] = CommonUtils.getPropKeys(new TaskObject(true));
+export const keysOfITaskObject: string[] = getPropKeys(new TaskObject(true));

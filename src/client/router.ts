@@ -31,6 +31,11 @@ export default new Router({
           name: RouterName.Admin_User,
           component: () => import('./components/UserManagementVue.vue'),
         },
+        {
+          path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Task}`,
+          name: RouterName.Admin_Task,
+          component: () => import('./components/AdminTaskVue.vue'),
+        },
       ],
     },
     {

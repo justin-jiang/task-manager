@@ -15,6 +15,7 @@ import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
 import { FileType } from 'common/FileType';
 import { FileAPIScenario } from 'common/FileAPIScenario';
+import { LIMIT_LOGO_SIZE_M } from 'common/Config';
 
 enum EventNames {
     ImageChanged = 'imageChanged',
@@ -42,6 +43,8 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     @Prop() public imageUidProp!: string | undefined;
     @Prop() public noCropProp!: boolean | undefined;
     public reset(): void {
+        this.uploadData.blob = undefined;
+        this.cropDialogVisible = false;
         (this.$refs[this.uploaderRefName] as any).clearFiles();
         this.getImageUrlByUid(this.imageUidProp);
         this.imageUrlForCropper = '';
@@ -84,6 +87,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     private imageUrlForCropper: string = '';
     private imageUrlForUploader: string = '';
     private cropDialogVisible: boolean = false;
+    private isCropping: boolean = false;
 
     private get isImageUrlReady(): boolean {
         return !CommonUtils.isNullOrEmpty(this.imageUrlForUploader);
@@ -97,17 +101,18 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
         if (this.fileTypes != null) {
             isTypeMatched = this.fileTypes.includes(fileType);
         }
-        if (this.fileSizeM != null) {
-            isSizeMatched = fileSize < this.fileSizeM * 1024 * 1024;
-        }
+        isSizeMatched = fileSize < LIMIT_LOGO_SIZE_M * 1024 * 1024;
         if (!isTypeMatched) {
             this.$message.error(`上传头像图片只能是 ${this.fileTypes} 格式，实际格式：${fileType}`);
         }
         if (!isSizeMatched) {
-            this.$message.error(`上传头像图片大小不能超过 ${this.fileSizeM} MB.`);
+            this.$message.error(`上传头像图片大小不能超过 ${LIMIT_LOGO_SIZE_M} MB.`);
         }
         if (!(isTypeMatched && isSizeMatched)) {
             this.reset();
+            const apiResult: ApiResult = new ApiResult();
+            apiResult.code = ApiResultCode.InputImageTooLarge;
+            this.onFileUploadDone(apiResult);
         }
         return isTypeMatched && isSizeMatched;
     }
@@ -155,6 +160,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     }
 
     private onImageCropDone(): void {
+        this.isCropping = true;
         const newImageURL = (this.$refs.cropper as any).getCroppedCanvas().toDataURL();
         const canvas: HTMLCanvasElement = (this.$refs.cropper as any).getCroppedCanvas();
         canvas.toBlob((blob: Blob) => {
@@ -167,11 +173,11 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
             }
 
             this.cropDialogVisible = false;
+            this.isCropping = false;
         });
     }
     private onImageCropCancel(): void {
-        this.uploadData.blob = undefined;
-        this.cropDialogVisible = false;
+        this.reset();
     }
     private onFileUploadDone(apiResult: ApiResult) {
 

@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 
 export interface IDBObjectView {
 
@@ -15,4 +15,4 @@ export class DBObjectView implements IDBObjectView {
     }
 }
 
-export const keysOfIDBView: string[] = CommonUtils.getPropKeys(new DBObjectView(true));
+export const keysOfIDBView: string[] = getPropKeys(new DBObjectView(true));

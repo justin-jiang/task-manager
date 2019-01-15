@@ -34,6 +34,13 @@ const schemaDef = Object.assign({
     description: { type: String },
     identityNumber: { type: String },
     address: { type: String },
+    province: { type: String },
+    city: { type: String },
+    district: { type: String },
+    publishedTaskCount: { type: Number, default: 0 },
+    executedTaskCount: { type: Number, default: 0 },
+    executorStar: { type: Number, default: 0 },
+    publisherStar: { type: Number, default: 0 },
 }, BaseSchemaDef);
 /**
  * User Schema
@@ -51,6 +58,7 @@ export const keysOfSchema: string[] = Object.keys(schemaDef);
 // do the prop check that all props in IXXXObject must be in keysOfSchema
 KeysOfIDBObject.forEach((item) => {
     if (!keysOfSchema.includes(item)) {
+        // tslint:disable-next-line:no-console
         console.error(`${item} missed in User Schema`);
     }
 });

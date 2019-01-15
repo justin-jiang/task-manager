@@ -72,7 +72,8 @@ export const actions = {
                 reqParam);
             apiResult = HttpUtils.getApiResultFromResponse(response);
             if (apiResult.code === ApiResultCode.Success) {
-                commit(StoreMutationNames.sessionInfoUpdate, {});
+                const blankUser: UserView = new UserView(true);
+                commit(StoreMutationNames.sessionInfoUpdate, blankUser);
             }
         } catch (ex) {
             apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);

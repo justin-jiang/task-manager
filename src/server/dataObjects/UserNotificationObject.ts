@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { NotificationState } from 'common/NotificationState';
 import { NotificationType } from 'common/NotificationType';
 import { DBObject } from 'server/dataObjects/DBObject';
@@ -29,4 +29,4 @@ export class UserNotificationObject extends DBObject {
         return keysOfIDBObject;
     }
 }
-export const keysOfIDBObject: string[] = CommonUtils.getPropKeys(new UserNotificationObject(true));
+export const keysOfIDBObject: string[] = getPropKeys(new UserNotificationObject(true));

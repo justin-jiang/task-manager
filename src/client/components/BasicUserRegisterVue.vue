@@ -20,7 +20,7 @@
             <el-input v-model="formDatas.name"></el-input>
           </el-form-item>
           <el-form-item
-          v-if="isNewUser"
+            v-if="isNewUser"
             label="密码"
             prop="password"
           >
@@ -31,7 +31,7 @@
             ></el-input>
           </el-form-item>
           <el-form-item
-          v-if="isNewUser"
+            v-if="isNewUser"
             label="确认密码"
             prop="confirmPassword"
           >
@@ -42,14 +42,14 @@
             ></el-input>
           </el-form-item>
           <el-form-item
-          v-if="isNewUser"
+            v-if="isNewUser"
             label="电子邮箱"
             prop="email"
           >
             <el-input v-model="formDatas.email"></el-input>
           </el-form-item>
           <el-form-item
-          v-if="isNewUser"
+            v-if="isNewUser"
             label="电话号码"
             prop="telephone"
           >
@@ -75,15 +75,20 @@
               :filePostParamProp="fileUploadParam"
               @imageChanged="onLogoChanged"
               @success="onLogoUploadSuccess"
+              @failure="onLogoUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item>
             <el-button
               type="primary"
               :disabled="!isReadyToSubmit()"
+              :loading="isSubmitting"
               @click="onSubmitForm()"
             >提交</el-button>
-            <el-button @click="resetForm()">重置</el-button>
+            <el-button
+              type="warning"
+              @click="resetForm()"
+            >重置</el-button>
           </el-form-item>
         </el-form>
       </el-col>

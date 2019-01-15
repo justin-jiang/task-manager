@@ -57,6 +57,7 @@
         <el-button @click="onImageCropCancel()">取 消</el-button>
         <el-button
           type="primary"
+          :loading="isCropping"
           @click="onImageCropDone()"
         >确 定</el-button>
       </span>

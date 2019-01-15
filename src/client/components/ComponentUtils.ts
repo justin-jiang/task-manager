@@ -15,7 +15,8 @@ import { UserView } from 'common/responseResults/UserView';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { CommonUtils } from 'common/CommonUtils';
 export class ComponentUtils {
-    public static async $$getImageUrl(vue: Vue, imageUid: string, scenario: FileAPIScenario): Promise<string | undefined> {
+    public static async $$getImageUrl(
+        vue: Vue, imageUid: string, scenario: FileAPIScenario): Promise<string | undefined> {
         let logoUrl: string | undefined;
         let apiResult: ApiResult = await vue.$store.dispatch(
             StoreActionNames.fileDownload,
@@ -48,11 +49,12 @@ export class ComponentUtils {
 
     public static async $$getSessionInfo(vue: Vue): Promise<void> {
         const store = vue.$store;
-        let apiResult: ApiResult = await store.dispatch(
+        const apiResult: ApiResult = await store.dispatch(
             StoreActionNames.sessionQuery, { notUseLocalData: true } as IStoreActionArgs);
         if (apiResult.code === ApiResultCode.Success) {
             const state = store.state as IStoreState;
-            const logoUrl: string | undefined = await this.$$getImageUrl(vue, state.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
+            const logoUrl: string | undefined = await this.$$getImageUrl(
+                vue, state.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
             if (logoUrl != null) {
                 store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView);
             }
@@ -100,26 +102,17 @@ export class ComponentUtils {
     public static pullNotification(vue: Vue, isBackground?: boolean) {
         const store = vue.$store;
         const storeState = store.state as IStoreState;
-        if (CommonUtils.isExecutor(storeState.sessionInfo.roles) ||
-            CommonUtils.isPublisher(storeState.sessionInfo.roles)) {
-            (async () => {
-                const apiResult: ApiResult = await store.dispatch(
-                    StoreActionNames.notificationQuery, { notUseLocalData: true } as IStoreActionArgs);
-                if (apiResult.code !== ApiResultCode.Success) {
-                    const errorMessage = `获取通知消息失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
-                    if (isBackground) {
-                        LoggerManager.error(errorMessage);
-                    } else {
-                        vue.$message.error(errorMessage);
-                    }
-                }
-            })().catch((ex) => {
+        (async () => {
+            const apiResult: ApiResult = await store.dispatch(
+                StoreActionNames.notificationQuery, { notUseLocalData: true } as IStoreActionArgs);
+            if (apiResult.code !== ApiResultCode.Success) {
+                const errorMessage = `获取通知消息失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
                 if (isBackground) {
-                    LoggerManager.error('Error:', ex);
+                    LoggerManager.error(errorMessage);
                 } else {
-                    RouterUtils.goToErrorView(vue.$router, storeState, msgConnectionIssue, ex);
+                    vue.$message.error(errorMessage);
                 }
-            });
-        }
+            }
+        })();
     }
 }

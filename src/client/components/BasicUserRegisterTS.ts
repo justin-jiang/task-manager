@@ -20,6 +20,7 @@ interface IFormData {
 }
 enum EventNames {
     RegisterSuccess = 'success',
+    RegisterFailure = 'failure',
 }
 
 const compToBeRegistered: any = {
@@ -148,12 +149,12 @@ export class BasicUserRegisterTS extends Vue {
         this.isLogoChanged = true;
     }
     private onLogoUploadSuccess(apiResult: ApiResult) {
-        this.$message.success('用户基本信息注册成功');
         this.$emit(EventNames.RegisterSuccess, apiResult.data);
         this.isSubmitting = false;
         this.isLogoChanged = false;
     }
     private onLogoUploadFailure(apiResult: ApiResult): void {
+        this.$emit(EventNames.RegisterFailure, apiResult);
         this.isLogoChanged = false;
         this.isSubmitting = false;
     }

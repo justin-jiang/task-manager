@@ -1,7 +1,7 @@
-import { CommonUtils } from 'common/CommonUtils';
-import { DBObjectView } from './DBObjectView';
-import { NotificationType } from 'common/NotificationType';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { NotificationState } from 'common/NotificationState';
+import { NotificationType } from 'common/NotificationType';
+import { DBObjectView } from './DBObjectView';
 
 export class UserNotificationView extends DBObjectView {
     public targetUserUid?: string;
@@ -25,4 +25,4 @@ export class UserNotificationView extends DBObjectView {
     }
 }
 
-export const keysOfITemplateView: string[] = CommonUtils.getPropKeys(new UserNotificationView(true));
+export const keysOfITemplateView: string[] = getPropKeys(new UserNotificationView(true));

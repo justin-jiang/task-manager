@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { DBObjectView } from './DBObjectView';
 
 export class TemplateView extends DBObjectView {
@@ -19,4 +19,4 @@ export class TemplateView extends DBObjectView {
     }
 }
 
-export const keysOfITemplateView: string[] = CommonUtils.getPropKeys(new TemplateView(true));
+export const keysOfITemplateView: string[] = getPropKeys(new TemplateView(true));

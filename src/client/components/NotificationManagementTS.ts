@@ -65,7 +65,8 @@ export class NotificationManagementTS extends Vue {
     private onSetUnread(item: UserNotificationView): void {
         (async () => {
             const apiResult: ApiResult = await this.store.dispatch(
-                StoreActionNames.notificationRead, { data: { uid: item.uid } as NotificationReadParam } as IStoreActionArgs);
+                StoreActionNames.notificationRead,
+                { data: { uid: item.uid } as NotificationReadParam } as IStoreActionArgs);
             if (apiResult.code !== ApiResultCode.Success) {
                 this.$message.error(`标记消息已读失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
             }
@@ -93,7 +94,7 @@ export class NotificationManagementTS extends Vue {
     @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
         const sessionInfo = currentValue;
-        if (CommonUtils.isExecutor(sessionInfo.roles) && this.isInitialized === false) {
+        if (this.isInitialized === false) {
             this.initialize();
         }
     }
@@ -104,7 +105,9 @@ export class NotificationManagementTS extends Vue {
     }
     private initialize() {
         const sessionInfo = this.storeState.sessionInfo;
-        if (CommonUtils.isReadyPublisher(sessionInfo) || CommonUtils.isReadyExecutor(sessionInfo)) {
+        if (CommonUtils.isReadyPublisher(sessionInfo) ||
+            CommonUtils.isReadyExecutor(sessionInfo) ||
+            CommonUtils.isAdmin(sessionInfo.roles)) {
             this.isInitialized = true;
             // TODO: support incremental render
             this.renderedNotifications = this.storeState.notificationObjs;

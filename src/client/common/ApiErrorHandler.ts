@@ -21,7 +21,8 @@ export class ApiErrorHandler {
                 return ApiResultCode[code];
         }
     }
-    public static getTextFromAxiosResponse(response: { response: { status: number, statusText: string, data: string } }) {
+    public static getTextFromAxiosResponse(
+        response: { response: { status: number, statusText: string, data: string } }) {
         LoggerManager.error('Error:', response);
         if (response.response != null) {
             return `HttpStatus:${response.response.status}`;

@@ -9,7 +9,7 @@
           :rules="formRules"
           :ref="formRefName"
           style="max-width:1000px; min-width:500px;"
-          label-width="150px"
+          label-width="160px"
           class="form-idUpload"
           :disabled="isSubmitting"
         >
@@ -42,6 +42,55 @@
             <el-input v-model="formDatas.idNumber"></el-input>
           </el-form-item>
 
+          <el-form-item
+            :label="labelOfArea"
+            prop="address"
+          >
+            <el-row>
+              <el-col :span="8">
+                <el-select
+                  v-model="formDatas.province"
+                  placeholder="请选择省或直辖市"
+                >
+                  <el-option
+                    v-for="item in provinces"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+                  >
+                  </el-option>
+                </el-select>
+              </el-col>
+              <el-col :span="8">
+                <el-select
+                  v-model="formDatas.city"
+                  placeholder="请选择市"
+                >
+                  <el-option
+                    v-for="item in cities"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+                  >
+                  </el-option>
+                </el-select>
+              </el-col>
+              <el-col :span="8">
+                <el-select
+                  v-model="formDatas.district"
+                  placeholder="请选择区"
+                >
+                  <el-option
+                    v-for="item in districts"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+                  >
+                  </el-option>
+                </el-select>
+              </el-col>
+            </el-row>
+          </el-form-item>
           <el-form-item
             :label="labelOfAddress"
             prop="address"
@@ -80,9 +129,13 @@
             <el-button
               type="primary"
               :disabled="!isReadyToSubmit()"
+              :loading="isSubmitting"
               @click="onSubmitForm()"
             >提交</el-button>
-            <el-button @click="resetForm()">重置</el-button>
+            <el-button
+              @click="resetForm()"
+              type="warning"
+            >重置</el-button>
           </el-form-item>
         </el-form>
       </el-col>

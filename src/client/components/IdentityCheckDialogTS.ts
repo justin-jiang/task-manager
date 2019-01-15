@@ -3,8 +3,7 @@ import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { UserCheckParam } from 'common/requestParams/UserCheckParam';
-import { IdentityState } from 'common/responseResults/IdentityState';
-import { LogoState } from 'common/responseResults/LogoState';
+import { CheckState } from 'common/CheckState';
 import { UserView } from 'common/responseResults/UserView';
 import { UserType } from 'common/UserTypes';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
@@ -33,31 +32,31 @@ export class IdentityCheckDialogTS extends Vue {
     // #endregion
 
     // #region -- referred props and methods of the page
-    private readonly logoSwitchActiveValue: LogoState = LogoState.Checked;
-    private readonly logoSwitchInactiveValue: LogoState = LogoState.FailedToCheck;
+    private readonly logoSwitchActiveValue: CheckState = CheckState.Checked;
+    private readonly logoSwitchInactiveValue: CheckState = CheckState.FailedToCheck;
 
-    private readonly idSwitchActiveValue: IdentityState = IdentityState.Checked;
-    private readonly idSwitchInactiveValue: IdentityState = IdentityState.FailedToCheck;
+    private readonly idSwitchActiveValue: CheckState = CheckState.Checked;
+    private readonly idSwitchInactiveValue: CheckState = CheckState.FailedToCheck;
 
     private targetUser: UserView = {};
 
     private get isLogoToBeChecked(): boolean {
-        return this.targetUser.logoState === LogoState.ToBeChecked;
+        return this.targetUser.logoState === CheckState.ToBeChecked;
     }
     private get isFrontIdToBeChecked(): boolean {
-        return this.targetUser.frontIdState === IdentityState.ToBeChecked;
+        return this.targetUser.frontIdState === CheckState.ToBeChecked;
     }
     private get isBackIdToBeChecked(): boolean {
-        return this.targetUser.backIdState === IdentityState.ToBeChecked;
+        return this.targetUser.backIdState === CheckState.ToBeChecked;
     }
     private reasonOfDeny: string = '';
     private idCheckParam: UserCheckParam = {
         uid: this.userUidProp,
-        logoState: LogoState.Checked,
+        logoState: CheckState.Checked,
         noteForLogo: '',
-        frontIdState: IdentityState.Checked,
+        frontIdState: CheckState.Checked,
         noteForFrontId: '',
-        backIdState: IdentityState.Checked,
+        backIdState: CheckState.Checked,
         noteForBackId: '',
     };
     private get titleOfFrontImage(): string {

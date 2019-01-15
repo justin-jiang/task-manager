@@ -8,7 +8,7 @@ const schemaOptions: SchemaOptions = {
     collection: schemaName,
 };
 const schemaDef = Object.assign({
-    // the case-insentive index will be created in TemplateWrapper.$$warmUp
+    // the case-insentive index will be created in XXXWrapper.$$warmUp
     name: { type: String, required: true } as SchemaTypeOpts<any>,
     reward: { type: String, required: true },
     templateFileUid: { type: String, required: true },
@@ -19,6 +19,10 @@ const schemaDef = Object.assign({
     resultFileversion: { type: Number },
     note: { type: String },
     state: { type: Number, required: true },
+    province: { type: String, required: true },
+    city: { type: String, required: true },
+    district: { type: String, required: true },
+    address: { type: String, required: true },
 
 }, BaseSchemaDef);
 /**

@@ -1,26 +1,24 @@
+import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
 import { IQueryConditions } from 'common/IQueryConditions';
+import { NotificationType } from 'common/NotificationType';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import { UserCheckParam } from 'common/requestParams/UserCheckParam';
 import { UserPasswordEditParam } from 'common/requestParams/UserPasswordEditParam';
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { IdentityState } from 'common/responseResults/IdentityState';
-import { LogoState } from 'common/responseResults/LogoState';
-import { QualificationState } from 'common/responseResults/QualificationState';
 import { keysOfIUserView, UserView } from 'common/responseResults/UserView';
 import { UserState } from 'common/UserState';
 import { ApiError } from 'server/common/ApiError';
+import { UserNotificationModelWrapper } from 'server/dataModels/UserNotificationModelWrapper';
+import { UserNotificationObject } from 'server/dataObjects/UserNotificationObject';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { UserModelWrapper } from '../dataModels/UserModelWrapper';
 import { UserObject } from '../dataObjects/UserObject';
-import { UserNotificationObject } from 'server/dataObjects/UserNotificationObject';
-import { UserNotificationModelWrapper } from 'server/dataModels/UserNotificationModelWrapper';
 import { NotificationRequestHandler } from './NotificationRequestHandler';
-import { NotificationType } from 'common/NotificationType';
+import { RequestUtils } from './RequestUtils';
 
 export class UserRequestHandler {
-
     public static async $$find(conditions: IQueryConditions): Promise<UserView[]> {
         const dbObjs: UserObject[] = await UserModelWrapper.$$find(conditions) as UserObject[];
         const views: UserView[] = [];
@@ -34,50 +32,8 @@ export class UserRequestHandler {
 
     public static async $$basicInfoEdit(
         reqParam: UserBasicInfoEditParam, currentUser: UserObject): Promise<UserView> {
-        let hasDataUpdate: boolean = false;
-        const updatedProps: UserObject = {} as UserObject;
-
-        // only the following props can be updated
-        if (reqParam.nickName != null) {
-            updatedProps.nickName = reqParam.nickName;
-            hasDataUpdate = true;
-        }
-        if (!CommonUtils.isNullOrEmpty(reqParam.name)) {
-            updatedProps.name = reqParam.name;
-            hasDataUpdate = true;
-        }
-        if (!CommonUtils.isNullOrEmpty(reqParam.email)) {
-            updatedProps.email = reqParam.email;
-            hasDataUpdate = true;
-        }
-        if (!CommonUtils.isNullOrEmpty(reqParam.telephone)) {
-            updatedProps.telephone = reqParam.telephone;
-
-            hasDataUpdate = true;
-        }
-
-        if (!CommonUtils.isNullOrEmpty(reqParam.realName)) {
-            updatedProps.realName = reqParam.realName;
-            hasDataUpdate = true;
-        }
-        if (!CommonUtils.isNullOrEmpty(reqParam.address)) {
-            updatedProps.address = reqParam.address;
-            hasDataUpdate = true;
-        }
-        if (!CommonUtils.isNullOrEmpty(reqParam.description)) {
-            updatedProps.description = reqParam.description;
-            hasDataUpdate = true;
-        }
-        if (!CommonUtils.isNullOrEmpty(reqParam.identityNumber)) {
-            updatedProps.identityNumber = reqParam.identityNumber;
-            hasDataUpdate = true;
-        }
-        if (!CommonUtils.isNullOrEmpty(reqParam.sex)) {
-            updatedProps.sex = reqParam.sex;
-            hasDataUpdate = true;
-        }
-
-        if (hasDataUpdate) {
+        const updatedProps: UserObject = RequestUtils.pickUpKeysByModel(reqParam, new UserBasicInfoEditParam(true));
+        if (Object.keys(updatedProps).length > 0) {
             await UserModelWrapper.$$updateOne({ uid: currentUser.uid } as UserObject, updatedProps);
             Object.assign(currentUser, updatedProps);
         }
@@ -133,8 +89,8 @@ export class UserRequestHandler {
         const updatedProps: UserObject = {};
         const notifications: UserNotificationObject[] = [];
         if (reqParam.qualitificationState != null) {
-            if (reqParam.qualitificationState === QualificationState.FailedToCheck) {
-                updatedProps.qualificationState = QualificationState.FailedToCheck;
+            if (reqParam.qualitificationState === CheckState.FailedToCheck) {
+                updatedProps.qualificationState = CheckState.FailedToCheck;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
                         NotificationType.UserQualificationCheckFailure,
@@ -143,8 +99,8 @@ export class UserRequestHandler {
                         reqParam.noteForQualification)
                 );
 
-            } else if (reqParam.qualitificationState === QualificationState.Checked) {
-                updatedProps.qualificationState = QualificationState.Checked;
+            } else if (reqParam.qualitificationState === CheckState.Checked) {
+                updatedProps.qualificationState = CheckState.Checked;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
                         NotificationType.UserQualificationCheckPass,
@@ -155,50 +111,46 @@ export class UserRequestHandler {
             }
         }
         if (reqParam.backIdState != null) {
-            if (reqParam.backIdState === IdentityState.FailedToCheck) {
-                updatedProps.backIdState = IdentityState.FailedToCheck;
+            if (reqParam.backIdState === CheckState.FailedToCheck) {
+                updatedProps.backIdState = CheckState.FailedToCheck;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserIdCheckFailure,
+                        NotificationType.BackIdCheckFailure,
                         dbObj.uid as string,
                         dbObj.backIdUid as string,
-                        reqParam.noteForBackId)
-                );
-            } else if (reqParam.backIdState === IdentityState.Checked) {
-                updatedProps.backIdState = IdentityState.Checked;
+                        reqParam.noteForBackId));
+            } else if (reqParam.backIdState === CheckState.Checked) {
+                updatedProps.backIdState = CheckState.Checked;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserIdCheckPass,
+                        NotificationType.BackIdCheckPass,
                         dbObj.uid as string,
                         dbObj.backIdUid as string,
-                        reqParam.noteForBackId)
-                );
+                        reqParam.noteForBackId));
             }
         }
         if (reqParam.frontIdState != null) {
-            if (reqParam.frontIdState === IdentityState.FailedToCheck) {
-                updatedProps.frontIdState = IdentityState.FailedToCheck;
+            if (reqParam.frontIdState === CheckState.FailedToCheck) {
+                updatedProps.frontIdState = CheckState.FailedToCheck;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserIdCheckFailure,
+                        NotificationType.FrontIdCheckFailure,
                         dbObj.uid as string,
                         dbObj.frontIdUid as string,
-                        reqParam.noteForFrontId)
-                );
-            } else if (reqParam.frontIdState === IdentityState.Checked) {
-                updatedProps.frontIdState = IdentityState.Checked;
+                        reqParam.noteForFrontId));
+            } else if (reqParam.frontIdState === CheckState.Checked) {
+                updatedProps.frontIdState = CheckState.Checked;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserIdCheckPass,
+                        NotificationType.FrontIdCheckPass,
                         dbObj.uid as string,
                         dbObj.frontIdUid as string,
-                        reqParam.noteForFrontId)
-                );
+                        reqParam.noteForFrontId));
             }
         }
         if (reqParam.logoState != null) {
-            if (reqParam.logoState === LogoState.FailedToCheck) {
-                updatedProps.logoState = LogoState.FailedToCheck;
+            if (reqParam.logoState === CheckState.FailedToCheck) {
+                updatedProps.logoState = CheckState.FailedToCheck;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
                         NotificationType.UserLogoCheckFailure,
@@ -206,15 +158,14 @@ export class UserRequestHandler {
                         dbObj.logoUid as string,
                         reqParam.noteForLogo)
                 );
-            } else if (reqParam.logoState === LogoState.Checked) {
-                updatedProps.logoState = LogoState.Checked;
+            } else if (reqParam.logoState === CheckState.Checked) {
+                updatedProps.logoState = CheckState.Checked;
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
                         NotificationType.UserLogoCheckPass,
                         dbObj.uid as string,
                         dbObj.logoUid as string,
-                        reqParam.noteForLogo)
-                );
+                        reqParam.noteForLogo));
             }
         }
         if (Object.keys(updatedProps).length > 0) {

@@ -1,6 +1,4 @@
-import { IdentityState } from 'common/responseResults/IdentityState';
-import { LogoState } from 'common/responseResults/LogoState';
-import { QualificationState } from 'common/responseResults/QualificationState';
+import { CheckState } from 'common/CheckState';
 import { UserRole } from 'common/UserRole';
 import { UserState } from 'common/UserState';
 import { UserType } from 'common/UserTypes';
@@ -12,33 +10,37 @@ export class CommonUser extends CommonObject {
     public nickName?: string;
     public email?: string;
     public logoUid?: string;
-    public logoState?: LogoState;
+    public logoState?: CheckState;
     public frontIdUid?: string;
-    public frontIdState?: IdentityState;
+    public frontIdState?: CheckState;
     public backIdUid?: string;
-    public backIdState?: IdentityState;
+    public backIdState?: CheckState;
     public telephone?: string;
     public roles?: UserRole[];
     public type?: UserType;
     public state?: UserState;
     public qualificationUid?: string;
     public qualificationVersion?: number;
-    public qualificationState?: QualificationState;
+    public qualificationState?: CheckState;
     public realName?: string;
     public sex?: number;
     public address?: string;
     public description?: string;
     public identityNumber?: string;
+
+    public province?: string;
+    public city?: string;
+    public district?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
-            this.backIdState = IdentityState.Missed;
+            this.backIdState = CheckState.Missed;
             this.backIdUid = '';
             this.email = '';
-            this.frontIdState = IdentityState.Missed;
+            this.frontIdState = CheckState.Missed;
             this.frontIdUid = '';
             this.logoUid = '';
-            this.logoState = LogoState.Missed;
+            this.logoState = CheckState.Missed;
             this.name = '';
             this.nickName = '';
             this.telephone = '';
@@ -47,12 +49,15 @@ export class CommonUser extends CommonObject {
             this.type = UserType.None;
             this.qualificationUid = '';
             this.qualificationVersion = -1;
-            this.qualificationState = QualificationState.Missed;
+            this.qualificationState = CheckState.Missed;
             this.realName = '';
             this.sex = -1;
             this.address = '';
             this.description = '';
             this.identityNumber = '';
+            this.province = '';
+            this.city = '';
+            this.district = '';
         }
     }
 }

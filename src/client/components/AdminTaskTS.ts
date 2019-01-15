@@ -18,6 +18,7 @@ import { UserView } from 'common/responseResults/UserView';
 import { getTaskStateText, TaskState } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 const compToBeRegistered: any = {
     SingleFileUploadVue,
 };
@@ -25,19 +26,19 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
-export class ExecutorTaskTS extends Vue {
-    // #region -- props and methods for ready-to-apply task tab
-    private readonly readyToApplyTaskTabName: string = 'readyToApplyTaskTab';
-    private readyToApplyTaskSearch: string = '';
+export class AdminTaskTS extends Vue {
+    // #region -- props and methods for new published task check tab
+    private readonly newTaskToBeCheckTabName: string = 'newTaskToBeCheck';
+    private newTaskSearch: string = '';
 
-    private readyToApplyTaskObjs(): TaskView[] {
+    private get newTaskObjs(): TaskView[] {
         return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.ReadyToApply;
+            return item.state === TaskState.Created;
         });
     }
-    private onTaskApply(index: number, task: TaskView) {
+    private onTaskAuditApproved(task: TaskView) {
         const confirm = this.$confirm(
-            '确认要申请此任务吗？',
+            '确认批准此任务发布吗？',
             '提示', {
                 confirmButtonText: '确定',
                 type: 'warning',
@@ -48,40 +49,71 @@ export class ExecutorTaskTS extends Vue {
             (async () => {
                 const store = (this.$store as Store<IStoreState>);
                 const apiResult: ApiResult = await store.dispatch(
-                    StoreActionNames.taskApply,
+                    StoreActionNames.taskAudit,
                     {
                         data: {
                             uid: task.uid,
-                        } as TaskApplyParam,
+                            state: TaskState.ReadyToApply,
+                        } as TaskAuditParam,
                     } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success) {
-                    this.$message.success('任务申请提交成功，等待发布人批准');
+                    this.$message.success('任务发布审核提交成功，任务进入等待申请状态');
                 } else {
-                    this.$message.error(`任务申请提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
                 }
-            })().catch((ex) => {
-                RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
+            })();
+        }).catch(() => {
+            // do nothing for cancel
+        });
+    }
+    private onTaskAuditDenied(task: TaskView) {
+        const confirm = this.$prompt(
+            '确认拒绝此任务发布吗？',
+            '提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                center: true,
+                closeOnClickModal: false,
+                inputType: 'textarea',
+                inputPlaceholder: '请输入理由',
             });
+        confirm.then(() => {
+            (async () => {
+                const store = (this.$store as Store<IStoreState>);
+                const apiResult: ApiResult = await store.dispatch(
+                    StoreActionNames.taskAudit,
+                    {
+                        data: {
+                            uid: task.uid,
+                            state: TaskState.AuditDenied,
+                        } as TaskAuditParam,
+                    } as IStoreActionArgs);
+                if (apiResult.code === ApiResultCode.Success) {
+                    this.$message.success('任务发布已被拒接');
+                } else {
+                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                }
+            })();
         }).catch(() => {
             // do nothing for cancel
         });
     }
     // #endregion
 
-    // #region -- props and methods for appling/ied task list tab
-    private readonly appliedTaskTabName: string = 'appliedTaskTab';
+    // #region -- props and methods for new task apply tab
+    private readonly newApplyToBeCheckTabName: string = 'newTaskApplyTab';
     private readonly editCollapseName: string = 'editCollapseName';
-    private appliedTaskSearch: string = '';
+    private newTaskApplySearch: string = '';
     private taskResultFileTypes: string[] = ['application/zip', 'application/x-rar'];
     private taskResultFileSizeMLimit: number = 100;
     private filePostParam: FileUploadParam = {};
     private selectedTaskIndex: number | undefined;
     private readonly activeCollapseNames: string[] = [];
 
-    private appliedTaskObjs(): TaskView[] {
+    private get newTaskApplyObjs(): TaskView[] {
         if (this.storeState.taskObjs != null) {
             return this.storeState.taskObjs.filter((item) => {
-                return item.state !== TaskState.ReadyToApply;
+                return item.state === TaskState.Applying;
             });
         } else {
             return [];
@@ -99,24 +131,11 @@ export class ExecutorTaskTS extends Vue {
         this.filePostParam.optionData = new TaskResultFileUploadParam();
         this.filePostParam.optionData.uid = task.uid;
     }
-    private onCollapseChange(): void {
-        if (this.selectedTaskIndex == null) {
-            this.activeCollapseNames.splice(0, this.activeCollapseNames.length);
-            this.$message.warning('请先选择要提交结果的任务');
-        }
-    }
-    private onTaskResultUploadSuccess(apiResult: ApiResult): void {
-        this.$message.success('任务结果文件上传成功');
-        this.store.commit(StoreMutationNames.taskItemReplace, apiResult.data);
-    }
-    private onTaskResultCheck(): void {
-
-    }
     // #endregion
 
     // #region -- props and methods for Whole Page
     private isInitialized: boolean = false;
-    private activeTabName: string = this.readyToApplyTaskTabName;
+    private activeTabName: string = this.newTaskToBeCheckTabName;
     private isSearchReady(): boolean {
         return true;
     }
@@ -158,22 +177,18 @@ export class ExecutorTaskTS extends Vue {
     private initialize() {
         (async () => {
             const sessionInfo = this.storeState.sessionInfo;
-            if (CommonUtils.isReadyExecutor(sessionInfo)) {
-                this.isInitialized = true;
-                const apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
-                    {
-                        notUseLocalData: true,
-                    } as IStoreActionArgs);
-                if (apiResult.code !== ApiResultCode.Success) {
-                    RouterUtils.goToErrorView(this.$router,
-                        this.storeState,
-                        `获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
-                    return;
-                }
+            this.isInitialized = true;
+            const apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
+                {
+                    notUseLocalData: true,
+                } as IStoreActionArgs);
+            if (apiResult.code !== ApiResultCode.Success) {
+                RouterUtils.goToErrorView(this.$router,
+                    this.storeState,
+                    `获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
             }
-        })().catch((ex) => {
-            RouterUtils.goToErrorView(this.$router, this.$store.state, msgConnectionIssue, ex);
-        });
+
+        })();
     }
 
     // #endregion

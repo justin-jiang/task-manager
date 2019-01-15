@@ -1,12 +1,9 @@
 import { IRequestParam } from 'common/requestParams/IRequestParam';
+import { TaskState } from 'common/TaskState';
 
-export class TaskResultCheckParam implements IRequestParam {
+export class TaskAuditParam implements IRequestParam {
     // task uid
     public uid?: string;
-
-    public pass?: boolean;
+    public state?: TaskState;
     public note?: string;
-    public startCount?: number;
 }
-
-

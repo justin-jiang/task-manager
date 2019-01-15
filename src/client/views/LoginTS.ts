@@ -57,10 +57,11 @@ export class LoginTS extends Vue {
                     const apiResult: ApiResult = await store.dispatch(
                         StoreActionNames.sessionCreate, { data: reqParam });
                     if (apiResult.code === ApiResultCode.Success) {
-                        const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
-                        if (logoUrl != null) {
-                            this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView);
-                        }
+                        const user: UserView = apiResult.data;
+                        user.logoUrl = await ComponentUtils.$$getImageUrl(
+                            this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
+                        this.store.commit(StoreMutationNames.sessionInfoPropUpdate,
+                            { logoUrl: user.logoUrl } as UserView);
                         if (!CommonUtils.isNullOrEmpty(storeState.redirectURLAfterLogin)) {
                             window.location.assign(storeState.redirectURLAfterLogin);
                         } else {

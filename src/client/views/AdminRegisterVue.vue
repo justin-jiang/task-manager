@@ -10,6 +10,7 @@
         <BasicUserRegisterVue
           :roleProp="userRole"
           @success="onSuccess"
+          @failure="onFailure"
         />
       </el-col>
     </el-row>

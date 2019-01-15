@@ -1,17 +1,19 @@
+import { LoggerManager } from 'client/LoggerManager';
+import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { CommonUtils } from 'common/CommonUtils';
+import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import VueRouter, { RawLocation } from 'vue-router';
-import { CommonUtils } from 'common/CommonUtils';
-import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { IStoreState } from 'client/VuexOperations/IStoreState';
-import { LoggerManager } from 'client/LoggerManager';
 import { RouteQuery } from './RouteQuery';
-import { UserView } from 'common/responseResults/UserView';
 
 export enum RoutePathItem {
     Admin = 'admin',
-    Admin_Notification = 'notification',
-    Admin_User = 'user',
     AdminRegister = 'adminRegister',
+    Admin_Notification = 'notification',
+
+    Admin_Task = 'task',
+    Admin_User = 'user',
+
     Error = 'error',
     Executor = 'executor',
     Executor_Task = 'task',
@@ -27,9 +29,10 @@ export enum RoutePathItem {
 }
 export enum RouterName {
     Admin = 'admin',
-    Admin_Notification = 'notification',
-    Admin_User = 'admin_user',
     AdminRegister = 'adminRegister',
+    Admin_Notification = 'admin_notification',
+    Admin_User = 'admin_user',
+    Admin_Task = 'admin_task',
     Error = 'error',
     Executor = 'executor',
     Executor_Task = 'executor_task',

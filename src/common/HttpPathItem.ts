@@ -2,6 +2,7 @@ export enum HttpPathItem {
     Accept = 'accept',
     Api = 'api',
     Apply = 'apply',
+    Audit = 'audit',
     Check = 'check',
     Deny = 'deny',
     Disable = 'disable',

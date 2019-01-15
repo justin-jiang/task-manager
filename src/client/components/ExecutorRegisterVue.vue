@@ -5,23 +5,56 @@
         <el-steps
           direction="vertical"
           :active="currentStep"
+          align-center
           finish-status="success"
         >
           <el-step
             title="基本信息"
             :status="basicInfoStatus"
-            :description="basicInfoDesc"
-          ></el-step>
+          >
+            <el-popover
+              placement="right"
+              title="原因"
+              width="200"
+              trigger="hover"
+              :content="basicInfoDetails"
+              slot="description"
+            >
+              <span slot="reference">{{basicInfoTitle}}</span>
+            </el-popover>
+          </el-step>
+
           <el-step
             title="身份信息"
             :status="idInfoStatus"
-            :description="idInfoDesc"
-          ></el-step>
+          >
+            <el-popover
+              placement="right"
+              title="原因"
+              width="200"
+              trigger="hover"
+              :content="idInfoDetails"
+              slot="description"
+            >
+              <span slot="reference">{{idInfoTitle}}</span>
+            </el-popover>
+          </el-step>
+
           <el-step
             title="资质上传"
             :status="qualificationStatus"
-            :description="qualificationDesc"
-          ></el-step>
+          >
+            <el-popover
+              placement="right"
+              title="原因"
+              width="200"
+              trigger="hover"
+              :content="qualificationDetails"
+              slot="description"
+            >
+              <span slot="reference">{{qualificationTitle}}</span>
+            </el-popover>
+          </el-step>
           <el-step
             title="资质审查"
             :status="checkStatus"
@@ -52,9 +85,7 @@
       </el-row>
       <el-row v-else-if="isIdUpload()">
         <el-col :span=24>
-          <UserIdentityInfoUploadVue
-            @success="onIdUploadSuccess"
-          />
+          <UserIdentityInfoUploadVue @success="onIdUploadSuccess" />
         </el-col>
       </el-row>
       <el-row v-else-if="isQualificationUpload()">

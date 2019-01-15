@@ -32,11 +32,15 @@ export class AppTS extends Vue {
     private interval: number = -1;
 
     private get logUserName(): string {
-        return this.storeState.sessionInfo.name || '';
+        return this.storeState.sessionInfo.name as string;
     }
     private get logoUrl(): string {
-        return this.storeState.sessionInfo.logoUrl || '';
-    };
+        return this.storeState.sessionInfo.logoUrl as string;
+    }
+
+    private get isLogon(): boolean {
+        return !CommonUtils.isNullOrEmpty(this.logUserName);
+    }
     private handleCommand(command: string): void {
         (async () => {
             if (command === this.LogoffCommand) {
@@ -68,19 +72,18 @@ export class AppTS extends Vue {
                 StoreActionNames.sessionQuery, { notUseLocalData: true } as IStoreActionArgs);
             if (apiResult.code === ApiResultCode.Success) {
                 ComponentUtils.pullNotification(this, false);
-                if (CommonUtils.isExecutor(this.storeState.sessionInfo.roles) ||
-                    CommonUtils.isPublisher(this.storeState.sessionInfo.roles)) {
-                    this.interval = setInterval(() => {
-                        ComponentUtils.pullNotification(this, true);
-                    }, 30000) as any as number;
-                }
+                this.interval = setInterval(() => {
+                    ComponentUtils.pullNotification(this, true);
+                }, 30000) as any as number;
 
-                const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
+                const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(
+                    this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
                 if (logoUrl != null) {
                     this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView)
                 }
                 if (!CommonUtils.isUserReady(this.storeState.sessionInfo)) {
-                    RouterUtils.goToUserRegisterView(this.$router, (this.storeState.sessionInfo.roles as UserRole[])[0]);
+                    RouterUtils.goToUserRegisterView(
+                        this.$router, (this.storeState.sessionInfo.roles as UserRole[])[0]);
                     return;
                 }
 

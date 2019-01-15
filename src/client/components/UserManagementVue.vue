@@ -16,6 +16,11 @@
             prop="nickName"
           >
           </el-table-column>
+          <el-table-column label="角色">
+            <template slot-scope="scope">
+              <span style="margin-left: 10px">{{ getUserRole(scope.row) }}</span>
+            </template>
+          </el-table-column>
           <el-table-column
             label="状态"
             width="220"

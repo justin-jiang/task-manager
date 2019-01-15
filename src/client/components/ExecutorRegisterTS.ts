@@ -3,22 +3,19 @@ import { RouterUtils } from 'client/common/RouterUtils';
 import BasicUserRegisterVue from 'client/components/BasicUserRegisterVue.vue';
 import { ComponentUtils } from 'client/components/ComponentUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
+import UserIdentityInfoUploadVue from 'client/components/UserIdentityInfoUploadVue.vue';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
+import { NotificationType } from 'common/NotificationType';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
-import { LogoState } from 'common/responseResults/LogoState';
-import { QualificationState } from 'common/responseResults/QualificationState';
+import { ApiResult } from 'common/responseResults/APIResult';
 import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { IdentityState } from 'common/responseResults/IdentityState';
-import { NotificationType } from 'common/NotificationType';
-import UserIdentityInfoUploadVue from 'client/components/UserIdentityInfoUploadVue.vue';
-import { UserType } from 'common/UserTypes';
-import { ApiResult } from 'common/responseResults/APIResult';
 
 enum RegisterStep {
     BasicInfo = 0,
@@ -81,9 +78,11 @@ export class ExecutorRegisterTS extends Vue {
     }
     private onBasicUserSuccess(user: UserView): void {
         (async () => {
-            user.logoUrl = await ComponentUtils.$$getImageUrl(this, user.logoUid as string, FileAPIScenario.DownloadUserLogo) || '';
-            this.store.commit(StoreMutationNames.sessionInfoUpdate, user)
+            user.logoUrl = await ComponentUtils.$$getImageUrl(
+                this, user.logoUid as string, FileAPIScenario.DownloadUserLogo) || '';
+            this.store.commit(StoreMutationNames.sessionInfoUpdate, user);
             this.caculateRegisterStep();
+            this.$message.success('用户基本信息创建成功');
         })().catch((ex) => {
             RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
         });
@@ -99,26 +98,42 @@ export class ExecutorRegisterTS extends Vue {
         if (this.currentStep === RegisterStep.BasicInfo) {
             return StepStatus.process;
         }
-        if (sessionInfo.logoState === LogoState.Missed) {
+        if (sessionInfo.logoState === CheckState.Missed) {
             return StepStatus.wait;
         }
 
-        if (sessionInfo.logoState === LogoState.Checked) {
+        if (sessionInfo.logoState === CheckState.ToBeChecked ||
+            sessionInfo.logoState === CheckState.Checked) {
             return StepStatus.success;
         }
-        if (sessionInfo.logoState === LogoState.FailedToCheck) {
+        if (sessionInfo.logoState === CheckState.FailedToCheck) {
             return StepStatus.error;
         }
         return StepStatus.wait;
     }
-    private get basicInfoDesc(): string {
+    private get basicInfoTitle(): string {
         let desc: string = '';
         const sessionInfo = this.storeState.sessionInfo;
         const notifications = this.storeState.notificationObjs;
-        if (sessionInfo.logoState === LogoState.FailedToCheck) {
+        if (sessionInfo.logoState === CheckState.FailedToCheck) {
             for (const item of notifications) {
                 if (item.type === NotificationType.UserLogoCheckFailure) {
-                    desc = `${item.title}:${item.content}`;
+                    desc = item.title || '';
+                    break;
+                }
+            }
+        }
+        return desc;
+    }
+    private get basicInfoDetails(): string {
+        let desc: string = '';
+        const sessionInfo = this.storeState.sessionInfo;
+        const notifications = this.storeState.notificationObjs;
+        if (sessionInfo.logoState === CheckState.FailedToCheck) {
+            for (const item of notifications) {
+                if (item.type === NotificationType.UserLogoCheckFailure) {
+                    desc = item.content || '';
+                    break;
                 }
             }
         }
@@ -129,58 +144,96 @@ export class ExecutorRegisterTS extends Vue {
         if (this.currentStep === RegisterStep.IdentityInfo) {
             return StepStatus.process;
         }
-        if (sessionInfo.frontIdState === IdentityState.Missed ||
-            sessionInfo.backIdState === IdentityState.Missed) {
+        if (sessionInfo.frontIdState === CheckState.Missed ||
+            sessionInfo.backIdState === CheckState.Missed) {
             return StepStatus.wait;
         }
-        if (sessionInfo.frontIdState === IdentityState.FailedToCheck ||
-            sessionInfo.backIdState === IdentityState.FailedToCheck) {
+        if (sessionInfo.frontIdState === CheckState.FailedToCheck ||
+            sessionInfo.backIdState === CheckState.FailedToCheck) {
             return StepStatus.error;
         }
 
-        if (sessionInfo.frontIdState === IdentityState.Checked &&
-            sessionInfo.backIdState === IdentityState.Checked) {
+        if ((sessionInfo.frontIdState === CheckState.Checked || sessionInfo.frontIdState === CheckState.ToBeChecked) &&
+            (sessionInfo.backIdState === CheckState.Checked || sessionInfo.backIdState === CheckState.ToBeChecked)) {
             return StepStatus.success;
         }
 
         return StepStatus.wait;
     }
-    private get idInfoDesc(): string {
-        let desc: string = '';
+    private get idInfoTitle(): string {
+        const desc: string[] = [];
         const sessionInfo = this.storeState.sessionInfo;
         const notifications = this.storeState.notificationObjs;
-        if (sessionInfo.frontIdState === IdentityState.FailedToCheck ||
-            sessionInfo.backIdState === IdentityState.FailedToCheck) {
+        if (sessionInfo.frontIdState === CheckState.FailedToCheck ||
+            sessionInfo.backIdState === CheckState.FailedToCheck) {
             for (const item of notifications) {
-                if (item.type === NotificationType.UserIdCheckFailure) {
-                    desc = `${item.title}:${item.content}`;
+                if (item.type === NotificationType.FrontIdCheckFailure ||
+                    item.type === NotificationType.BackIdCheckFailure) {
+                    desc.push(item.title || '');
+                    break;
                 }
             }
         }
-        return desc;
+        return desc.join(',');
+    }
+    private get idInfoDetails(): string {
+        const desc: string[] = [];
+        const sessionInfo = this.storeState.sessionInfo;
+        const notifications = this.storeState.notificationObjs;
+        if (sessionInfo.frontIdState === CheckState.FailedToCheck) {
+            for (const item of notifications) {
+                if (item.type === NotificationType.FrontIdCheckFailure) {
+                    desc.push(item.content || '');
+                    break;
+                }
+            }
+        }
+        if (sessionInfo.backIdState === CheckState.FailedToCheck) {
+            for (const item of notifications) {
+                if (item.type === NotificationType.BackIdCheckFailure) {
+                    desc.push(item.content || '');
+                    break;
+                }
+            }
+        }
+        return desc.join(',');
     }
     private get qualificationStatus(): string {
         const sessionInfo = this.storeState.sessionInfo;
         if (this.currentStep === RegisterStep.QualificationUpload) {
             return StepStatus.process;
         }
-        if (sessionInfo.qualificationState === QualificationState.Missed) {
+        if (sessionInfo.qualificationState === CheckState.Missed) {
             return StepStatus.wait;
         }
-        if (sessionInfo.qualificationState === QualificationState.FailedToCheck) {
+        if (sessionInfo.qualificationState === CheckState.FailedToCheck) {
             return StepStatus.error;
         }
 
-        if (sessionInfo.qualificationState === QualificationState.Checked) {
+        if (sessionInfo.qualificationState === CheckState.Checked ||
+            sessionInfo.qualificationState === CheckState.ToBeChecked) {
             return StepStatus.success;
         }
         return StepStatus.wait;
     }
-    private get qualificationDesc(): string {
+    private get qualificationTitle(): string {
         let desc: string = '';
         const sessionInfo = this.storeState.sessionInfo;
         const notifications = this.storeState.notificationObjs;
-        if (sessionInfo.qualificationState === QualificationState.FailedToCheck) {
+        if (sessionInfo.qualificationState === CheckState.FailedToCheck) {
+            for (const item of notifications) {
+                if (item.type === NotificationType.UserQualificationCheckFailure) {
+                    desc = item.title as string || '';
+                }
+            }
+        }
+        return desc;
+    }
+    private get qualificationDetails(): string {
+        let desc: string = '';
+        const sessionInfo = this.storeState.sessionInfo;
+        const notifications = this.storeState.notificationObjs;
+        if (sessionInfo.qualificationState === CheckState.FailedToCheck) {
             for (const item of notifications) {
                 if (item.type === NotificationType.UserQualificationCheckFailure) {
                     desc = item.content as string || '';
@@ -194,10 +247,10 @@ export class ExecutorRegisterTS extends Vue {
         if (this.currentStep === RegisterStep.Checking) {
             return StepStatus.process;
         }
-        if (sessionInfo.qualificationState === QualificationState.Checked &&
-            sessionInfo.logoState === LogoState.Checked &&
-            sessionInfo.backIdState === IdentityState.Checked &&
-            sessionInfo.frontIdState === IdentityState.Checked) {
+        if (sessionInfo.qualificationState === CheckState.Checked &&
+            sessionInfo.logoState === CheckState.Checked &&
+            sessionInfo.backIdState === CheckState.Checked &&
+            sessionInfo.frontIdState === CheckState.Checked) {
             return StepStatus.success;
         } else {
             return StepStatus.wait;
@@ -218,7 +271,24 @@ export class ExecutorRegisterTS extends Vue {
     // #endregion
 
     // #region -- referred props and methods for basicUserRegister
-    private userRole: UserRole = UserRole.PersonalExecutor;
+    private get userRole(): UserRole {
+        if (this.userRoleProp != null) {
+            return this.userRoleProp;
+        }
+        const sessionInfo = this.storeState.sessionInfo;
+        const roles = sessionInfo.roles as UserRole[] || [];
+        if (roles.includes(UserRole.PersonalExecutor)) {
+            return UserRole.PersonalExecutor;
+        } else if (roles.includes(UserRole.CorpExecutor)) {
+            return UserRole.CorpExecutor;
+        } else if (roles.includes(UserRole.PersonalPublisher)) {
+            return UserRole.PersonalPublisher;
+        } else if (roles.includes(UserRole.CorpPublisher)) {
+            return UserRole.CorpPublisher;
+        } else {
+            return UserRole.None;
+        }
+    }
     // #endregion
 
     // #region -- referred props and methods for qualification uploader
@@ -235,9 +305,6 @@ export class ExecutorRegisterTS extends Vue {
     // #region -- vue life-circle methods
     private mounted(): void {
         this.filePostParam.scenario = FileAPIScenario.UpdateQualificationFile;
-        if (this.userRoleProp != null) {
-            this.userRole = this.userRoleProp;
-        }
         this.initialize();
     }
     // #endregion
@@ -251,16 +318,6 @@ export class ExecutorRegisterTS extends Vue {
             RouterUtils.goToAdminView(this.$router);
             return;
         }
-        const roles = sessionInfo.roles as UserRole[] || [];
-        if (roles.includes(UserRole.PersonalExecutor)) {
-            this.userRole = UserRole.PersonalExecutor;
-        } else if (roles.includes(UserRole.CorpExecutor)) {
-            this.userRole = UserRole.CorpExecutor;
-        } else if (roles.includes(UserRole.PersonalPublisher)) {
-            this.userRole = UserRole.PersonalPublisher;
-        } else if (roles.includes(UserRole.CorpPublisher)) {
-            this.userRole = UserRole.CorpPublisher;
-        }
         this.caculateRegisterStep();
     }
 
@@ -268,33 +325,33 @@ export class ExecutorRegisterTS extends Vue {
         const sessionInfo = this.storeState.sessionInfo;
         // check logo state
         if (sessionInfo.logoState == null ||
-            sessionInfo.logoState === LogoState.Missed ||
-            sessionInfo.logoState === LogoState.FailedToCheck) {
+            sessionInfo.logoState === CheckState.Missed ||
+            sessionInfo.logoState === CheckState.FailedToCheck) {
             this.currentStep = RegisterStep.BasicInfo;
             return;
         }
 
         if (sessionInfo.frontIdState == null ||
-            sessionInfo.frontIdState === IdentityState.Missed ||
-            sessionInfo.frontIdState === IdentityState.FailedToCheck ||
+            sessionInfo.frontIdState === CheckState.Missed ||
+            sessionInfo.frontIdState === CheckState.FailedToCheck ||
             sessionInfo.backIdState == null ||
-            sessionInfo.backIdState === IdentityState.Missed ||
-            sessionInfo.backIdState === IdentityState.FailedToCheck) {
+            sessionInfo.backIdState === CheckState.Missed ||
+            sessionInfo.backIdState === CheckState.FailedToCheck) {
             this.currentStep = RegisterStep.IdentityInfo;
             return;
         }
 
 
         if (sessionInfo.qualificationState == null ||
-            sessionInfo.qualificationState === QualificationState.Missed ||
-            sessionInfo.qualificationState === QualificationState.FailedToCheck) {
+            sessionInfo.qualificationState === CheckState.Missed ||
+            sessionInfo.qualificationState === CheckState.FailedToCheck) {
             this.currentStep = RegisterStep.QualificationUpload;
             return;
         }
-        if (sessionInfo.qualificationState !== QualificationState.Checked ||
-            sessionInfo.logoState !== LogoState.Checked ||
-            sessionInfo.frontIdState !== IdentityState.Checked ||
-            sessionInfo.backIdState !== IdentityState.Checked) {
+        if (sessionInfo.qualificationState !== CheckState.Checked ||
+            sessionInfo.logoState !== CheckState.Checked ||
+            sessionInfo.frontIdState !== CheckState.Checked ||
+            sessionInfo.backIdState !== CheckState.Checked) {
             this.currentStep = RegisterStep.Checking;
             return;
         }

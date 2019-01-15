@@ -62,9 +62,7 @@ export class ExecutorTS extends Vue {
     }
     private initialize() {
         const sessionInfo = this.storeState.sessionInfo;
-        if (sessionInfo.roles == null) {
-            // session info is not ready, wait
-        } if (CommonUtils.isReadyExecutor(sessionInfo)) {
+        if (CommonUtils.isReadyExecutor(sessionInfo)) {
             if (this.$route.name === RouterName.Executor) {
                 RouterUtils.goToExecutorDefaultView(this.$router);
             } else {

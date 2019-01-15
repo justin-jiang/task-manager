@@ -9,7 +9,10 @@
           :span="8"
           style="text-align:right;"
         >
-          <el-dropdown @command="handleCommand">
+          <el-dropdown
+            @command="handleCommand"
+            v-if="isLogon"
+          >
             <AvatarWithNameVue
               :nameProp="logUserName"
               :logoUrlProp="logoUrl"
@@ -74,5 +77,11 @@ export default class AppVue extends AppTS {}
 
 .el-menu-view-page {
   margin-bottom: 10px;
+}
+.el-carousel .el-carousel__container .el-carousel__arrow {
+  background-color: rgba(31, 45, 61, 0.2);
+  height: 54px;
+  width: 54px;
+  font-size: 24px;
 }
 </style>

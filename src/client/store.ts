@@ -7,6 +7,7 @@ import { actions as notificationActions, mutations as notificationMutations } fr
 import Vue from 'vue';
 import Vuex, { ActionTree, MutationTree, GetterTree } from 'vuex';
 import { IStoreState } from './VuexOperations/IStoreState';
+import { UserView } from 'common/responseResults/UserView';
 /**
  * Mutation Methods invoked by Actions to update the data in client memory
  */
@@ -43,7 +44,7 @@ const getters: GetterTree<IStoreState, any> = {
 Object.assign(getters, sessionGetters);
 
 export const blankStoreState: IStoreState = {
-  sessionInfo: {},
+  sessionInfo: new UserView(true),
   redirectURLAfterLogin: '',
   taskObjs: [],
   templateObjs: [],

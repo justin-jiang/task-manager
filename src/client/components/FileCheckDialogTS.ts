@@ -1,10 +1,8 @@
 import { IStoreState } from 'client/VuexOperations/IStoreState';
-import { FileType } from 'common/FileType';
+import { UserCheckParam } from 'common/requestParams/UserCheckParam';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { CommonUtils } from 'common/CommonUtils';
-import { UserCheckParam } from 'common/requestParams/UserCheckParam';
-import { QualificationState } from 'common/responseResults/QualificationState';
+import { CheckState } from 'common/CheckState';
 
 enum EventNames {
     accepted = 'accepted',
@@ -32,12 +30,12 @@ export class FileCheckDialogTS extends Vue {
 
     // #region -- referred props and methods for uploader
     private reasonOfDeny: string = '';
-    onCheckAccepted(): void {
-        this.$emit(EventNames.accepted, { qualitificationState: QualificationState.Checked } as UserCheckParam);
+    private onCheckAccepted(): void {
+        this.$emit(EventNames.accepted, { qualitificationState: CheckState.Checked } as UserCheckParam);
     }
-    onCheckDenied(): void {
+    private onCheckDenied(): void {
         this.$emit(EventNames.denied, {
-            qualitificationState: QualificationState.FailedToCheck,
+            qualitificationState: CheckState.FailedToCheck,
             noteForQualification: this.reasonOfDeny,
         } as UserCheckParam);
     }

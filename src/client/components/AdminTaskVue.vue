@@ -5,11 +5,11 @@
     v-model="activeTabName"
   >
     <el-tab-pane
-      label="可申请任务列表"
-      :name="readyToApplyTaskTabName"
+      label="待审批任务发布"
+      :name="newTaskToBeCheckTabName"
     >
       <el-table
-        :data="readyToApplyTaskObjs().filter(data => !readyToApplyTaskSearch || data.name.toLowerCase().includes(readyToApplyTaskSearch.toLowerCase()))"
+        :data="newTaskObjs.filter(data => !newTaskSearch || data.name.toLowerCase().includes(newTaskSearch.toLowerCase()))"
         style="width: 100%"
       >
         <el-table-column type="expand">
@@ -99,59 +99,95 @@
           >
             <el-input
               v-if="isSearchReady(scope.row)"
-              v-model="readyToApplyTaskSearch"
+              v-model="newTaskSearch"
               size="mini"
               placeholder="输入关键字搜索"
             />
           </template>
           <template slot-scope="scope">
             <el-button
+              type="primary"
               size="mini"
-              @click="onTaskApply(scope.$index, scope.row)"
-            >申请</el-button>
+              @click="onTaskAuditApproved(scope.row)"
+            >批准发布</el-button>
+            <el-button
+              type="danger"
+              size="mini"
+              @click="onTaskAuditDenied(scope.row)"
+            >拒绝发布</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-tab-pane>
 
     <el-tab-pane
-      label="已申请任务列表"
-      :name="appliedTaskTabName"
+      label="待审批任务申请"
+      :name="newApplyToBeCheckTabName"
     >
       <el-row>
         <el-col :span="24">
           <el-table
-            :data="appliedTaskObjs().filter(data => !appliedTaskSearch || data.name.toLowerCase().includes(appliedTaskSearch.toLowerCase()))"
+            :data="newTaskApplyObjs.filter(data => !newTaskApplySearch || data.name.toLowerCase().includes(newTaskApplySearch.toLowerCase()))"
             style="width: 100%"
           >
             <el-table-column type="expand">
               <template slot-scope="props">
-                <el-form
-                  label-position="left"
-                  class="task-table-expand"
-                >
-                  <el-form-item label="任务名称">
-                    <span>{{ props.row.name }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务金额">
-                    <span>{{ props.row.reward }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务发布人">
-                    <span>{{ props.row.publisherName }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务描述">
-                    <span>{{ props.row.shopId }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务状态">
-                    <span>{{ taskStateToText(props.row.state) }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务申请人">
-                    <span>{{ props.row.applicantName }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务执行人">
-                    <span>{{ props.row.executorName }}</span>
-                  </el-form-item>
-                </el-form>
+                <el-row>
+                  <el-col :span="1">
+                    名称:
+                  </el-col>
+                  <el-col :span="4">
+                    {{props.row.name}}
+                  </el-col>
+                  <el-col :span="1">
+                    金额:
+                  </el-col>
+                  <el-col :span="4">
+                    {{props.row.reward}}
+                  </el-col>
+                  <el-col :span="1">
+                    状态:
+                  </el-col>
+                  <el-col :span="4">
+                    {{taskStateToText(props.row.state)}}
+                  </el-col>
+                  <el-col :span="1">
+                    发布人:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ props.row.publisherName }}
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6">
+                    任务对象所在区域:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ locationToText(props.row) }}
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="1">
+                    申请人:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ applicantName(props.row.applicantName) }}
+                  </el-col>
+                  <el-col :span="1">
+                    执行人:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ executorName(props.row.executorName) }}
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="1">
+                    备注:
+                  </el-col>
+                  <el-col :span="23">
+                    {{ props.row.note }}
+                  </el-col>
+                </el-row>
               </template>
             </el-table-column>
             <el-table-column
@@ -176,7 +212,7 @@
               >
                 <el-input
                   v-if="isSearchReady(scope.row)"
-                  v-model="appliedTaskSearch"
+                  v-model="newTaskApplySearch"
                   size="mini"
                   placeholder="输入关键字搜索"
                 />
@@ -193,41 +229,14 @@
           </el-table>
         </el-col>
       </el-row>
-      <el-row style="padding-top:100px">
-        <el-col :span="24">
-          <el-collapse
-            v-model="activeCollapseNames"
-            @change="onCollapseChange"
-          >
-            <el-collapse-item
-              title="提交任务结果"
-              :name="editCollapseName"
-            >
-              <el-row>
-                <el-col :span="24">
-                  <SingleFileUploadVue
-                    :filePostParamProp="filePostParam"
-                    :fileTypesProp="taskResultFileTypes"
-                    :fileSizeMProp="taskResultFileSizeMLimit"
-                    @success="onTaskResultUploadSuccess"
-                  />
-                </el-col>
-              </el-row>
-              <el-row>
-
-              </el-row>
-            </el-collapse-item>
-          </el-collapse>
-        </el-col>
-      </el-row>
     </el-tab-pane>
   </el-tabs>
 
 </template>
 
 <script lang="ts">
-import { ExecutorTaskTS } from "./ExecutorTaskTS";
-export default class ExecutorTaskVue extends ExecutorTaskTS {}
+import { AdminTaskTS } from "./AdminTaskTS";
+export default class AdminTaskVue extends AdminTaskTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

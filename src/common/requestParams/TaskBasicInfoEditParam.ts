@@ -5,4 +5,12 @@ export class TaskBasicInfoEditParam implements IRequestParam {
     public name?: string;
     public reward?: string;
     public note?: string;
+    constructor(withFullProps?: boolean) {
+        if (withFullProps) {
+            this.name = '';
+            this.note = '';
+            this.reward = '';
+            this.note = '';
+        }
+    }
 }

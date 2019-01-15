@@ -23,6 +23,7 @@ import { UserView } from 'common/responseResults/UserView';
 import { getTaskStateText, TaskState } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { locations } from 'common/locations';
 export const taskListTabName: string = 'taskListTab';
 export const editCollapseName: string = 'taskEditCollapse';
 const compToBeRegistered: any = {
@@ -39,6 +40,45 @@ export class PublisherTaskTS extends Vue {
     private templateIdOfTaskCreation: string = '';
 
     private selectedTemplateUid: string = '';
+
+    private get provinces(): string[] {
+        const provinces: string[] = [];
+        for (const item of locations) {
+            provinces.push(item.name);
+        }
+        return provinces;
+    }
+
+    private get cities(): string[] {
+        const cities: string[] = [];
+        for (const pItem of locations) {
+            if (this.taskCreationFormDatas.province === pItem.name) {
+                for (const cItem of pItem.cities) {
+                    cities.push(cItem.name);
+                }
+                break;
+            }
+        }
+        return cities;
+    }
+
+    private get districts(): string[] {
+        const districts: string[] = [];
+        for (const pItem of locations) {
+            if (this.taskCreationFormDatas.province === pItem.name) {
+                for (const cItem of pItem.cities) {
+                    if (cItem.name === this.taskCreationFormDatas.city) {
+                        for (const dItem of cItem.districts) {
+                            districts.push(dItem.name);
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        return districts;
+    }
 
     private getTemplateObjs(): TemplateView[] {
         return this.storeState.templateObjs;
@@ -109,6 +149,15 @@ export class PublisherTaskTS extends Vue {
     private timestampToText(timestamp: number): string {
         return CommonUtils.convertTimeStampToText(timestamp);
     }
+    private applicantName(name: string): string {
+        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
+    }
+    private executorName(name: string): string {
+        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
+    }
+    private locationToText(task: TaskView): string {
+        return `${task.province} ${task.city}`;
+    }
     private getTaskObjs(): TaskView[] {
         return this.storeState.taskObjs;
     }
@@ -116,7 +165,7 @@ export class PublisherTaskTS extends Vue {
         return task.state === TaskState.Applying;
     }
     private isTaskResultUploaded(index: number, task: TaskView): boolean {
-        return task.state === TaskState.TaskResultUploaded;
+        return task.state === TaskState.ResultUploaded;
     }
     private isBasicInfoUpdated(): boolean {
         if (this.selectedTask == null) {
@@ -182,7 +231,7 @@ export class PublisherTaskTS extends Vue {
                 type: 'warning',
                 center: true,
                 closeOnClickModal: false,
-                inputType: 'textarea'
+                inputType: 'textarea',
             });
         confirm.then(({ value }) => {
             (async () => {

@@ -23,26 +23,12 @@ export class LoggerManager {
         const { printf } = format;
         const myFormat = printf((info: any) => {
             const timestamp: string = (moment as any)(new Date()).format('YYYY-MM-DD hh:mm:ss:SSS');
-            const validMetadata = [];
             let metadataJSON: string | undefined;
-            if (info.metadata != null) {
-                if (info.metadata instanceof Array) {
-                    if (info.metadata.length > 0) {
-                        (info.metadata as []).forEach((item) => {
-                            if (Object.keys(item).length > 0) {
-                                validMetadata.push(item);
-                            }
-                        });
-                    }
-                } else if (Object.keys(info.metadata).length > 0) {
-                    validMetadata.push(info.metadata);
-                }
-                if (validMetadata.length > 0) {
-                    try {
-                        metadataJSON = JSON.stringify(validMetadata);
-                    } catch (ex) {
-                        metadataJSON = JSON.stringify({ error: 'JSON.stringify' });
-                    }
+            if (info.metadata != null && info.metadata.meta != null) {
+                try {
+                    metadataJSON = JSON.stringify(info.metadata.meta);
+                } catch (ex) {
+                    metadataJSON = JSON.stringify({ error: 'JSON.stringify' });
                 }
             }
             if (metadataJSON === undefined) {

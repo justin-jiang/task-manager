@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { TaskState } from 'common/TaskState';
 import { DBObjectView } from './DBObjectView';
 
@@ -18,16 +18,24 @@ export class TaskView extends DBObjectView {
     public state?: TaskState;
 
     public createTime?: number;
+    public province?: string;
+    public city?: string;
+    public district?: string;
+    public address?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
+            this.address = '';
             this.applicantUid = '';
             this.applicantName = '';
-            this.createTime = 0;    
+            this.city = '';
+            this.createTime = 0;
+            this.district = '';
             this.executorUid = '';
             this.executorName = '';
             this.name = '';
             this.note = '';
+            this.province = '';
             this.publisherUid = '';
             this.publisherName = '';
             this.resultFileUid = '';
@@ -40,4 +48,4 @@ export class TaskView extends DBObjectView {
 }
 
 
-export const keysOfITaskView: string[] = CommonUtils.getPropKeys(new TaskView(true));
+export const keysOfITaskView: string[] = getPropKeys(new TaskView(true));

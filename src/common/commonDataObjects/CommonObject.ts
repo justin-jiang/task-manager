@@ -8,3 +8,14 @@ export class CommonObject {
         }
     }
 }
+
+export function getPropKeys(dbObj: any): string[] {
+    const propKeys: string[] = [];
+    Object.keys(dbObj).forEach((key: string) => {
+        if (dbObj[key] instanceof Function) {
+            return;
+        }
+        propKeys.push(key);
+    });
+    return propKeys;
+}

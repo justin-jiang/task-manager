@@ -1,10 +1,9 @@
-import { Component, Vue, Prop } from 'vue-property-decorator';
-import { Store } from 'vuex';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
-import { CommonUtils } from 'common/CommonUtils';
 import avatar from 'vue-avatar-component';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { Store } from 'vuex';
 const compToBeRegistered: any = {
-    avatar
+    avatar,
 };
 
 @Component({

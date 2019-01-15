@@ -29,13 +29,19 @@ export enum StoreActionNames {
     // #endregion
 
     // #region -- task actions
+    // used by admin to check whether the task can be published
+    taskAudit = 'taskAudit',
     taskCreation = 'taskCreation',
     taskQuery = 'taskQuery',
     taskApply = 'taskApply',
+    // used by admin to check the task apply 
+    // the publisher cannot see the apply until the admin approve the apply
+    taskApplyAudit = 'taskAppyAudit',
     taskApplyCheck = 'taskAppyCheck',
     taskApplyDeny = 'taskAppyDeny',
     taskRemove = 'taskRemove',
     taskResultCheck = 'taskResultCheck',
+
     // #endregion
 
     // #region -- notfication actions

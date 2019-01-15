@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { DBObject } from './DBObject';
 
 export class TaskApplicationObject extends DBObject {
@@ -17,4 +17,4 @@ export class TaskApplicationObject extends DBObject {
         return keysOfITaskObject;
     }
 }
-export const keysOfITaskObject: string[] = CommonUtils.getPropKeys(new TaskApplicationObject(true));
+export const keysOfITaskObject: string[] = getPropKeys(new TaskApplicationObject(true));

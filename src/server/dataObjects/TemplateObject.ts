@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { DBObject } from 'server/dataObjects/DBObject';
 
 export class TemplateObject extends DBObject {
@@ -24,4 +24,4 @@ export class TemplateObject extends DBObject {
     }
 }
 
-export const keysOfITemplateObject: string[] = CommonUtils.getPropKeys(new TemplateObject(true));
+export const keysOfITemplateObject: string[] = getPropKeys(new TemplateObject(true));

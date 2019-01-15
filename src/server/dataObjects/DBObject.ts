@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 
 export interface IDBObject {
     uid?: string;
@@ -24,4 +24,4 @@ export class DBObject implements IDBObject {
     }
 
 }
-export const keysOfIDBObject: string[] = CommonUtils.getPropKeys(new DBObject(true));
+export const keysOfIDBObject: string[] = getPropKeys(new DBObject(true));

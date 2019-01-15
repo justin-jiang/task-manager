@@ -42,6 +42,7 @@ import { ApiBuilder, IApiHandlers, UploadType } from './builders/ApiBuilder';
 import { NotificationRequestHandler } from 'server/requestHandlers/NotificationRequestHandler';
 import { UserNotificationView } from 'common/responseResults/UserNotificationView';
 import { NotificationReadParam } from 'common/requestParams/NotificationReadParam';
+import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 /**
  * API Router for all the /api/* RESTful URI
  *
@@ -140,6 +141,18 @@ export class ApiRouter extends BaseRouter {
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Result}/${HttpPathItem.Check}`, {
                 post: this.$$taskResultCheck.bind(this),
+            } as IApiHandlers);
+
+        // api for admin to audit the new created task from publisher
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Audit}`, {
+                post: this.$$taskAudit.bind(this),
+            } as IApiHandlers);
+
+        // api for admin to audit the new task apply from executor
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Audit}`, {
+                post: this.$$taskApplyAudit.bind(this),
             } as IApiHandlers);
         // #endregion
 
@@ -412,7 +425,7 @@ export class ApiRouter extends BaseRouter {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const reqParam: TaskBasicInfoEditParam = req.body as TaskBasicInfoEditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const view: TaskView | null = await TaskRequestHandler.$$edit(reqParam, currentUser);
+        const view: TaskView | null = await TaskRequestHandler.$$basicInfoEdit(reqParam, currentUser);
         apiResult.data = view;
         res.json(apiResult).end();
     }
@@ -486,6 +499,36 @@ export class ApiRouter extends BaseRouter {
         }
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$resultCheck(reqParam, currentUser);
+        apiResult.data = taskView;
+        res.json(apiResult).end();
+    }
+
+    /**
+     * admin to audit the new created task
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskAudit(req: Request, res: Response, next: NextFunction) {
+        const apiResult: ApiResult = { code: ApiResultCode.Success };
+        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        const taskView: TaskView = await TaskRequestHandler.$$audit(reqParam, currentUser);
+        apiResult.data = taskView;
+        res.json(apiResult).end();
+    }
+
+    /**
+     * admin to audit the new task apply
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskApplyAudit(req: Request, res: Response, next: NextFunction) {
+        const apiResult: ApiResult = { code: ApiResultCode.Success };
+        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        const taskView: TaskView = await TaskRequestHandler.$$applyAudit(reqParam, currentUser);
         apiResult.data = taskView;
         res.json(apiResult).end();
     }

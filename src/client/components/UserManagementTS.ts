@@ -8,7 +8,6 @@ import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { FileAPIScenario } from 'common/FileAPIScenario';
-import { FileType } from 'common/FileType';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { UserCheckParam } from 'common/requestParams/UserCheckParam';
 import { UserDisableParam } from 'common/requestParams/UserDisableParam';
@@ -16,16 +15,13 @@ import { UserEnableParam } from 'common/requestParams/UserEnableParam';
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { LogoState } from 'common/responseResults/LogoState';
-import { QualificationState } from 'common/responseResults/QualificationState';
+import { CheckState } from 'common/CheckState';
 import { UserView } from 'common/responseResults/UserView';
 import { getUserStateText, UserState } from 'common/UserState';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
-import { CommonUtils } from 'common/CommonUtils';
-import { UserType } from 'common/UserTypes';
-import { IdentityState } from 'common/responseResults/IdentityState';
+import { getUserRowText, UserRole } from 'common/UserRole';
 const compToBeRegistered: any = {
     FileCheckDialogVue,
     IdentityCheckDialogVue,
@@ -47,6 +43,9 @@ export class UserManagementTS extends Vue {
     private getUserState(userView: UserView): string {
         return getUserStateText(userView);
     }
+    private getUserRole(userView: UserView): string {
+        return getUserRowText((userView.roles as UserRole[])[0]);
+    }
     private btnTextForEnableOrDisable(user: UserView): string {
         if (user.state === UserState.Disabled) {
             return '启用';
@@ -58,12 +57,12 @@ export class UserManagementTS extends Vue {
         return true;
     }
     private isIdToBeChecked(user: UserView): boolean {
-        return user.logoState === LogoState.ToBeChecked ||
-            user.frontIdState === IdentityState.ToBeChecked ||
-            user.backIdState === IdentityState.ToBeChecked;
+        return user.logoState === CheckState.ToBeChecked ||
+            user.frontIdState === CheckState.ToBeChecked ||
+            user.backIdState === CheckState.ToBeChecked;
     }
     private isQualificationToBeChecked(user: UserView): boolean {
-        return user.qualificationState === QualificationState.ToBeChecked;
+        return user.qualificationState === CheckState.ToBeChecked;
     }
 
     private onIdCheck(index: number, user: UserView): void {

@@ -1,4 +1,4 @@
-import { CommonUtils } from 'common/CommonUtils';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { TaskActionType } from 'common/TaskActionType';
 import { DBObject } from './DBObject';
 
@@ -22,4 +22,4 @@ export class TaskCheckRecordObject extends DBObject {
         return keysOfIDBObject;
     }
 }
-export const keysOfIDBObject: string[] = CommonUtils.getPropKeys(new TaskCheckRecordObject(true));
+export const keysOfIDBObject: string[] = getPropKeys(new TaskCheckRecordObject(true));

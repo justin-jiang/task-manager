@@ -64,10 +64,24 @@ export class NotificationRequestHandler {
             case NotificationType.TaskApplyDenied:
                 notification.title = '任务申请被拒绝';
                 break;
-            case NotificationType.UserIdCheckFailure:
+            case NotificationType.TaskAuditAccepted:
+                notification.title = '任务申请已通过平台审核并提交给发布者';
+                break;
+            case NotificationType.TaskAuditDenied:
+                notification.title = '任务申请没有通过平台审核';
+                break;
+            case NotificationType.TaskResultAccepted:
+                notification.title = '任务结果审核通过';
+                break;
+            case NotificationType.TaskAuditDenied:
+                notification.title = '任务结果被拒绝';
+                break;
+            case NotificationType.FrontIdCheckFailure:
+            case NotificationType.BackIdCheckFailure:
                 notification.title = '用户身份审查被拒绝';
                 break;
-            case NotificationType.UserIdCheckPass:
+            case NotificationType.FrontIdCheckPass:
+            case NotificationType.BackIdCheckPass:
                 notification.title = '用户身份审查通过';
                 break;
             case NotificationType.UserLogoCheckFailure:

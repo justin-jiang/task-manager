@@ -14,6 +14,6 @@ export class FileUploadParam implements IRequestParam {
         TaskResultFileUploadParam |
         string;
     public scenario?: FileAPIScenario;
-    public blob?: Blob;
+    public blob?: any;
     public fileName?: string;
 }

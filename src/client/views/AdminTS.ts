@@ -5,6 +5,7 @@ import { CommonUtils } from 'common/CommonUtils';
 import { UserView } from 'common/responseResults/UserView';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { NotificationState } from 'common/NotificationState';
 const compToBeRegistered: any = {
 };
 
@@ -18,6 +19,7 @@ export class AdminTS extends Vue {
 
     private readonly notificationIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Notification}`;
     private readonly userIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_User}`;
+    private readonly taskIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Task}`;
 
     private onMenuSelected(key: string, keyPath: string): void {
         LoggerManager.debug('selectedMenu:', key, keyPath);
@@ -35,10 +37,24 @@ export class AdminTS extends Vue {
             this.initialize();
         }
     }
-
     // #endregion
 
-    // region -- internal props and methods
+    // #region -- props and methods for notification
+    private get hasNotification(): boolean {
+        return this.newNotificationCount > 0;
+    }
+    private get newNotificationCount(): number {
+        let count: number = 0;
+        this.storeState.notificationObjs.forEach((item) => {
+            if (item.state === NotificationState.Unread) {
+                count++;
+            }
+        });
+        return count;
+    }
+    // #endregion
+
+    // #region -- internal props and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
     private initialize() {

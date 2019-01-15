@@ -1,5 +1,5 @@
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { CommonUser } from 'common/commonDataObjects/CommonUser';
-import { CommonUtils } from 'common/CommonUtils';
 
 
 export class UserView extends CommonUser {
@@ -16,4 +16,4 @@ export class UserView extends CommonUser {
     }
 }
 
-export const keysOfIUserView: string[] = CommonUtils.getPropKeys(new UserView(true));
+export const keysOfIUserView: string[] = getPropKeys(new UserView(true));

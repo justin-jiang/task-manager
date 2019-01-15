@@ -15,7 +15,7 @@
         :rules="formRules"
         :ref="taskCreationFormRefName"
         style="max-width:1000px; margin: 0 auto;"
-        label-width="100px"
+        label-width="160px"
         class="form-publishTask"
       >
         <el-form-item
@@ -44,6 +44,61 @@
           prop="reward"
         >
           <el-input v-model="taskCreationFormDatas.reward"></el-input>
+        </el-form-item>
+        <el-form-item
+          label="任务对象所在区域"
+          prop="name"
+        >
+          <el-row>
+            <el-col :span="8">
+              <el-select
+                v-model="taskCreationFormDatas.province"
+                placeholder="请选择省或直辖市"
+              >
+                <el-option
+                  v-for="item in provinces"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                >
+                </el-option>
+              </el-select>
+            </el-col>
+            <el-col :span="8">
+              <el-select
+                v-model="taskCreationFormDatas.city"
+                placeholder="请选择市"
+              >
+                <el-option
+                  v-for="item in cities"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                >
+                </el-option>
+              </el-select>
+            </el-col>
+            <el-col :span="8">
+              <el-select
+                v-model="taskCreationFormDatas.district"
+                placeholder="请选择区"
+              >
+                <el-option
+                  v-for="item in districts"
+                  :key="item"
+                  :label="item"
+                  :value="item"
+                >
+                </el-option>
+              </el-select>
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item
+          label="地址"
+          prop="address"
+        >
+          <el-input v-model="taskCreationFormDatas.address"></el-input>
         </el-form-item>
         <el-form-item
           label="描述"
@@ -106,17 +161,25 @@
                   </el-col>
                 </el-row>
                 <el-row>
+                  <el-col :span="6">
+                    任务对象所在区域:
+                  </el-col>
+                  <el-col :span="4">
+                    {{ locationToText(props.row) }}
+                  </el-col>
+                </el-row>
+                <el-row>
                   <el-col :span="1">
                     申请人:
                   </el-col>
                   <el-col :span="4">
-                    {{ props.row.applicantName }}
+                    {{ applicantName(props.row.applicantName) }}
                   </el-col>
                   <el-col :span="1">
                     执行人:
                   </el-col>
                   <el-col :span="4">
-                    {{ props.row.executorName }}
+                    {{ executorName(props.row.executorName) }}
                   </el-col>
                 </el-row>
                 <el-row>

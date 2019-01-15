@@ -6,13 +6,13 @@ import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { CheckState } from 'common/CheckState';
 import { FileAPIScenario } from 'common/FileAPIScenario';
-import { FileType } from 'common/FileType';
+import { locations } from 'common/locations';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { IdentityState } from 'common/responseResults/IdentityState';
 import { UserView } from 'common/responseResults/UserView';
 import { UserType } from 'common/UserTypes';
 import { Component, Vue, Watch } from 'vue-property-decorator';
@@ -24,6 +24,9 @@ interface IFormData {
     sex?: number;
     idNumber?: string;
     address?: string;
+    province?: string;
+    city?: string;
+    district?: string;
 }
 enum EventNames {
     UploadSuccess = 'success',
@@ -48,27 +51,15 @@ export class UserIdentityInfoUploadTS extends Vue {
 
     private isInitialized: boolean = false;
 
-    private get labelOfRealName(): string {
-        return this.isCorpUser ? '公司名称' : '真实姓名';
-    }
-    private get labelOfIdNumber(): string {
-        return this.isCorpUser ? '社会应用代码' : '身份证号码';
-    }
-    private get labelOfAddress(): string {
-        return this.isCorpUser ? '公司地址' : '家庭或工作单位地址';
-    }
-    private get labelOfFrontUploader(): string {
-        return this.isCorpUser ? '联系人手持营业执照照片' : '手持身份证正面照片';
-    }
-    private get labelOfBackUploader(): string {
-        return this.isCorpUser ? '营业执照照片' : '身份证背面照片';
-    }
 
     private readonly formDatas: IFormData = {
         realName: '',
         sex: -1,
         idNumber: '',
         address: '',
+        province: '',
+        city: '',
+        district: '',
     };
     private readonly frontUploadParam: FileUploadParam = {
         scenario: FileAPIScenario.UpdateUserFrontId,
@@ -83,6 +74,26 @@ export class UserIdentityInfoUploadTS extends Vue {
     private isFrontIdImageChanged: boolean = false;
     private isBackIdImageChanged: boolean = false;
 
+
+    private get labelOfRealName(): string {
+        return this.isCorpUser ? '公司名称' : '真实姓名';
+    }
+    private get labelOfIdNumber(): string {
+        return this.isCorpUser ? '社会应用代码' : '身份证号码';
+    }
+    private get labelOfAddress(): string {
+        return this.isCorpUser ? '公司地址' : '家庭或单位地址';
+    }
+    private get labelOfArea(): string {
+        return this.isCorpUser ? '公司所在区域' : '家庭或单位所在区域';
+    }
+
+    private get labelOfFrontUploader(): string {
+        return this.isCorpUser ? '联系人手持营业执照照片' : '手持身份证正面照片';
+    }
+    private get labelOfBackUploader(): string {
+        return this.isCorpUser ? '营业执照照片' : '身份证背面照片';
+    }
     private get frontIdUid(): string {
         return this.storeState.sessionInfo.frontIdUid as string;
     }
@@ -92,7 +103,7 @@ export class UserIdentityInfoUploadTS extends Vue {
     private get isIdInfoChanged(): boolean {
         const updatedProps = this.getUpdatedIdInfoProps();
         return Object.keys(updatedProps).length > 0;
-    };
+    }
     private readonly formRules: any = {
         name: [
             { required: true, message: '请输入名称', trigger: 'blur' },
@@ -106,8 +117,47 @@ export class UserIdentityInfoUploadTS extends Vue {
             { required: true, message: '请输入地址', trigger: 'blur' },
 
         ],
-        sex: [{ required: true }]
+        sex: [{ required: true }],
     };
+
+    private get provinces(): string[] {
+        const provinces: string[] = [];
+        for (const item of locations) {
+            provinces.push(item.name);
+        }
+        return provinces;
+    }
+
+    private get cities(): string[] {
+        const cities: string[] = [];
+        for (const pItem of locations) {
+            if (this.formDatas.province === pItem.name) {
+                for (const cItem of pItem.cities) {
+                    cities.push(cItem.name);
+                }
+                break;
+            }
+        }
+        return cities;
+    }
+
+    private get districts(): string[] {
+        const districts: string[] = [];
+        for (const pItem of locations) {
+            if (this.formDatas.province === pItem.name) {
+                for (const cItem of pItem.cities) {
+                    if (cItem.name === this.formDatas.city) {
+                        for (const dItem of cItem.districts) {
+                            districts.push(dItem.name);
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        return districts;
+    }
 
     private isReadyToSubmit(): boolean {
         return !this.isSubmitting &&
@@ -118,13 +168,14 @@ export class UserIdentityInfoUploadTS extends Vue {
     /**
      *  upload logo image with new user info
      */
-    private onSubmitForm() {
+    private onSubmitForm(): void {
         this.isSubmitting = true;
         (this.$refs[this.formRefName] as any).validate((valid: boolean) => {
-            let result: boolean = true;
             if (valid) {
-                // NOTE: to serialize the metadata, otherwize the el-upload will
-                // invoke toString which cannot transfer the data to server correctly
+                if (!this.isBackIdImageChanged && !this.isFrontIdImageChanged) {
+                    this.$message.warning('请选择要上传的身份图片');
+                    return;
+                }
                 const updatedProps = this.getUpdatedIdInfoProps();
                 if (Object.keys(updatedProps).length > 0) {
                     (async () => {
@@ -152,10 +203,8 @@ export class UserIdentityInfoUploadTS extends Vue {
                 }
             } else {
                 this.$message.warning('提交内容不合格，请检测表单是否填写正确');
-                result = false;
                 this.isSubmitting = false;
             }
-            return result;
         });
     }
     private resetForm() {
@@ -174,7 +223,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onFrontUploadSuccess(apiResult: ApiResult) {
         (async () => {
             const userView: UserView = apiResult.data;
-            userView.frondIdUrl = await ComponentUtils.$$getImageUrl(this, userView.frontIdUid as string, FileAPIScenario.DownloadFrontId);
+            userView.frondIdUrl = await ComponentUtils.$$getImageUrl(
+                this, userView.frontIdUid as string, FileAPIScenario.DownloadFrontId);
             this.store.commit(StoreMutationNames.sessionInfoPropUpdate, {
                 frontIdUid: userView.frontIdUid,
                 frontIdState: userView.frontIdState,
@@ -196,7 +246,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onBackUploadSuccess(apiResult: ApiResult) {
         (async () => {
             const userView: UserView = apiResult.data;
-            userView.backIdUrl = await ComponentUtils.$$getImageUrl(this, userView.backIdUid as string, FileAPIScenario.DownloadBackId);
+            userView.backIdUrl = await ComponentUtils.$$getImageUrl(
+                this, userView.backIdUid as string, FileAPIScenario.DownloadBackId);
             this.store.commit(StoreMutationNames.sessionInfoPropUpdate, {
                 backIdUid: userView.backIdUid,
                 backIdState: userView.backIdState,
@@ -242,6 +293,9 @@ export class UserIdentityInfoUploadTS extends Vue {
             this.formDatas.address = sessionInfo.address;
             this.formDatas.idNumber = sessionInfo.identityNumber;
             this.formDatas.realName = sessionInfo.realName;
+            this.formDatas.province = sessionInfo.province;
+            this.formDatas.city = sessionInfo.city;
+            this.formDatas.district = sessionInfo.district;
             if (!this.isCorpUser) {
                 this.formDatas.sex = sessionInfo.sex;
                 if (this.formDatas.sex == null) {
@@ -263,6 +317,16 @@ export class UserIdentityInfoUploadTS extends Vue {
         if (this.formDatas.idNumber !== this.storeState.sessionInfo.identityNumber) {
             updatedProps.identityNumber = this.formDatas.idNumber;
         }
+        if (this.formDatas.province !== this.storeState.sessionInfo.province) {
+            updatedProps.province = this.formDatas.province;
+        }
+        if (this.formDatas.city !== this.storeState.sessionInfo.city) {
+            updatedProps.city = this.formDatas.city;
+        }
+        if (this.formDatas.district !== this.storeState.sessionInfo.district) {
+            updatedProps.district = this.formDatas.district;
+        }
+
         if (!this.isCorpUser) {
             if (this.formDatas.sex !== this.storeState.sessionInfo.sex) {
                 updatedProps.sex = this.formDatas.sex;
@@ -273,19 +337,15 @@ export class UserIdentityInfoUploadTS extends Vue {
 
     private checkUploadState(): void {
         const sessionInfo = this.storeState.sessionInfo;
-        if (!this.isCorpUser) {
-            if ((sessionInfo.frontIdState === IdentityState.ToBeChecked || sessionInfo.frontIdState === IdentityState.Checked) &&
-                (sessionInfo.backIdState === IdentityState.ToBeChecked || sessionInfo.backIdState === IdentityState.Checked)) {
-                this.$message.success('身份信息更新成功');
-                this.$emit(EventNames.UploadSuccess);
-            }
-        } else {
-            if ((sessionInfo.frontIdState === IdentityState.ToBeChecked || sessionInfo.frontIdState === IdentityState.Checked)) {
-                this.$message.success('身份信息更新成功');
-                this.$emit(EventNames.UploadSuccess);
-            }
+        if (
+            (sessionInfo.frontIdState === CheckState.ToBeChecked ||
+                sessionInfo.frontIdState === CheckState.Checked) &&
+            (sessionInfo.backIdState === CheckState.ToBeChecked ||
+                sessionInfo.backIdState === CheckState.Checked)
+        ) {
+            this.$message.success('身份信息更新成功');
+            this.$emit(EventNames.UploadSuccess);
         }
-
     }
     // #endregion
 }

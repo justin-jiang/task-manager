@@ -10,11 +10,11 @@ import { TemplateCreateParam } from 'common/requestParams/TemplateCreateParam';
 import { TemplateFileEditParam } from 'common/requestParams/TemplateFileEditParam';
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { LogoState } from 'common/responseResults/LogoState';
-import { QualificationState } from 'common/responseResults/QualificationState';
+import { CheckState } from 'common/CheckState';
 import { TaskView } from 'common/responseResults/TaskView';
 import { TemplateView } from 'common/responseResults/TemplateView';
 import { UserView } from 'common/responseResults/UserView';
+import { TaskState } from 'common/TaskState';
 import { UserState } from 'common/UserState';
 import { Response } from 'express';
 import { ApiError } from 'server/common/ApiError';
@@ -30,8 +30,6 @@ import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { TemplateRequestHandler } from 'server/requestHandlers/TemplateRequestHandler';
 import { UserRequestHandler } from 'server/requestHandlers/UserRequestHandler';
 import { TaskRequestHandler } from './TaskRequestHandler';
-import { TaskState } from 'common/TaskState';
-import { IdentityState } from 'common/responseResults/IdentityState';
 export class FileRequestHandler {
     public static async $$createTemplate(
         fileData: Express.Multer.File | NodeJS.ReadableStream,
@@ -101,7 +99,7 @@ export class FileRequestHandler {
             fileEntryId = currentUser.qualificationUid as string;
             updatedProps.qualificationVersion = currentUser.qualificationVersion as number + 1;
         }
-        updatedProps.qualificationState = QualificationState.ToBeChecked;
+        updatedProps.qualificationState = CheckState.ToBeChecked;
         await FileStorage.$$saveEntry(
             fileEntryId,
             updatedProps.qualificationVersion,
@@ -165,15 +163,15 @@ export class FileRequestHandler {
         if (reqParam.scenario === FileAPIScenario.UpdateUserLogo) {
             fileId = currentUser.logoUid as string;
             fileType = FileType.UserLogo;
-            currentUser.logoState = LogoState.ToBeChecked;
+            currentUser.logoState = CheckState.ToBeChecked;
         } else if (reqParam.scenario === FileAPIScenario.UpdateUserFrontId) {
             fileId = currentUser.frontIdUid as string;
             fileType = FileType.FrontId;
-            currentUser.frontIdState = IdentityState.ToBeChecked;
+            currentUser.frontIdState = CheckState.ToBeChecked;
         } else {
             fileId = currentUser.backIdUid as string;
             fileType = FileType.BackId;
-            currentUser.backIdState = IdentityState.ToBeChecked;
+            currentUser.backIdState = CheckState.ToBeChecked;
         }
         // we don't keep logo/id upload history, so here remove the old one and then add new one
         if (!CommonUtils.isNullOrEmpty(fileId)) {
@@ -247,7 +245,7 @@ export class FileRequestHandler {
         } else {
             updatedProps.resultFileversion = dbObj.resultFileversion as number + 1;
         }
-        updatedProps.state = TaskState.TaskResultUploaded;
+        updatedProps.state = TaskState.ResultUploaded;
         Object.assign(dbObj, updatedProps);
         await FileStorage.$$saveEntry(
             dbObj.resultFileUid as string,
@@ -380,10 +378,10 @@ export class FileRequestHandler {
             dbObj.uid = CommonUtils.getUUIDForMongoDB();
         }
         dbObj.logoUid = CommonUtils.getUUIDForMongoDB();
-        dbObj.logoState = LogoState.ToBeChecked;
-        dbObj.qualificationState = QualificationState.Missed;
-        dbObj.frontIdState = IdentityState.Missed;
-        dbObj.backIdState = IdentityState.Missed;
+        dbObj.logoState = CheckState.ToBeChecked;
+        dbObj.qualificationState = CheckState.Missed;
+        dbObj.frontIdState = CheckState.Missed;
+        dbObj.backIdState = CheckState.Missed;
         dbObj.state = UserState.Enabled;
 
         // save logo file

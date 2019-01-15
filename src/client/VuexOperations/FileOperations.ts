@@ -36,7 +36,7 @@ export const actions = {
         let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
         try {
             const reqParam = args.data as FileUploadParam;
-            var formData = new FormData();
+            const formData = new FormData();
             formData.append(HttpUploadKey.File, reqParam.blob as Blob, reqParam.fileName);
             formData.append('scenario', (reqParam.scenario as FileAPIScenario).toString());
             formData.append('optionData', reqParam.optionData as string);
@@ -46,7 +46,7 @@ export const actions = {
                 {
                     headers: {
                         'Content-Type': 'multipart/form-data',
-                    }
+                    },
                 });
             apiResult = { code: ApiResultCode.Success } as ApiResult;
             if (response.status === 200) {

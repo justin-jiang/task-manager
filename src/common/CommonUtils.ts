@@ -1,28 +1,13 @@
-import { DBObjectView } from 'common/responseResults/DBObjectView';
-import { IdentityState } from 'common/responseResults/IdentityState';
-import { QualificationState } from 'common/responseResults/QualificationState';
+import { CheckState } from 'common/CheckState';
 import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import * as moment from 'moment';
-import { DBObject } from 'server/dataObjects/DBObject';
 import { UserObject } from 'server/dataObjects/UserObject';
 import * as uuidv4 from 'uuid/v4';
-import { LogoState } from './responseResults/LogoState';
 import { UserState } from './UserState';
 export class CommonUtils {
     public static getUUIDForMongoDB(): string {
         return `M-${(uuidv4 as any)().replace(/-/g, '')}`;
-    }
-
-    public static getPropKeys(dbObj: DBObject | DBObjectView): string[] {
-        const propKeys: string[] = [];
-        Object.keys(dbObj).forEach((key: string) => {
-            if (dbObj[key] instanceof Function) {
-                return;
-            }
-            propKeys.push(key);
-        });
-        return propKeys;
     }
 
     public static isNullOrEmpty(value: any): boolean {
@@ -61,11 +46,15 @@ export class CommonUtils {
     }
 
     public static isUserReady(user: UserView | UserObject): boolean {
-        return user.logoState === LogoState.Checked &&
-            user.qualificationState === QualificationState.Checked &&
-            user.frontIdState === IdentityState.Checked &&
-            user.backIdState === IdentityState.Checked &&
-            user.state === UserState.Enabled;
+        if (this.isAdmin(user.roles)) {
+            return true;
+        } else {
+            return user.logoState === CheckState.Checked &&
+                user.qualificationState === CheckState.Checked &&
+                user.frontIdState === CheckState.Checked &&
+                user.backIdState === CheckState.Checked &&
+                user.state === UserState.Enabled;
+        }
     }
 
     public static isReadyExecutor(user: UserView): boolean {

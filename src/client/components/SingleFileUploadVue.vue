@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-row>
+    <el-row style="margin-bottom:20px">
       <el-col :span="12">
         <el-upload
           class="upload-qualificationFile"
@@ -27,7 +27,6 @@
 
         </el-upload>
       </el-col>
-
     </el-row>
     <el-row>
       <el-col :span="12">
