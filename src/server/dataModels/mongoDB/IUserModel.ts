@@ -23,6 +23,12 @@ const schemaDef = Object.assign({
     frontIdState: { type: Number },
     backIdUid: { type: String },
     backIdState: { type: Number },
+    licenseUid: { type: String },
+    licenseState: { type: Number },
+    licenseWithPersonUid: { type: String },
+    licenseWidthPersonState: { type: Number },
+    authLetterUid: { type: String },
+    authLetterState: { type: Number },
     roles: { type: [Number] },
     type: { type: Number },
     state: { type: Number },
@@ -41,6 +47,9 @@ const schemaDef = Object.assign({
     executedTaskCount: { type: Number, default: 0 },
     executorStar: { type: Number, default: 0 },
     publisherStar: { type: Number, default: 0 },
+    idState: { type: Number },
+    idCheckNote: { type: String },
+    qualificationCheckNote: { type: String },
 }, BaseSchemaDef);
 /**
  * User Schema

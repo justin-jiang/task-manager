@@ -3,12 +3,14 @@ import { msgConnectionIssue } from 'client/common/Constants';
 import { RouteQuery } from 'client/common/RouteQuery';
 import { RouterUtils } from 'client/common/RouterUtils';
 import { ComponentUtils } from 'client/components/ComponentUtils';
+import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import { LoggerManager } from 'client/LoggerManager';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
+import { locations } from 'common/locations';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { TaskApplyCheckParam } from 'common/requestParams/TaskApplyCheckParam';
 import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
@@ -23,10 +25,10 @@ import { UserView } from 'common/responseResults/UserView';
 import { getTaskStateText, TaskState } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { locations } from 'common/locations';
 export const taskListTabName: string = 'taskListTab';
 export const editCollapseName: string = 'taskEditCollapse';
 const compToBeRegistered: any = {
+    TaskDetailInTableVue,
 };
 
 @Component({
@@ -139,7 +141,9 @@ export class PublisherTaskTS extends Vue {
     private readonly activeCollapseNames: string[] = [];
     private search: string = '';
     private selectedTask: TaskView | undefined;
-    private taskResultCheckDialogVisible: boolean = false;
+    private taskResultAcceptDialogVisible: boolean = false;
+
+    private taskResultRate: number = 0;
     private isSearchReady(): boolean {
         return true;
     }
@@ -149,22 +153,13 @@ export class PublisherTaskTS extends Vue {
     private timestampToText(timestamp: number): string {
         return CommonUtils.convertTimeStampToText(timestamp);
     }
-    private applicantName(name: string): string {
-        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
-    }
-    private executorName(name: string): string {
-        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
-    }
-    private locationToText(task: TaskView): string {
-        return `${task.province} ${task.city}`;
-    }
     private getTaskObjs(): TaskView[] {
         return this.storeState.taskObjs;
     }
-    private isTaskApplying(task: TaskView) {
-        return task.state === TaskState.Applying;
+    private isTaskReadyToAssign(task: TaskView) {
+        return task.state === TaskState.ReadyToAssign;
     }
-    private isTaskResultUploaded(index: number, task: TaskView): boolean {
+    private isTaskResultUploaded(task: TaskView): boolean {
         return task.state === TaskState.ResultUploaded;
     }
     private isBasicInfoUpdated(): boolean {
@@ -194,7 +189,7 @@ export class PublisherTaskTS extends Vue {
             this.activeCollapseNames.push(this.editCollapseName);
         }
     }
-    private onTaskApplyAccept(index: number, task: TaskView): void {
+    private onTaskApplyAccepted(index: number, task: TaskView): void {
         const confirm = this.$confirm(
             '确认要接受执行人的申请吗？',
             '提示', {
@@ -224,7 +219,7 @@ export class PublisherTaskTS extends Vue {
             // do nothing for cancel
         });
     }
-    private onTaskApplyDeny(index: number, task: TaskView): void {
+    private onTaskApplyDenied(index: number, task: TaskView): void {
         const confirm = this.$prompt(
             '请输入拒绝的理由',
             '提示', {
@@ -285,27 +280,82 @@ export class PublisherTaskTS extends Vue {
             // do nothing for cancel
         });
     }
-    private onTaskResultCheck(index: number, task: TaskView): void {
-        this.taskResultCheckDialogVisible = true;
-    }
-    private onTaskResultDownload(): void {
+
+    private onTaskResultDownload(index: number, task: TaskView): void {
         ComponentUtils.downloadFile(this,
             {
                 scenario: FileAPIScenario.DownloadTaskResultFile,
-                fileId: (this.selectedTask as TaskView).resultFileUid,
-                version: (this.selectedTask as TaskView).resultFileversion,
+                fileId: task.resultFileUid,
+                version: task.resultFileversion,
             } as FileDownloadParam,
-            `${(this.selectedTask as TaskView).name}.zip`);
+            `${task.name}.zip`);
     }
 
-    private onTaskResultCheckAccepted(): void {
-        this.taskResultCheck(this.selectedTask as TaskView, true, '');
+    private onTaskResultAccepting(index: number, task: TaskView): void {
+        this.taskResultAcceptDialogVisible = true;
+        this.selectedTask = task;
+        this.taskResultRate = 0;
     }
-    private onTaskResultCheckDenied(): void {
-        this.taskResultCheck(this.selectedTask as TaskView, false, '');
+    private onTaskResultAccepted(): void {
+        (async () => {
+            const store = (this.$store as Store<IStoreState>);
+            const apiResult: ApiResult = await store.dispatch(
+                StoreActionNames.taskResultCheck,
+                {
+                    data: {
+                        uid: (this.selectedTask as TaskView).uid,
+                        pass: true,
+                        startCount: this.taskResultRate,
+                    } as TaskResultCheckParam,
+                } as IStoreActionArgs);
+            if (apiResult.code === ApiResultCode.Success) {
+                this.$message.success(`提交成功`);
+            } else {
+                this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+            }
+        })().finally(() => {
+            this.taskResultAcceptDialogVisible = false;
+        });
     }
-    private onTaskResultCheckCancel(): void {
-        this.taskResultCheckDialogVisible = false;
+    private onTaskResultDenied(index: number, task: TaskView): void {
+        const confirm = this.$prompt(
+            `确认要拒绝此用户的任务结果吗？`,
+            '提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                center: true,
+                closeOnClickModal: false,
+                inputType: 'textarea',
+                inputPlaceholder: '请输入理由',
+                inputPattern: /.+/,
+                inputErrorMessage: '请填写拒绝理由',
+            });
+        confirm.then(({ value }) => {
+            (async () => {
+                const store = (this.$store as Store<IStoreState>);
+                const apiResult: ApiResult = await store.dispatch(
+                    StoreActionNames.taskResultCheck,
+                    {
+                        data: {
+                            uid: task.uid,
+                            pass: false,
+                            note: value,
+                        } as TaskResultCheckParam,
+                    } as IStoreActionArgs);
+                if (apiResult.code === ApiResultCode.Success) {
+                    this.$message.success(`提交成功`);
+                } else {
+                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                }
+            })().finally(() => {
+                this.taskResultAcceptDialogVisible = false;
+            });
+        }).catch(() => {
+            // do nothing for cancel
+        });
+    }
+    private onTaskResultCanceled(): void {
+        this.taskResultAcceptDialogVisible = false;
     }
     // #endregion
 
@@ -411,44 +461,6 @@ export class PublisherTaskTS extends Vue {
         } else {
             LoggerManager.warn('publisher not ready', sessionInfo);
         }
-    }
-
-    private taskResultCheck(task: TaskView, pass: boolean, note: string) {
-        const actionName: string = pass ? '通过' : '拒绝';
-
-        const confirm = this.$confirm(
-            `确认要${actionName}此用户的审核吗？`,
-            '提示', {
-                confirmButtonText: '确定',
-                type: 'warning',
-                center: true,
-                closeOnClickModal: false,
-            });
-        confirm.then(() => {
-            (async () => {
-                const store = (this.$store as Store<IStoreState>);
-                const apiResult: ApiResult = await store.dispatch(
-                    StoreActionNames.taskResultCheck,
-                    {
-                        data: {
-                            uid: task.uid,
-                            pass,
-                            note,
-                        } as TaskResultCheckParam,
-                    } as IStoreActionArgs);
-                if (apiResult.code === ApiResultCode.Success) {
-                    this.$message.success(`${actionName}任务结果审核提交成功`);
-                } else {
-                    this.$message.error(`${actionName}任务结果审核提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
-                }
-            })().catch((ex) => {
-                RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
-            }).finally(() => {
-                this.taskResultCheckDialogVisible = false;
-            });
-        }).catch(() => {
-            // do nothing for cancel
-        });
     }
     // #endregion
 

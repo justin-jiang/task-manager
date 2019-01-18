@@ -130,6 +130,12 @@ export const actions = {
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Audit}`,
             args.data || {});
     },
+    async [StoreActionNames.taskApplyAudit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await taskUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Audit}`,
+            args.data || {});
+    },
 };
 
 export const mutations = {

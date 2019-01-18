@@ -6,4 +6,7 @@ export enum FileType {
     TaskResult = 4,
     FrontId = 5,
     BackId = 6,
+    License = 7,
+    LicenseWithPerson = 8,
+    AuthLetter = 9,
 }

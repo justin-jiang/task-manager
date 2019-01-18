@@ -4,6 +4,8 @@ import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
+import { LIMIT_LOGO_SIZE_M } from 'common/Config';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
 import { HttpUploadKey } from 'common/HttpUploadKey';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
@@ -13,9 +15,6 @@ import VueCropper from 'vue-cropperjs';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
-import { FileType } from 'common/FileType';
-import { FileAPIScenario } from 'common/FileAPIScenario';
-import { LIMIT_LOGO_SIZE_M } from 'common/Config';
 
 enum EventNames {
     ImageChanged = 'imageChanged',
@@ -86,6 +85,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
 
     private imageUrlForCropper: string = '';
     private imageUrlForUploader: string = '';
+    private imageType: string = '';
     private cropDialogVisible: boolean = false;
     private isCropping: boolean = false;
 
@@ -130,6 +130,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
                 this.uploadData.blob = file.raw;
                 this.imageUrlForUploader = URL.createObjectURL(file.raw);
             }
+            this.imageType = file.raw.type;
             this.$emit(EventNames.ImageChanged);
         }
     }
@@ -174,7 +175,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
 
             this.cropDialogVisible = false;
             this.isCropping = false;
-        });
+        }, this.imageType);
     }
     private onImageCropCancel(): void {
         this.reset();

@@ -1,26 +1,25 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
-import { msgConnectionIssue } from 'client/common/Constants';
 import { RouterUtils } from 'client/common/RouterUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
+import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
-import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
-import { TaskApplyParam } from 'common/requestParams/TaskApplyParam';
+import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 import { TaskResultFileUploadParam } from 'common/requestParams/TaskResultFileUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
 import { UserView } from 'common/responseResults/UserView';
-import { getTaskStateText, TaskState } from 'common/TaskState';
+import { TaskState, getTaskStateText } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 const compToBeRegistered: any = {
     SingleFileUploadVue,
+    TaskDetailInTableVue,
 };
 
 @Component({
@@ -36,7 +35,7 @@ export class AdminTaskTS extends Vue {
             return item.state === TaskState.Created;
         });
     }
-    private onTaskAuditApproved(task: TaskView) {
+    private onTaskAuditAccepted(task: TaskView) {
         const confirm = this.$confirm(
             '确认批准此任务发布吗？',
             '提示', {
@@ -77,7 +76,7 @@ export class AdminTaskTS extends Vue {
                 inputType: 'textarea',
                 inputPlaceholder: '请输入理由',
             });
-        confirm.then(() => {
+        confirm.then(({ value }) => {
             (async () => {
                 const store = (this.$store as Store<IStoreState>);
                 const apiResult: ApiResult = await store.dispatch(
@@ -86,6 +85,7 @@ export class AdminTaskTS extends Vue {
                         data: {
                             uid: task.uid,
                             state: TaskState.AuditDenied,
+                            note: value,
                         } as TaskAuditParam,
                     } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success) {
@@ -102,13 +102,7 @@ export class AdminTaskTS extends Vue {
 
     // #region -- props and methods for new task apply tab
     private readonly newApplyToBeCheckTabName: string = 'newTaskApplyTab';
-    private readonly editCollapseName: string = 'editCollapseName';
     private newTaskApplySearch: string = '';
-    private taskResultFileTypes: string[] = ['application/zip', 'application/x-rar'];
-    private taskResultFileSizeMLimit: number = 100;
-    private filePostParam: FileUploadParam = {};
-    private selectedTaskIndex: number | undefined;
-    private readonly activeCollapseNames: string[] = [];
 
     private get newTaskApplyObjs(): TaskView[] {
         if (this.storeState.taskObjs != null) {
@@ -119,17 +113,38 @@ export class AdminTaskTS extends Vue {
             return [];
         }
     }
-    private isTaskApplied(index: number, task: TaskView): boolean {
-        return task.state === TaskState.Assigned || task.state === TaskState.ResultDenied;
+    private onTaskApplyAditAccepted(index: number, task: TaskView): void {
+        const confirm = this.$confirm(
+            `确认批准此用户的申请吗？`,
+            '提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                center: true,
+                closeOnClickModal: false,
+            });
+        confirm.then(() => {
+            (async () => {
+                const store = (this.$store as Store<IStoreState>);
+                const apiResult: ApiResult = await store.dispatch(
+                    StoreActionNames.taskApplyAudit,
+                    {
+                        data: {
+                            uid: task.uid,
+                            state: TaskState.ReadyToAssign,
+                        } as TaskAuditParam,
+                    } as IStoreActionArgs);
+                if (apiResult.code === ApiResultCode.Success) {
+                    this.$message.success(`提交成功`);
+                } else {
+                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                }
+            })();
+        }).catch(() => {
+            // do nothing for cancel
+        });
     }
-    private onSelectTaskResultUpload(index: number, task: TaskView): void {
-        this.selectedTaskIndex = index;
-        if (this.activeCollapseNames.length === 0) {
-            this.activeCollapseNames.push(this.editCollapseName);
-        }
-        this.filePostParam.scenario = FileAPIScenario.UpdateTaskResultFile;
-        this.filePostParam.optionData = new TaskResultFileUploadParam();
-        this.filePostParam.optionData.uid = task.uid;
+    private onTaskApplyAditDenied(index: number, task: TaskView): void {
+
     }
     // #endregion
 
@@ -144,15 +159,6 @@ export class AdminTaskTS extends Vue {
     }
     private timestampToText(timestamp: number): string {
         return CommonUtils.convertTimeStampToText(timestamp);
-    }
-    private locationToText(task: TaskView): string {
-        return `${task.province} ${task.city}`;
-    }
-    private applicantName(name: string): string {
-        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
-    }
-    private executorName(name: string): string {
-        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
     }
     // #endregion
 

@@ -13,13 +13,19 @@ export enum FileAPIScenario {
     DownloadQualificationFile = 13,
     DownloadFrontId = 14,
     DownloadBackId = 15,
+    DownloadAuthLetter = 16,
+    DownloadLicense = 17,
+    DownloadLinceWithPerson = 18,
 
     UpdateUserLogo = 20,
     UpdateTemplateFile = 21,
     UpdateQualificationFile = 22,
     UpdateTaskResultFile = 23,
-
     UpdateUserFrontId = 24,
     UpdateUserBackId = 25,
+    UpdateLicense = 26,
+    UpdateLicenseWithPersion = 27,
+    UpdateAuthLetter = 28,
+
 
 }

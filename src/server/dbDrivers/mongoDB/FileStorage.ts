@@ -67,7 +67,7 @@ export class FileStorage {
                 await this.$$tryToSaveEntry(fileId, version, metadata, data);
                 break;
             } catch (ex) {
-                if (ex.code === 11000) {
+                if (ex.code === 11000 && /taskManager.fs.chunks index:/i.test(ex.message)) {
                     // the file already exist in fs.trunks but not in fs.files
                     await this.$$removeDuplicatedChunkEntry(fileId, version);
                 } else {

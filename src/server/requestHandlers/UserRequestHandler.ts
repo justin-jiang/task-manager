@@ -91,13 +91,13 @@ export class UserRequestHandler {
         if (reqParam.qualitificationState != null) {
             if (reqParam.qualitificationState === CheckState.FailedToCheck) {
                 updatedProps.qualificationState = CheckState.FailedToCheck;
+
                 notifications.push(
                     NotificationRequestHandler.createNotificationObject(
                         NotificationType.UserQualificationCheckFailure,
                         dbObj.uid as string,
                         dbObj.qualificationUid as string,
-                        reqParam.noteForQualification)
-                );
+                        reqParam.qualificationCheckNote));
 
             } else if (reqParam.qualitificationState === CheckState.Checked) {
                 updatedProps.qualificationState = CheckState.Checked;
@@ -106,10 +106,20 @@ export class UserRequestHandler {
                         NotificationType.UserQualificationCheckPass,
                         dbObj.uid as string,
                         dbObj.qualificationUid as string,
-                        reqParam.noteForQualification)
-                );
+                        reqParam.qualificationCheckNote));
+            }
+            updatedProps.qualificationCheckNote = reqParam.qualificationCheckNote;
+        }
+
+        if (reqParam.idState != null) {
+            if (reqParam.idState === CheckState.FailedToCheck) {
+                updatedProps.idState = CheckState.FailedToCheck;
+
+            } else if (reqParam.frontIdState === CheckState.Checked) {
+                updatedProps.idState = CheckState.Checked;
             }
         }
+
         if (reqParam.backIdState != null) {
             if (reqParam.backIdState === CheckState.FailedToCheck) {
                 updatedProps.backIdState = CheckState.FailedToCheck;
@@ -129,6 +139,7 @@ export class UserRequestHandler {
                         reqParam.noteForBackId));
             }
         }
+
         if (reqParam.frontIdState != null) {
             if (reqParam.frontIdState === CheckState.FailedToCheck) {
                 updatedProps.frontIdState = CheckState.FailedToCheck;

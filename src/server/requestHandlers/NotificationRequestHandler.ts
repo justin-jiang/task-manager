@@ -73,7 +73,7 @@ export class NotificationRequestHandler {
             case NotificationType.TaskResultAccepted:
                 notification.title = '任务结果审核通过';
                 break;
-            case NotificationType.TaskAuditDenied:
+            case NotificationType.TaskResultDenied:
                 notification.title = '任务结果被拒绝';
                 break;
             case NotificationType.FrontIdCheckFailure:
@@ -97,7 +97,7 @@ export class NotificationRequestHandler {
                 notification.title = '资质文件审核通过';
                 break;
             default:
-                notification.title = '未知';
+                notification.title = '消息';
         }
         notification.content = content || '';
         return notification;

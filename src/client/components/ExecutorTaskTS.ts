@@ -2,6 +2,7 @@ import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { msgConnectionIssue } from 'client/common/Constants';
 import { RouterUtils } from 'client/common/RouterUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
+import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
@@ -20,6 +21,7 @@ import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 const compToBeRegistered: any = {
     SingleFileUploadVue,
+    TaskDetailInTableVue,
 };
 
 @Component({
@@ -98,6 +100,10 @@ export class ExecutorTaskTS extends Vue {
         this.filePostParam.scenario = FileAPIScenario.UpdateTaskResultFile;
         this.filePostParam.optionData = new TaskResultFileUploadParam();
         this.filePostParam.optionData.uid = task.uid;
+        const element = document.getElementById(this.editCollapseName);
+        if (element != null) {
+            element.scrollIntoView();
+        }
     }
     private onCollapseChange(): void {
         if (this.selectedTaskIndex == null) {
@@ -125,15 +131,6 @@ export class ExecutorTaskTS extends Vue {
     }
     private timestampToText(timestamp: number): string {
         return CommonUtils.convertTimeStampToText(timestamp);
-    }
-    private locationToText(task: TaskView): string {
-        return `${task.province} ${task.city}`;
-    }
-    private applicantName(name: string): string {
-        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
-    }
-    private executorName(name: string): string {
-        return CommonUtils.isNullOrEmpty(name) ? '暂无' : name;
     }
     // #endregion
 

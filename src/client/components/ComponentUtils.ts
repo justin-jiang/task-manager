@@ -102,17 +102,19 @@ export class ComponentUtils {
     public static pullNotification(vue: Vue, isBackground?: boolean) {
         const store = vue.$store;
         const storeState = store.state as IStoreState;
-        (async () => {
-            const apiResult: ApiResult = await store.dispatch(
-                StoreActionNames.notificationQuery, { notUseLocalData: true } as IStoreActionArgs);
-            if (apiResult.code !== ApiResultCode.Success) {
-                const errorMessage = `获取通知消息失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
-                if (isBackground) {
-                    LoggerManager.error(errorMessage);
-                } else {
-                    vue.$message.error(errorMessage);
+        if (!CommonUtils.isNullOrEmpty(storeState.sessionInfo.uid)) {
+            (async () => {
+                const apiResult: ApiResult = await store.dispatch(
+                    StoreActionNames.notificationQuery, { notUseLocalData: true } as IStoreActionArgs);
+                if (apiResult.code !== ApiResultCode.Success) {
+                    const errorMessage = `获取通知消息失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
+                    if (isBackground) {
+                        LoggerManager.error(errorMessage);
+                    } else {
+                        vue.$message.error(errorMessage);
+                    }
                 }
-            }
-        })();
+            })();
+        }
     }
 }

@@ -320,8 +320,11 @@ export class ApiRouter extends BaseRouter {
             case FileAPIScenario.UpdateUserLogo:
             case FileAPIScenario.UpdateUserFrontId:
             case FileAPIScenario.UpdateUserBackId:
+            case FileAPIScenario.UpdateAuthLetter:
+            case FileAPIScenario.UpdateLicense:
+            case FileAPIScenario.UpdateLicenseWithPersion:
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateUserLogoOrId(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$updateUserFile(req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UpdateTaskResultFile:
                 currentDBUser = await this.$$getCurrentUser(req);

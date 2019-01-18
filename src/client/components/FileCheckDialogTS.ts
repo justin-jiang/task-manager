@@ -36,7 +36,7 @@ export class FileCheckDialogTS extends Vue {
     private onCheckDenied(): void {
         this.$emit(EventNames.denied, {
             qualitificationState: CheckState.FailedToCheck,
-            noteForQualification: this.reasonOfDeny,
+            qualificationCheckNote: this.reasonOfDeny,
         } as UserCheckParam);
     }
     onCheckCanceled(): void {

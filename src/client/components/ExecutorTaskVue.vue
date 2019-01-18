@@ -14,62 +14,7 @@
       >
         <el-table-column type="expand">
           <template slot-scope="props">
-            <el-row>
-              <el-col :span="1">
-                名称:
-              </el-col>
-              <el-col :span="4">
-                {{props.row.name}}
-              </el-col>
-              <el-col :span="1">
-                金额:
-              </el-col>
-              <el-col :span="4">
-                {{props.row.reward}}
-              </el-col>
-              <el-col :span="1">
-                状态:
-              </el-col>
-              <el-col :span="4">
-                {{taskStateToText(props.row.state)}}
-              </el-col>
-              <el-col :span="1">
-                发布人:
-              </el-col>
-              <el-col :span="4">
-                {{ props.row.publisherName }}
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="6">
-                任务对象所在区域:
-              </el-col>
-              <el-col :span="4">
-                {{ locationToText(props.row) }}
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="1">
-                申请人:
-              </el-col>
-              <el-col :span="4">
-                {{ applicantName(props.row.applicantName) }}
-              </el-col>
-              <el-col :span="1">
-                执行人:
-              </el-col>
-              <el-col :span="4">
-                {{ executorName(props.row.executorName) }}
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="1">
-                备注:
-              </el-col>
-              <el-col :span="23">
-                {{ props.row.note }}
-              </el-col>
-            </el-row>
+            <TaskDetailInTableVue :dataProp="props"></TaskDetailInTableVue>
           </template>
         </el-table-column>
         <el-table-column
@@ -126,32 +71,7 @@
           >
             <el-table-column type="expand">
               <template slot-scope="props">
-                <el-form
-                  label-position="left"
-                  class="task-table-expand"
-                >
-                  <el-form-item label="任务名称">
-                    <span>{{ props.row.name }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务金额">
-                    <span>{{ props.row.reward }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务发布人">
-                    <span>{{ props.row.publisherName }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务描述">
-                    <span>{{ props.row.shopId }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务状态">
-                    <span>{{ taskStateToText(props.row.state) }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务申请人">
-                    <span>{{ props.row.applicantName }}</span>
-                  </el-form-item>
-                  <el-form-item label="任务执行人">
-                    <span>{{ props.row.executorName }}</span>
-                  </el-form-item>
-                </el-form>
+                <TaskDetailInTableVue :dataProp="props"></TaskDetailInTableVue>
               </template>
             </el-table-column>
             <el-table-column
@@ -202,6 +122,8 @@
             <el-collapse-item
               title="提交任务结果"
               :name="editCollapseName"
+              :ref="editCollapseName"
+              :id="editCollapseName"
             >
               <el-row>
                 <el-col :span="24">

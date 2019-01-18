@@ -10,8 +10,10 @@ export class UserCheckParam implements IRequestParam {
     public frontIdState?: CheckState;
     public noteForBackId?: string;
     public backIdState?: CheckState;
-    public noteForQualification?: string;
+    public qualificationCheckNote?: string;
     public qualitificationState?: CheckState;
+    public idState?: CheckState;
+    public idCheckNote?: string;
 }
 
 

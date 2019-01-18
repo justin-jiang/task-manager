@@ -180,5 +180,14 @@ export default class IdentityCheckDialogVue extends IdentityCheckDialogTS {}
   height: 400px;
   overflow-y: auto;
   margin-bottom: 10px;
+  .image-logo {
+    max-width: 500px;
+  }
+  .image-frontId {
+    max-width: 500px;
+  }
+  .image-backId {
+    max-width: 500px;
+  }
 }
 </style>

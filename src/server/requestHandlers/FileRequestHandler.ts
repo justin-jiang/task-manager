@@ -112,7 +112,7 @@ export class FileRequestHandler {
             (fileData as Express.Multer.File).buffer);
         // update the qualificationVersion. 
         // NOTE: for concurrent action, the above file save will be failed because of duplicated id
-        UserModelWrapper.$$updateOne(
+        await UserModelWrapper.$$updateOne(
             { uid: currentUser.uid } as UserObject,
             updatedProps);
         Object.assign(currentUser, updatedProps);
@@ -149,7 +149,7 @@ export class FileRequestHandler {
         }
         return view;
     }
-    public static async $$updateUserLogoOrId(
+    public static async $$updateUserFile(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<UserView> {
@@ -158,29 +158,68 @@ export class FileRequestHandler {
             LoggerManager.error(`ImageSize:${imageSize} too large for user:${currentUser.name}`);
             throw new ApiError(ApiResultCode.InputImageTooLarge);
         }
-        let fileId: string;
+        let fileIdToCreate: string;
         let fileType: FileType;
-        if (reqParam.scenario === FileAPIScenario.UpdateUserLogo) {
-            fileId = currentUser.logoUid as string;
-            fileType = FileType.UserLogo;
-            currentUser.logoState = CheckState.ToBeChecked;
-        } else if (reqParam.scenario === FileAPIScenario.UpdateUserFrontId) {
-            fileId = currentUser.frontIdUid as string;
-            fileType = FileType.FrontId;
-            currentUser.frontIdState = CheckState.ToBeChecked;
-        } else {
-            fileId = currentUser.backIdUid as string;
-            fileType = FileType.BackId;
-            currentUser.backIdState = CheckState.ToBeChecked;
+        const updatedProps: UserObject = {};
+        switch (reqParam.scenario) {
+            case FileAPIScenario.UpdateUserLogo:
+                fileIdToCreate = currentUser.logoUid as string;
+                fileType = FileType.UserLogo;
+                updatedProps.logoState = CheckState.ToBeChecked;
+                // remove existing one
+                await FileStorage.$$deleteEntry(fileIdToCreate, 0);
+                break;
+            case FileAPIScenario.UpdateUserFrontId:
+                if (CommonUtils.isNullOrEmpty(currentUser.frontIdUid)) {
+                    fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                } else {
+                    fileIdToCreate = currentUser.frontIdUid as string;
+                    // remove existing one
+                    await FileStorage.$$deleteEntry(fileIdToCreate, 0);
+                }
+                fileType = FileType.FrontId;
+                updatedProps.frontIdState = CheckState.ToBeChecked;
+                break;
+            case FileAPIScenario.UpdateUserBackId:
+                if (CommonUtils.isNullOrEmpty(currentUser.backIdUid)) {
+                    fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                } else {
+                    fileIdToCreate = currentUser.backIdUid as string;
+                    // remove existing one
+                    await FileStorage.$$deleteEntry(fileIdToCreate, 0);
+                }
+                fileType = FileType.BackId;
+                updatedProps.backIdState = CheckState.ToBeChecked;
+                break;
+            case FileAPIScenario.UpdateLicense:
+                if (CommonUtils.isNullOrEmpty(currentUser.licenseUid)) {
+                    fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                } else {
+                    fileIdToCreate = currentUser.licenseUid as string;
+                    // remove existing one
+                    await FileStorage.$$deleteEntry(fileIdToCreate, 0);
+                }
+                fileType = FileType.License;
+                updatedProps.licenseState = CheckState.ToBeChecked;
+                break;
+            case FileAPIScenario.UpdateLicenseWithPersion:
+                if (CommonUtils.isNullOrEmpty(currentUser.licenseWithPersonUid)) {
+                    fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                } else {
+                    fileIdToCreate = currentUser.licenseWithPersonUid as string;
+                    // remove existing one
+                    await FileStorage.$$deleteEntry(fileIdToCreate, 0);
+                }
+                fileType = FileType.LicenseWithPerson;
+                updatedProps.licenseWidthPersonState = CheckState.ToBeChecked;
+                break;
+            default:
+                LoggerManager.error(`Unsupported FileUploadParam.scenario:${reqParam.scenario}`);
+                throw new ApiError(ApiResultCode.InputInvalidParam, 'FileUploadParam.scenario');
         }
-        // we don't keep logo/id upload history, so here remove the old one and then add new one
-        if (!CommonUtils.isNullOrEmpty(fileId)) {
-            await FileStorage.$$deleteEntry(fileId, 0);
-        } else {
-            fileId = CommonUtils.getUUIDForMongoDB();
-        }
+
         await FileStorage.$$saveEntry(
-            fileId,
+            fileIdToCreate,
             0, // version
             {
                 type: fileType,
@@ -189,29 +228,9 @@ export class FileRequestHandler {
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
-        if (reqParam.scenario === FileAPIScenario.UpdateUserLogo) {
-            UserModelWrapper.$$updateOne(
-                { uid: currentUser.uid } as UserObject,
-                {
-                    logoState: currentUser.logoState,
-                } as UserObject);
-        } else if (reqParam.scenario === FileAPIScenario.UpdateUserFrontId) {
-            currentUser.frontIdUid = fileId;
-            UserModelWrapper.$$updateOne(
-                { uid: currentUser.uid } as UserObject,
-                {
-                    frontIdUid: currentUser.frontIdUid,
-                    frontIdState: currentUser.frontIdState,
-                } as UserObject);
-        } else if (reqParam.scenario === FileAPIScenario.UpdateUserBackId) {
-            currentUser.backIdUid = fileId;
-            UserModelWrapper.$$updateOne(
-                { uid: currentUser.uid } as UserObject,
-                {
-                    backIdUid: currentUser.backIdUid,
-                    backIdState: currentUser.backIdState,
-                } as UserObject);
-        }
+        await UserModelWrapper.$$updateOne(
+            { uid: currentUser.uid } as UserObject,
+            updatedProps);
 
         return UserRequestHandler.$$convertToDBView(currentUser);
     }
@@ -312,6 +331,16 @@ export class FileRequestHandler {
                 // only admin or owner can download logo
                 if (!CommonUtils.isAdmin(currentUser.roles) &&
                     currentUser.frontIdUid !== reqParam.fileId) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
+            case FileAPIScenario.DownloadTaskResultFile:
+                const taskObj: TaskObject = await TaskModelWrapper.$$findOne(
+                    { resultFileUid: reqParam.fileId } as TaskObject) as TaskObject;
+                if (taskObj == null) {
+                    throw new ApiError(ApiResultCode.DbNotFound);
+                }
+                if (taskObj.publisherUid !== currentUser.uid) {
                     throw new ApiError(ApiResultCode.AuthForbidden);
                 }
                 break;

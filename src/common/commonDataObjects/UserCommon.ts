@@ -5,7 +5,7 @@ import { UserType } from 'common/UserTypes';
 import { CommonObject } from './CommonObject';
 
 
-export class CommonUser extends CommonObject {
+export class UserCommon extends CommonObject {
     public name?: string;
     public nickName?: string;
     public email?: string;
@@ -15,6 +15,12 @@ export class CommonUser extends CommonObject {
     public frontIdState?: CheckState;
     public backIdUid?: string;
     public backIdState?: CheckState;
+    public licenseUid?: string;
+    public licenseState?: CheckState;
+    public licenseWithPersonUid?: string;
+    public licenseWidthPersonState?: CheckState;
+    public authLetterUid?: string;
+    public authLetterState?: CheckState;
     public telephone?: string;
     public roles?: UserRole[];
     public type?: UserType;
@@ -31,33 +37,45 @@ export class CommonUser extends CommonObject {
     public province?: string;
     public city?: string;
     public district?: string;
+    public idState?: CheckState;
+    public idCheckNote?: string;
+    public qualificationCheckNote?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
+            this.address = '';
+            this.authLetterState = CheckState.Missed;
+            this.authLetterUid = '';
             this.backIdState = CheckState.Missed;
             this.backIdUid = '';
+            this.city = '';
+            this.description = '';
+            this.district = '';
             this.email = '';
             this.frontIdState = CheckState.Missed;
             this.frontIdUid = '';
+            this.idCheckNote = '';
+            this.idState = CheckState.Missed;
+            this.identityNumber = '';
+            this.licenseState = CheckState.Missed;
+            this.licenseUid = '';
+            this.licenseWithPersonUid = '';
+            this.licenseWidthPersonState = CheckState.Missed;
             this.logoUid = '';
             this.logoState = CheckState.Missed;
             this.name = '';
             this.nickName = '';
             this.telephone = '';
-            this.roles = [];
-            this.state = UserState.None;
-            this.type = UserType.None;
+            this.province = '';
             this.qualificationUid = '';
             this.qualificationVersion = -1;
             this.qualificationState = CheckState.Missed;
+            this.qualificationCheckNote = '';
             this.realName = '';
+            this.roles = [];
             this.sex = -1;
-            this.address = '';
-            this.description = '';
-            this.identityNumber = '';
-            this.province = '';
-            this.city = '';
-            this.district = '';
+            this.state = UserState.None;
+            this.type = UserType.None;
         }
     }
 }

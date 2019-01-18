@@ -14,62 +14,7 @@
       >
         <el-table-column type="expand">
           <template slot-scope="props">
-            <el-row>
-              <el-col :span="1">
-                名称:
-              </el-col>
-              <el-col :span="4">
-                {{props.row.name}}
-              </el-col>
-              <el-col :span="1">
-                金额:
-              </el-col>
-              <el-col :span="4">
-                {{props.row.reward}}
-              </el-col>
-              <el-col :span="1">
-                状态:
-              </el-col>
-              <el-col :span="4">
-                {{taskStateToText(props.row.state)}}
-              </el-col>
-              <el-col :span="1">
-                发布人:
-              </el-col>
-              <el-col :span="4">
-                {{ props.row.publisherName }}
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="6">
-                任务对象所在区域:
-              </el-col>
-              <el-col :span="4">
-                {{ locationToText(props.row) }}
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="1">
-                申请人:
-              </el-col>
-              <el-col :span="4">
-                {{ applicantName(props.row.applicantName) }}
-              </el-col>
-              <el-col :span="1">
-                执行人:
-              </el-col>
-              <el-col :span="4">
-                {{ executorName(props.row.executorName) }}
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="1">
-                备注:
-              </el-col>
-              <el-col :span="23">
-                {{ props.row.note }}
-              </el-col>
-            </el-row>
+            <TaskDetailInTableVue :dataProp="props"></TaskDetailInTableVue>
           </template>
         </el-table-column>
         <el-table-column
@@ -108,7 +53,7 @@
             <el-button
               type="primary"
               size="mini"
-              @click="onTaskAuditApproved(scope.row)"
+              @click="onTaskAuditAccepted(scope.row)"
             >批准发布</el-button>
             <el-button
               type="danger"
@@ -132,62 +77,7 @@
           >
             <el-table-column type="expand">
               <template slot-scope="props">
-                <el-row>
-                  <el-col :span="1">
-                    名称:
-                  </el-col>
-                  <el-col :span="4">
-                    {{props.row.name}}
-                  </el-col>
-                  <el-col :span="1">
-                    金额:
-                  </el-col>
-                  <el-col :span="4">
-                    {{props.row.reward}}
-                  </el-col>
-                  <el-col :span="1">
-                    状态:
-                  </el-col>
-                  <el-col :span="4">
-                    {{taskStateToText(props.row.state)}}
-                  </el-col>
-                  <el-col :span="1">
-                    发布人:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ props.row.publisherName }}
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="6">
-                    任务对象所在区域:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ locationToText(props.row) }}
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="1">
-                    申请人:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ applicantName(props.row.applicantName) }}
-                  </el-col>
-                  <el-col :span="1">
-                    执行人:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ executorName(props.row.executorName) }}
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="1">
-                    备注:
-                  </el-col>
-                  <el-col :span="23">
-                    {{ props.row.note }}
-                  </el-col>
-                </el-row>
+                <TaskDetailInTableVue :dataProp="props"></TaskDetailInTableVue>
               </template>
             </el-table-column>
             <el-table-column
@@ -221,9 +111,13 @@
                 <el-button
                   type="primary"
                   size="mini"
-                  :disabled="!isTaskApplied(scope.$index, scope.row)"
-                  @click="onSelectTaskResultUpload(scope.$index, scope.row)"
-                >提交任务结果</el-button>
+                  @click="onTaskApplyAditAccepted(scope.$index, scope.row)"
+                >批准申请</el-button>
+                <el-button
+                  type="warning"
+                  size="mini"
+                  @click="onTaskApplyAditDenied(scope.$index, scope.row)"
+                >拒绝申请</el-button>
               </template>
             </el-table-column>
           </el-table>

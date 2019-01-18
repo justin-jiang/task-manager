@@ -1,6 +1,6 @@
 import { getPropKeys } from 'common/commonDataObjects/CommonObject';
-import { CommonUser } from 'common/commonDataObjects/CommonUser';
-export class UserObject extends CommonUser {
+import { UserCommon } from 'common/commonDataObjects/UserCommon';
+export class UserObject extends UserCommon {
     public publishedTaskCount?: number;
     public executedTaskCount?: number;
     public executorStar?: number;

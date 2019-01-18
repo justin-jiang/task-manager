@@ -134,62 +134,7 @@
           >
             <el-table-column type="expand">
               <template slot-scope="props">
-                <el-row>
-                  <el-col :span="1">
-                    名称:
-                  </el-col>
-                  <el-col :span="4">
-                    {{props.row.name}}
-                  </el-col>
-                  <el-col :span="1">
-                    金额:
-                  </el-col>
-                  <el-col :span="4">
-                    {{props.row.reward}}
-                  </el-col>
-                  <el-col :span="1">
-                    状态:
-                  </el-col>
-                  <el-col :span="4">
-                    {{taskStateToText(props.row.state)}}
-                  </el-col>
-                  <el-col :span="1">
-                    发布人:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ props.row.publisherName }}
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="6">
-                    任务对象所在区域:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ locationToText(props.row) }}
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="1">
-                    申请人:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ applicantName(props.row.applicantName) }}
-                  </el-col>
-                  <el-col :span="1">
-                    执行人:
-                  </el-col>
-                  <el-col :span="4">
-                    {{ executorName(props.row.executorName) }}
-                  </el-col>
-                </el-row>
-                <el-row>
-                  <el-col :span="1">
-                    备注:
-                  </el-col>
-                  <el-col :span="23">
-                    {{ props.row.note }}
-                  </el-col>
-                </el-row>
+                <TaskDetailInTableVue :dataProp="props"></TaskDetailInTableVue>
               </template>
             </el-table-column>
             <el-table-column
@@ -229,21 +174,31 @@
               </template>
               <template slot-scope="scope">
                 <el-button
-                  v-if="isTaskApplying(scope.row)"
+                  v-if="isTaskReadyToAssign(scope.row)"
                   size="mini"
-                  @click="onTaskApplyAccept(scope.$index, scope.row)"
+                  @click="onTaskApplyAccepted(scope.$index, scope.row)"
                 >接受申请</el-button>
                 <el-button
-                  v-if="isTaskApplying(scope.row)"
+                  v-if="isTaskReadyToAssign(scope.row)"
                   size="mini"
-                  @click="onTaskApplyDeny(scope.$index, scope.row)"
+                  @click="onTaskApplyDenied(scope.$index, scope.row)"
                 >拒绝申请</el-button>
                 <el-button
                   type="primary"
                   size="mini"
-                  v-if="isTaskResultUploaded(scope.$index, scope.row)"
-                  @click="onTaskResultCheck(scope.$index, scope.row)"
-                >任务结果下载审核</el-button>
+                  v-if="isTaskResultUploaded(scope.row)"
+                  @click="onTaskResultDownload(scope.$index, scope.row)"
+                >任务结果下载</el-button>
+                <el-button
+                  v-if="isTaskResultUploaded(scope.row)"
+                  size="mini"
+                  @click="onTaskResultAccepting(scope.$index, scope.row)"
+                >通过</el-button>
+                <el-button
+                  v-if="isTaskResultUploaded(scope.row)"
+                  size="mini"
+                  @click="onTaskResultDenied(scope.$index, scope.row)"
+                >拒绝</el-button>
                 <el-button
                   size="mini"
                   @click="onTaskSelect(scope.$index, scope.row)"
@@ -261,6 +216,7 @@
       <el-row style="padding-top:100px">
         <el-col :span="24">
           <el-collapse
+            :id="editCollapseName"
             v-model="activeCollapseNames"
             @change="onCollapseChange"
           >
@@ -317,46 +273,39 @@
       </el-row>
       <el-dialog
         width="30%"
-        title="任务结果审核"
+        title="任务结果审核通过"
         :show-close="false"
         :close-on-click-modal="false"
         :close-on-press-escape="false"
-        :visible.sync="taskResultCheckDialogVisible"
+        :visible.sync="taskResultAcceptDialogVisible"
       >
         <el-row>
           <el-col :span="24">
-            <span style="display:block;">点击下载</span>
-            <el-button
-              icon="el-icon-download"
-              circle
-              @click="onTaskResultDownload"
-            ></el-button>
+            <el-rate
+              v-model="taskResultRate"
+              show-text
+            >
+            </el-rate>
           </el-col>
         </el-row>
         <el-row>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-button
               size="mini"
               type="primary"
-              @click="onTaskResultCheckAccepted()"
-            >通过</el-button>
+              @click="onTaskResultAccepted()"
+            >确认</el-button>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-button
               size="mini"
               type="primary"
-              @click="onTaskResultCheckDenied()"
-            >拒绝</el-button>
-          </el-col>
-          <el-col :span="8">
-            <el-button
-              size="mini"
-              type="primary"
-              @click="onTaskResultCheckCanceled()"
+              @click="onTaskResultCanceled()"
             >取消</el-button>
           </el-col>
         </el-row>
       </el-dialog>
+
     </el-tab-pane>
   </el-tabs>
 </template>
@@ -368,7 +317,4 @@ export default class PublisherVue extends PublisherTaskTS {}
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
-.el-row {
-  margin-bottom: 20px;
-}
 </style>

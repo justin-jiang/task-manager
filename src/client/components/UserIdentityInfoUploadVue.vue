@@ -9,7 +9,7 @@
           :rules="formRules"
           :ref="formRefName"
           style="max-width:1000px; min-width:500px;"
-          label-width="160px"
+          label-width="200px"
           class="form-idUpload"
           :disabled="isSubmitting"
         >
@@ -44,52 +44,50 @@
 
           <el-form-item
             :label="labelOfArea"
-            prop="address"
+            prop="area"
           >
-            <el-row>
-              <el-col :span="8">
-                <el-select
-                  v-model="formDatas.province"
-                  placeholder="请选择省或直辖市"
+            <el-col :span="8">
+              <el-select
+                v-model="formDatas.province"
+                placeholder="请选择省或直辖市"
+              >
+                <el-option
+                  v-for="item in provinces"
+                  :key="item"
+                  :label="item"
+                  :value="item"
                 >
-                  <el-option
-                    v-for="item in provinces"
-                    :key="item"
-                    :label="item"
-                    :value="item"
-                  >
-                  </el-option>
-                </el-select>
-              </el-col>
-              <el-col :span="8">
-                <el-select
-                  v-model="formDatas.city"
-                  placeholder="请选择市"
+                </el-option>
+              </el-select>
+            </el-col>
+            <el-col :span="8">
+              <el-select
+                v-model="formDatas.city"
+                placeholder="请选择市"
+              >
+                <el-option
+                  v-for="item in cities"
+                  :key="item"
+                  :label="item"
+                  :value="item"
                 >
-                  <el-option
-                    v-for="item in cities"
-                    :key="item"
-                    :label="item"
-                    :value="item"
-                  >
-                  </el-option>
-                </el-select>
-              </el-col>
-              <el-col :span="8">
-                <el-select
-                  v-model="formDatas.district"
-                  placeholder="请选择区"
+                </el-option>
+              </el-select>
+            </el-col>
+            <el-col :span="8">
+              <el-select
+                v-model="formDatas.district"
+                placeholder="请选择区"
+              >
+                <el-option
+                  v-for="item in districts"
+                  :key="item"
+                  :label="item"
+                  :value="item"
                 >
-                  <el-option
-                    v-for="item in districts"
-                    :key="item"
-                    :label="item"
-                    :value="item"
-                  >
-                  </el-option>
-                </el-select>
-              </el-col>
-            </el-row>
+                </el-option>
+              </el-select>
+            </el-col>
           </el-form-item>
           <el-form-item
             :label="labelOfAddress"
@@ -98,8 +96,8 @@
             <el-input v-model="formDatas.address"></el-input>
           </el-form-item>
           <el-form-item
-            :label="labelOfFrontUploader"
-            prop="idNumber"
+            :label="labelOfFrontIdUploader"
+            prop=""
           >
             <SingleImageUploaderVue
               :ref="frontUploaderRefName"
@@ -107,13 +105,13 @@
               :noCropProp="true"
               :imageUidProp="frontIdUid"
               @imageChanged="onFrontIdImageChanged"
-              @success="onFrontUploadSuccess"
-              @failure="onFrontUploadFailure"
+              @success="onFrontIdUploadSuccess"
+              @failure="onFrontIdUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item
-            :label="labelOfBackUploader"
-            prop="idNumber"
+            :label="labelOfBackIdUploader"
+            prop="backIdUploader"
           >
             <SingleImageUploaderVue
               :ref="backUploaderRefName"
@@ -121,8 +119,53 @@
               :noCropProp="true"
               :imageUidProp="backIdUid"
               @imageChanged="onBackIdImageChanged"
-              @success="onBackUploadSuccess"
-              @failure="onBackUploadFailure"
+              @success="onBackIdUploadSuccess"
+              @failure="onBackIdUploadFailure"
+            ></SingleImageUploaderVue>
+          </el-form-item>
+          <el-form-item
+            label="营业执照副本照"
+            prop=""
+            v-if="isCorpUser"
+          >
+            <SingleImageUploaderVue
+              :ref="licenseUploaderRefName"
+              :filePostParamProp="licenseUploadParam"
+              :noCropProp="true"
+              :imageUidProp="licenseUid"
+              @imageChanged="onLicenseImageChanged"
+              @success="onLicenseUploadSuccess"
+              @failure="onLicenseUploadFailure"
+            ></SingleImageUploaderVue>
+          </el-form-item>
+          <el-form-item
+            label="负责人手持执照副本照"
+            prop=""
+            v-if="isCorpUser"
+          >
+            <SingleImageUploaderVue
+              :ref="licenseWithPersonUploaderRefName"
+              :filePostParamProp="licenseWithPersonUploadParam"
+              :noCropProp="true"
+              :imageUidProp="licenseWithPersonUid"
+              @imageChanged="onLicenseWithPersonImageChanged"
+              @success="onLicenseWithPersonUploadSuccess"
+              @failure="onLicenseWithPersonUploadFailure"
+            ></SingleImageUploaderVue>
+          </el-form-item>
+          <el-form-item
+            label="法人授权证书照"
+            prop=""
+            v-if="isCorpUser"
+          >
+            <SingleImageUploaderVue
+              :ref="authLetterUploaderRefName"
+              :filePostParamProp="authLetterUploadParam"
+              :noCropProp="true"
+              :imageUidProp="authLetterUid"
+              @imageChanged="onAuthLetterImageChanged"
+              @success="onAuthLetterUploadSuccess"
+              @failure="onAuthLetterUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item>
