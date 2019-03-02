@@ -14,8 +14,9 @@
     <el-row>
       <el-col :span="24">
         <img
-          alt="Error 5000"
+          style="max-height:600px;cursor: pointer;"
           src="../assets/error_500.jpg"
+          @click="onImageClick"
         ></el-col>
     </el-row>
 
@@ -23,7 +24,7 @@
 </template>
 
 <script lang="ts">
-import { ErrorTS } from './ErrorTS';
+import { ErrorTS } from "./ErrorTS";
 export default class ErrorVue extends ErrorTS {}
 </script>
 

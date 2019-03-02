@@ -28,7 +28,7 @@ export class PublisherTS extends Vue {
             default:
                 return this.taskIndex;
         }
-    };
+    }
     private isInitialized: boolean = false;
 
     private readonly templateIndex: string = `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Template}`;
@@ -63,9 +63,7 @@ export class PublisherTS extends Vue {
     @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
         const sessionInfo = currentValue;
-        if (sessionInfo != null && sessionInfo.roles != null && this.isInitialized === false) {
-            this.initialize();
-        }
+        this.initialize();
     }
 
     // #endregion
@@ -75,20 +73,10 @@ export class PublisherTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     private initialize() {
         const sessionInfo = this.storeState.sessionInfo;
-        if (sessionInfo.roles == null) {
-            // session info is not ready, wait
-        } else if (!CommonUtils.isUserReady(sessionInfo)) {
-            RouterUtils.goToUserRegisterView(this.$router, sessionInfo.roles[0])
-        } else if (CommonUtils.isPublisher(sessionInfo.roles)) {
+        if (CommonUtils.isPublisher(sessionInfo.roles)) {
             this.isInitialized = true;
             ComponentUtils.pullNotification(this);
-            if (this.$route.name === RouterName.Publisher) {
-                RouterUtils.goToPublisherDefaultView(this.$router);
-            }
-        } else {
-            RouterUtils.goToUserHomePage(this.$router, sessionInfo);
         }
     }
     // #endregion
-
 }

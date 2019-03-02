@@ -11,6 +11,7 @@ import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserNotificationView } from 'common/responseResults/UserNotificationView';
 import { Commit } from 'vuex';
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+import { StoreUtils } from 'client/common/StoreUtils';
 export const actions = {
 
     async [StoreActionNames.notificationQuery](
@@ -57,19 +58,7 @@ export const mutations = {
         stateInst.notificationObjs = objViews;
     },
     [StoreMutationNames.notificationItemReplace](state: IStoreState, updatedItem: UserNotificationView) {
-        if (updatedItem == null) {
-            LoggerManager.warn('updatedItem should not be null in StoreMutationNames.notificationItemReplace');
-            return;
-        }
-        let indexToBeReplaced: number = -1;
-        (state.notificationObjs).forEach((item, index) => {
-            if (item.uid === updatedItem.uid) {
-                indexToBeReplaced = index;
-            }
-        });
-        if (indexToBeReplaced !== -1) {
-            state.notificationObjs.splice(indexToBeReplaced, 1, updatedItem);
-        }
+        StoreUtils.replaceFromArray(state.notificationObjs, updatedItem);
     },
 
     [StoreMutationNames.notificationItemInsert](state: IStoreState, insertedItem: UserNotificationView) {

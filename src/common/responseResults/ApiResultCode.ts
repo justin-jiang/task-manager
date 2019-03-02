@@ -9,6 +9,7 @@ export enum ApiResultCode {
     InputInvalidParam = 21,
     InputInvalidScenario = 22,
     InputInvalidPassword = 23,
+    InputImageInvalidType = 24,
 
     AuthUnauthorized = 50,
     AuthForbidden = 51,

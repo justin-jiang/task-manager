@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-row style="padding-bottom:50px;font-size:20px;text-align:left;">
+    <el-row>
       <el-col :span=24>
         <span>系统管理员注册</span>
       </el-col>
@@ -25,4 +25,9 @@ export default class AdminRegisterVue extends AdminRegisterTS {}
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
+.el-row {
+  padding-bottom: 50px;
+  font-size: 20px;
+  text-align: left;
+}
 </style>

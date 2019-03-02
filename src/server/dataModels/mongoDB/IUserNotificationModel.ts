@@ -2,7 +2,7 @@ import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { Schema, SchemaOptions, SchemaTypeOpts } from 'mongoose';
 import { ApiError } from 'server/common/ApiError';
 import { BaseSchemaDef, IModel } from 'server/dataModels/mongoDB/IModel';
-import { keysOfIDBObject } from 'server/dataObjects/UserNotificationObject';
+import { keysOfUserNotificationObject } from 'server/dataObjects/UserNotificationObject';
 export const schemaName: string = 'userNotifications';
 const schemaOptions: SchemaOptions = {
     collection: schemaName,
@@ -12,7 +12,6 @@ const schemaDef = Object.assign({
     targetObjectUid: { type: String, required: true } as SchemaTypeOpts<any>,
     type: { type: Number, required: true } as SchemaTypeOpts<any>,
     state: { type: Number, required: true } as SchemaTypeOpts<any>,
-    title: { type: String, required: true } as SchemaTypeOpts<any>,
     content: { type: String } as SchemaTypeOpts<any>,
     optionData: { type: Schema.Types.Mixed, required: false } as SchemaTypeOpts<any>,
 }, BaseSchemaDef);
@@ -30,7 +29,7 @@ export interface IUserNotificationModel extends IModel {
 export const keysOfSchema: string[] = Object.keys(schemaDef);
 
 // do the prop check that all props in IXXXObject must be in keysOfSchema
-keysOfIDBObject.forEach((item) => {
+keysOfUserNotificationObject.forEach((item) => {
     if (!keysOfSchema.includes(item)) {
         throw new ApiError(ApiResultCode.DbSchemaPropMissed, `${item} missed in userNotification Schema`);
     }

@@ -20,6 +20,7 @@ const compToBeRegistered: any = {
 
 export interface ISingleFileUploadTS {
     reset(): void;
+    submit(): void;
 }
 
 @Component({
@@ -27,16 +28,22 @@ export interface ISingleFileUploadTS {
 })
 export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     // #region -- component props and methods
-    @Prop() public filePostParamProp!: FileUploadParam | undefined;
+    @Prop() public filePostParamProp!: FileUploadParam;
 
     // the submit button text
-    @Prop() public buttonTextProp!: | undefined;
+    @Prop() public buttonTextProp!: string;
 
-    @Prop() public fileTypesProp!: string[] | undefined;
+    @Prop() public fileTypesProp!: string[];
     @Prop() public fileSizeMProp!: number;
+
+    @Prop() public hideSubmitButtonProp!: boolean;
 
     public reset(): void {
         (this.$refs[this.uploaderRefName] as any).clearFiles();
+    }
+
+    public submit(): void {
+        this.onSubmit();
     }
 
     // #endregion
@@ -46,13 +53,13 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     private readonly uploadAPIURL = `${HttpPathItem.Api}/${HttpPathItem.File}`;
 
     // defaut button text which will be overridden by buttonTextProp if it is not null
-    private buttonText: string = '点击上传';
+    private buttonDefaultText: string = '点击上传';
     private readonly countLimit = 1;
     private fileList: File[] = [];
 
     private isSubmitting: boolean = false;
     private readonly keyNameOfuploadedFile: string = HttpUploadKey.File;
-    private acceptFileTypes: string = 'application/zip';
+    private acceptFileTypes: string = '';
 
     // used by el-uploader to upload the data with file together
     // which is used to create correponding DB object if required
@@ -60,7 +67,7 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
         scenario: FileAPIScenario.UpdateTemplateFile,
         optionData: '',
     } as FileUploadParam;
-    private uploadTip(): string {
+    private get uploadTip(): string {
         let fileTypes: string = '不限';
         let fileSizeLimit: string = '不限';
         if (this.fileTypesProp != null && this.fileTypesProp.length > 0) {
@@ -78,10 +85,15 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
         return `可上传文件类型：${fileTypes}，可上传文件最大值：${fileSizeLimit}`;
     }
 
-    private isReadyToSubmit(): boolean {
+    private get isReadyToSubmit(): boolean {
         return !this.isSubmitting && this.fileList.length > 0;
     }
-
+    private get buttonText(): string {
+        return this.buttonTextProp != null ? this.buttonTextProp : this.buttonDefaultText;
+    }
+    private get hideSubmitButton(): boolean {
+        return this.hideSubmitButtonProp === true;
+    }
     private beforeUpload(file: File): boolean {
         let isTypeMatched: boolean = true;
         let isSizeMatched: boolean = true;
@@ -128,11 +140,7 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
         if (apiResult.code === ApiResultCode.Success) {
             this.$emit(EventNames.UploadSuccess, apiResult);
         } else {
-            if (apiResult.code === ApiResultCode.DbDuplicateKey) {
-                this.$message.error(`所上传对象已存在，上传失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
-            } else {
-                this.$message.error(`上传失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
-            }
+            this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
             this.$emit(EventNames.UploadFailure);
         }
         this.reset();
@@ -146,9 +154,6 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        if (!CommonUtils.isNullOrEmpty(this.buttonTextProp)) {
-            this.buttonText = this.buttonTextProp as any as string;
-        }
         if (this.fileTypesProp != null && this.fileTypesProp.length > 0) {
             this.acceptFileTypes = this.fileTypesProp.join(',');
         }

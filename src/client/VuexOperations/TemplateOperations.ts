@@ -1,17 +1,18 @@
 import axios from 'axios';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+import { StoreUtils } from 'client/common/StoreUtils';
 import { LoggerManager } from 'client/LoggerManager';
 import { HttpUtils } from 'client/VuexOperations/HttpUtils';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { CommonUtils } from 'common/CommonUtils';
 import { HttpPathItem } from 'common/HttpPathItem';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TemplateView } from 'common/responseResults/TemplateView';
 import { Commit } from 'vuex';
-import { CommonUtils } from 'common/CommonUtils';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 export const actions = {
 
     /**
@@ -47,7 +48,7 @@ export const actions = {
             if (apiResult.code === ApiResultCode.Success) {
                 const removedItem: TemplateView = apiResult.data;
                 if (removedItem != null) {
-                    commit(StoreMutationNames.templateItemRemove, removedItem.uid);
+                    commit(StoreMutationNames.templateItemRemove, removedItem);
                 } else {
                     LoggerManager.warn('No removedItem');
                 }
@@ -84,35 +85,11 @@ export const mutations = {
         stateInst.templateObjs = objViews;
     },
     [StoreMutationNames.templateItemReplace](state: IStoreState, updatedItem: TemplateView) {
-        if (updatedItem == null) {
-            LoggerManager.warn('updatedItem should not be null in StoreMutationNames.templateItemReplace');
-            return;
-        }
-        let indexToBeReplaced: number = -1;
-        (state.templateObjs as TemplateView[]).forEach((item, index) => {
-            if (item.uid === updatedItem.uid) {
-                indexToBeReplaced = index;
-            }
-        });
-        if (indexToBeReplaced !== -1) {
-            state.templateObjs.splice(indexToBeReplaced, 1, updatedItem);
-        }
+        StoreUtils.replaceFromArray(state.templateObjs, updatedItem);
     },
 
-    [StoreMutationNames.templateItemRemove](state: IStoreState, removedItemUid: string) {
-        if (CommonUtils.isNullOrEmpty(removedItemUid)) {
-            LoggerManager.warn('removedItemUid shoud not be null in StoreMutationNames.templateItemRemove');
-            return;
-        }
-        let indexToBeRemoved: number = -1;
-        state.templateObjs.forEach((item: TemplateView, index: number) => {
-            if (item.uid === removedItemUid) {
-                indexToBeRemoved = index;
-            }
-        });
-        if (indexToBeRemoved !== -1) {
-            state.templateObjs.splice(indexToBeRemoved, 1);
-        }
+    [StoreMutationNames.templateItemRemove](state: IStoreState, removedItem: TemplateView) {
+        StoreUtils.replaceFromArray(state.templateObjs, removedItem);
     },
 
     [StoreMutationNames.templateItemInsert](state: IStoreState, insertedItem: TemplateView) {

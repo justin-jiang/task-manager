@@ -1,44 +1,37 @@
 export enum TaskState {
     None = 0,
+    // task is created and wait to be submitted by publisher
     Created = 1,
-    ReadyToApply = 2,
-    Applying = 3,
-    ReadyToAssign = 4,
-    Assigned = 5,
-    ResultUploaded = 6,
-    ResultDenied = 7,
-    Completed = 10,
-    Canceled = 11,
-    AuditDenied = 12,
-    ApplyAuditDenied = 13,
-}
+    // task has been submitted, info is waitted to be auditted by admin
+    Submitted = 2,
+    // info has been auditted by admin and wait for publisher to deposit
+    InfoPassed = 3,
+    // deposit has been auditted, deposit is waitted to be auditted by admin
+    Deposited = 4,
+    // both info and deposit has been auditted and wait to be applied by executors
+    ReadyToApply = 5,
+    // task has been applied by some executor and wait for margin
+    Applying = 6,
+    // executor has sumbit the margin and wait for be audit by admin
+    ReadyToAuditApply = 7,
+    // margin has been auditted and task has been assigned to the executor too, wait for the task regin from executor
+    Assigned = 8,
+    // task result has been uploaded by executor and wait to be auditted by admin
+    ResultUploaded = 9,
+    // task result has been auditted by admin and wait for the publisher check
+    ResultAudited = 10,
+    // publisher has acceptted the result and wait to be visited by admin
+    ResultChecked = 11,
+    // publisher visit has been done by admin and wait to pay to executor
+    PublisherVisited = 12,
+    // has paid to executor
+    ExecutorPaid = 13,
 
-export function getTaskStateText(state: TaskState): string {
-    switch (state) {
-        case TaskState.None:
-            return '未设置';
-        case TaskState.Created:
-            return '已创建';
-        case TaskState.ReadyToApply:
-            return '等待申请';
-        case TaskState.Applying:
-            return '申请中';
-        case TaskState.ReadyToAssign:
-            return '可指派';
-        case TaskState.Assigned:
-            return '已指派';
-        case TaskState.ResultUploaded:
-            return '已提交结果';
-        case TaskState.ResultDenied:
-            return '拒绝结果';
-        case TaskState.Completed:
-            return '已完成';
-        case TaskState.Canceled:
-            return '已取消';
-        case TaskState.AuditDenied:
-            return '拒绝发布';
-        default:
-            return '未知';
-    }
+    // some sub state which will be used in task histories
+    InfoAuditDenied = 101,
+    DepositAuditDenied = 102,
+    ApplyAuditDenied = 103,
+    ResultAuditDenied = 104,
+    ResultCheckDenied = 105,
 }
 

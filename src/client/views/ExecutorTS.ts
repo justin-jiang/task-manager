@@ -1,13 +1,12 @@
 import { RoutePathItem, RouterName, RouterUtils } from 'client/common/RouterUtils';
+import { ComponentUtils } from 'client/components/ComponentUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
-import { LoggerManager } from 'client/LoggerManager';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { CommonUtils } from 'common/CommonUtils';
+import { NotificationState } from 'common/NotificationState';
 import { UserView } from 'common/responseResults/UserView';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { NotificationState } from 'common/NotificationState';
-import { ComponentUtils } from 'client/components/ComponentUtils';
 const compToBeRegistered: any = {
     SingleFileUploadVue,
 };
@@ -56,9 +55,7 @@ export class ExecutorTS extends Vue {
     @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
         const sessionInfo = currentValue;
-        if (CommonUtils.isExecutor(sessionInfo.roles) && this.isInitialized === false) {
-            this.initialize();
-        }
+        this.initialize();
     }
     private initialize() {
         const sessionInfo = this.storeState.sessionInfo;

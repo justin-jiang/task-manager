@@ -24,17 +24,22 @@ export default new Router({
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Notification}`,
           name: RouterName.Admin_Notification,
-          component: () => import('./components/NotificationManagementVue.vue'),
+          component: () => import('./views/NotificationManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_User}`,
           name: RouterName.Admin_User,
-          component: () => import('./components/UserManagementVue.vue'),
+          component: () => import('./views/UserManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Task}`,
           name: RouterName.Admin_Task,
-          component: () => import('./components/AdminTaskVue.vue'),
+          component: () => import('./views/AdminTaskVue.vue'),
+        },
+        {
+          path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`,
+          name: RouterName.Admin_Template,
+          component: () => import('./views/AdminTemplateVue.vue'),
         },
       ],
     },
@@ -69,22 +74,22 @@ export default new Router({
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Task}`,
           name: RouterName.Publisher_Task,
-          component: () => import('./components/PublisherTaskVue.vue'),
+          component: () => import('./views/PublisherTaskVue.vue'),
         },
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Template}`,
           name: RouterName.Publisher_Template,
-          component: () => import('./components/TemplateManagementVue.vue'),
+          component: () => import('./views/TemplateManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Notification}`,
           name: RouterName.Publisher_Notification,
-          component: () => import('./components/NotificationManagementVue.vue'),
+          component: () => import('./views/NotificationManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_UserInfo}`,
           name: RouterName.Publisher_UserInfo,
-          component: () => import('./components/UserInfoVue.vue'),
+          component: () => import('./views/UserInfoVue.vue'),
         },
       ],
     },
@@ -98,17 +103,17 @@ export default new Router({
         {
           path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Task}`,
           name: RouterName.Executor_Task,
-          component: () => import('./components/ExecutorTaskVue.vue'),
+          component: () => import('./views/ExecutorTaskVue.vue'),
         },
         {
           path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Notification}`,
           name: RouterName.Executor_Notification,
-          component: () => import('./components/NotificationManagementVue.vue'),
+          component: () => import('./views/NotificationManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_UserInfo}`,
           name: RouterName.Executor_UserInfo,
-          component: () => import('./components/UserInfoVue.vue'),
+          component: () => import('./views/UserInfoVue.vue'),
         },
       ],
     },

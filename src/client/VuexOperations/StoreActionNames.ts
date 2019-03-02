@@ -6,8 +6,10 @@ export enum StoreActionNames {
     userEnable = 'userEnable',
     userDisable = 'userDisable',
     userRemove = 'userRemove',
+    userAccountInfoEdit = 'userAccountInfoEdit',
     userBasicInfoEdit = 'useBasicInfoEdit',
     userPasswordEdit = 'userPasswordEdit',
+    userPasswordReset = 'userPasswordReset',
     // #endregion
 
     // #region -- File Actions
@@ -30,18 +32,25 @@ export enum StoreActionNames {
 
     // #region -- task actions
     // used by admin to check whether the task can be published
-    taskAudit = 'taskAudit',
-    taskCreation = 'taskCreation',
-    taskQuery = 'taskQuery',
+    taskInfoAudit = 'taskInfoAudit',
     taskApply = 'taskApply',
-    // used by admin to check the task apply 
-    // the publisher cannot see the apply until the admin approve the apply
     taskApplyAudit = 'taskAppyAudit',
     taskApplyCheck = 'taskAppyCheck',
     taskApplyDeny = 'taskAppyDeny',
+    taskApplyRemove = 'taskAppyRemove',
+    taskDepositAudit = 'taskDepositAudit',
+    taskBasicInfoEdit = 'taskBasicInfoEdit',
+    taskCreation = 'taskCreation',
+    taskHistoryQuery = 'taskHistoryQuery',
+    taskPublisherVisit = 'taskPublisherVisit',
+    taskQuery = 'taskQuery',
     taskRemove = 'taskRemove',
-    taskResultCheck = 'taskResultCheck',
 
+    // used by admin to audit the task result
+    taskResultAuit = 'taskResultAudit',
+    // used by publisher to check the task result
+    taskResultCheck = 'taskResultCheck',
+    taskSubmit = 'taskSubmit',
     // #endregion
 
     // #region -- notfication actions

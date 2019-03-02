@@ -1,9 +1,16 @@
 import { actions as fileActions, mutations as fileMutations } from 'client/VuexOperations/FileOperations';
-import { actions as sessionActions, mutations as sessionMutations, getters as sessionGetters } from 'client/VuexOperations/SessionOperations';
+import {
+  actions as sessionActions,
+  mutations as sessionMutations,
+  getters as sessionGetters,
+} from 'client/VuexOperations/SessionOperations';
 import { actions as templateActions, mutations as templateMutations } from 'client/VuexOperations/TemplateOperations';
 import { actions as userActions, mutations as userMutations } from 'client/VuexOperations/UserOperations';
 import { actions as taskActions, mutations as taskMutations } from 'client/VuexOperations/TaskOperations';
-import { actions as notificationActions, mutations as notificationMutations } from 'client/VuexOperations/NotificationOperations';
+import {
+  actions as notificationActions,
+  mutations as notificationMutations,
+} from 'client/VuexOperations/NotificationOperations';
 import Vue from 'vue';
 import Vuex, { ActionTree, MutationTree, GetterTree } from 'vuex';
 import { IStoreState } from './VuexOperations/IStoreState';

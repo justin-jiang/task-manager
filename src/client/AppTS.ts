@@ -3,19 +3,19 @@ import { msgConnectionIssue } from 'client/common/Constants';
 import { RouterUtils } from 'client/common/RouterUtils';
 import AvatarWithNameVue from 'client/components/AvatarWithNameVue.vue';
 import { ComponentUtils } from 'client/components/ComponentUtils';
-import { LoggerManager } from 'client/LoggerManager';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
+import { NOTIFICATION_PULL_INTERVAL } from 'common/Config';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserView } from 'common/responseResults/UserView';
+import { UserRole } from 'common/UserRole';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { StoreMutationNames } from './VuexOperations/StoreMutationNames';
-import { UserRole } from 'common/UserRole';
-import { FileAPIScenario } from 'common/FileAPIScenario';
 
 const compToBeRegistered: any = {
     AvatarWithNameVue,
@@ -31,15 +31,21 @@ export class AppTS extends Vue {
     private isInitialized: boolean = false;
     private interval: number = -1;
 
-    private get logUserName(): string {
+    private get logonUserName(): string {
         return this.storeState.sessionInfo.name as string;
     }
     private get logoUrl(): string {
         return this.storeState.sessionInfo.logoUrl as string;
     }
+    private get qualificationStar(): number | null {
+        return this.storeState.sessionInfo.qualificationStar || null;
+    }
+    private get qualificationScore(): number | null {
+        return this.storeState.sessionInfo.qualificationScore || null;
+    }
 
     private get isLogon(): boolean {
-        return !CommonUtils.isNullOrEmpty(this.logUserName);
+        return !CommonUtils.isNullOrEmpty(this.logonUserName);
     }
     private handleCommand(command: string): void {
         (async () => {
@@ -52,7 +58,7 @@ export class AppTS extends Vue {
                     apiResult.code === ApiResultCode.AuthUnauthorized) {
                     RouterUtils.goToLoginView(this.$router);
                 } else {
-                    const errStr: string = `退出登录失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
+                    const errStr: string = `退出登录失败：${ApiErrorHandler.getTextByCode(apiResult)}`;
                     RouterUtils.goToErrorView(this.$router, this.storeState, errStr);
                 }
             } else if (command === this.SessionInfoCommand) {
@@ -70,17 +76,19 @@ export class AppTS extends Vue {
         (async () => {
             const apiResult: ApiResult = await this.store.dispatch(
                 StoreActionNames.sessionQuery, { notUseLocalData: true } as IStoreActionArgs);
+            ComponentUtils.pullNotification(this, false);
+            this.interval = setInterval(() => {
+                ComponentUtils.pullNotification(this, true);
+            }, NOTIFICATION_PULL_INTERVAL) as any as number;
             if (apiResult.code === ApiResultCode.Success) {
-                ComponentUtils.pullNotification(this, false);
-                this.interval = setInterval(() => {
-                    ComponentUtils.pullNotification(this, true);
-                }, 30000) as any as number;
-
-                const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(
-                    this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
-                if (logoUrl != null) {
-                    this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView)
+                if (!CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.logoUid)) {
+                    const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(
+                        this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
+                    if (logoUrl != null) {
+                        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView)
+                    }
                 }
+
                 if (!CommonUtils.isUserReady(this.storeState.sessionInfo)) {
                     RouterUtils.goToUserRegisterView(
                         this.$router, (this.storeState.sessionInfo.roles as UserRole[])[0]);
@@ -106,7 +114,7 @@ export class AppTS extends Vue {
             } else if (apiResult.code === ApiResultCode.SystemNotInitialized) {
                 RouterUtils.goToAdminRegisterView(this.$router);
             } else {
-                const errStr: string = `系统错误：${ApiErrorHandler.getTextByCode(apiResult.code)}`;
+                const errStr: string = `系统错误：${ApiErrorHandler.getTextByCode(apiResult)}`;
                 RouterUtils.goToErrorView(this.$router, this.storeState, errStr);
             }
         })().catch((ex) => {
@@ -142,6 +150,8 @@ export class AppTS extends Vue {
             RouterUtils.goToAdminUserManagementView(this.$router);
         } else if (RouterUtils.isHomeUrl()) {
             RouterUtils.goToUserHomePage(this.$router, this.storeState.sessionInfo);
+        } else if (RouterUtils.isPublishRoot()) {
+            RouterUtils.goToPublisherDefaultView(this.$router);
         }
     }
     // #endregion

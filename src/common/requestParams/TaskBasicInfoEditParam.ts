@@ -1,16 +1,12 @@
 import { IRequestParam } from 'common/requestParams/IRequestParam';
+import { TaskCreateParam } from './TaskCreateParam';
 
-export class TaskBasicInfoEditParam implements IRequestParam {
+export class TaskBasicInfoEditParam extends TaskCreateParam implements IRequestParam {
     public uid?: string;
-    public name?: string;
-    public reward?: string;
-    public note?: string;
     constructor(withFullProps?: boolean) {
+        super(withFullProps);
         if (withFullProps) {
-            this.name = '';
-            this.note = '';
-            this.reward = '';
-            this.note = '';
+            this.uid = '';
         }
     }
 }

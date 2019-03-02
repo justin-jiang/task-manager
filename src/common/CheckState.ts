@@ -1,6 +1,7 @@
 export enum CheckState {
-    Missed = 0,
-    ToBeChecked = 1,
-    Checked = 2,
-    FailedToCheck = 3,
+    NONE = 0,
+    Missed = 1,
+    ToBeChecked = 2,
+    Checked = 3,
+    FailedToCheck = 4,
 }

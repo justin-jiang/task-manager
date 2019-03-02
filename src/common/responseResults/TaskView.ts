@@ -1,51 +1,23 @@
 import { getPropKeys } from 'common/commonDataObjects/CommonObject';
-import { TaskState } from 'common/TaskState';
-import { DBObjectView } from './DBObjectView';
+import { TaskFullCommon } from 'common/commonDataObjects/TaskFullCommon';
 
-export class TaskView extends DBObjectView {
-    public name?: string;
-    public reward?: string;
-    public templateFileUid?: string;
-    public publisherUid?: string;
-    public publisherName?: string;
-    public applicantUid?: string;
+export class TaskView extends TaskFullCommon {
     public applicantName?: string;
-    public executorUid?: string;
+    // the url of depositImageUid
+    public depositImageUrl?: string;
     public executorName?: string;
-    public resultFileUid?: string;
-    public resultFileversion?: number;
-    public note?: string;
-    public state?: TaskState;
+    // the url of marginImageUid
+    public marginImageUrl?: string;
+    public publisherName?: string;
 
-    public createTime?: number;
-    public province?: string;
-    public city?: string;
-    public district?: string;
-    public address?: string;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
-        if (withFullProps === true) {
-            this.address = '';
-            this.applicantUid = '';
-            this.applicantName = '';
-            this.city = '';
-            this.createTime = 0;
-            this.district = '';
-            this.executorUid = '';
-            this.executorName = '';
-            this.name = '';
-            this.note = '';
-            this.province = '';
-            this.publisherUid = '';
-            this.publisherName = '';
-            this.resultFileUid = '';
-            this.resultFileversion = -1;
-            this.reward = '';
-            this.state = TaskState.None;
-            this.templateFileUid = '';
+        if (withFullProps) {
+            this.depositImageUrl = '';
+            this.marginImageUrl = '';
         }
     }
 }
 
 
-export const keysOfITaskView: string[] = getPropKeys(new TaskView(true));
+export const keysOfTaskView: string[] = getPropKeys(new TaskView(true));

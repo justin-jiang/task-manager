@@ -1,12 +1,8 @@
 import { IRequestParam } from 'common/requestParams/IRequestParam';
-
+/**
+ * the props of the class NEED the admin audit if they are updated
+ */
 export class UserBasicInfoEditParam implements IRequestParam {
-
-    public name?: string;
-    public nickName?: string;
-    public email?: string;
-    public telephone?: string;
-
     public realName?: string;
     public sex?: number;
     public address?: string;
@@ -16,20 +12,18 @@ export class UserBasicInfoEditParam implements IRequestParam {
     public province?: string;
     public city?: string;
     public district?: string;
+    public principalName?: string;
     constructor(withFullProps?: boolean) {
         if (withFullProps) {
             this.address = '';
             this.city = '';
             this.description = '';
             this.district = '';
-            this.email = '';
             this.identityNumber = '';
-            this.name = '';
-            this.nickName = '';
+            this.principalName = '';
             this.province = '';
             this.realName = '';
             this.sex = -1;
-            this.telephone = '';
         }
     }
 }

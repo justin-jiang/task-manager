@@ -4,6 +4,8 @@ import Vue from 'vue';
 import AppVue from './AppVue.vue';
 import router from './router';
 import store from './store';
+import 'viewerjs/dist/viewer.css';
+
 
 Vue.config.productionTip = false;
 Vue.use(ElementUI);

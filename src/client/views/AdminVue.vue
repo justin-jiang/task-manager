@@ -11,6 +11,7 @@
         >
           <el-menu-item :index="userIndex">用户管理</el-menu-item>
           <el-menu-item :index="taskIndex">任务管理</el-menu-item>
+          <el-menu-item :index="templateIndex">模板管理</el-menu-item>
           <el-menu-item :index="notificationIndex">
             消息中心
             <el-badge

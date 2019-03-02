@@ -4,6 +4,11 @@ export class TemplateEditParam implements IRequestParam {
     public uid?: string;
     public name?: string;
     public note?: string;
-    constructor() {
+    constructor(withAllProps?: boolean) {
+        if (withAllProps) {
+            this.uid = '';
+            this.name = '';
+            this.note = '';
+        }
     }
 }

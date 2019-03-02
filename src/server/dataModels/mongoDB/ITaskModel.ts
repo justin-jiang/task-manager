@@ -10,20 +10,45 @@ const schemaOptions: SchemaOptions = {
 const schemaDef = Object.assign({
     // the case-insentive index will be created in XXXWrapper.$$warmUp
     name: { type: String, required: true } as SchemaTypeOpts<any>,
-    reward: { type: String, required: true },
+    reward: { type: Number, required: true },
     templateFileUid: { type: String, required: true },
     publisherUid: { type: String, required: true },
     applicantUid: { type: String },
     executorUid: { type: String },
     resultFileUid: { type: String },
     resultFileversion: { type: Number },
+    resultTime: { type: Number },
     note: { type: String },
     state: { type: Number, required: true },
     province: { type: String, required: true },
     city: { type: String, required: true },
     district: { type: String, required: true },
+    // the target company address
     address: { type: String, required: true },
-
+    companyName: { type: String, required: true },
+    companyContact: { type: String, required: true },
+    contactPhone: { type: String, required: true },
+    contactEmail: { type: String, required: true },
+    proposedMargin: { type: Number, required: true },
+    actualMargin: { type: Number },
+    deadline: { type: Number, required: true },
+    // whether the task is suspended
+    suspended: { type: Number },
+    reasonForSuspend: { type: String },
+    // conditions for the executor
+    minExecutorStar: { type: Number, required: true },
+    executorTypes: { type: [Number], required: true },
+    receiptRequired: { type: Number },
+    histories: { type: [Schema.Types.Mixed] },
+    depositImageUid: { type: String },
+    depositRefundImageUid: { type: String },
+    marginImageUid: { type: String },
+    marginRefundImageUid: { type: String },
+    adminSatisfiedStar: { type: Number },
+    publisherResultSatisfactionStar: { type: Number },
+    publisherVisitStar: { type: Number },
+    publisherVisitNote: { type: String },
+    publishTime: { type: Number },
 }, BaseSchemaDef);
 /**
  * User Schema

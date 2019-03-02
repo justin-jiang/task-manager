@@ -1,24 +1,22 @@
+import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
-import { LIMIT_LOGO_SIZE_M } from 'common/Config';
+import { LIMIT_LOGO_SIZE_M, LIMIT_FILE_SIZE_M } from 'common/Config';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileType } from 'common/FileType';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { FileRemoveParam } from 'common/requestParams/FileRemoveParam';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
+import { TaskDepositImageUploadParam } from 'common/requestParams/TaskDepositImageUploadParam';
 import { TaskResultFileUploadParam } from 'common/requestParams/TaskResultFileUploadParam';
 import { TemplateCreateParam } from 'common/requestParams/TemplateCreateParam';
 import { TemplateFileEditParam } from 'common/requestParams/TemplateFileEditParam';
-import { UserCreateParam } from 'common/requestParams/UserCreateParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { CheckState } from 'common/CheckState';
 import { TaskView } from 'common/responseResults/TaskView';
 import { TemplateView } from 'common/responseResults/TemplateView';
 import { UserView } from 'common/responseResults/UserView';
 import { TaskState } from 'common/TaskState';
-import { UserState } from 'common/UserState';
 import { Response } from 'express';
 import { ApiError } from 'server/common/ApiError';
-import { AppStatus } from 'server/common/AppStatus';
 import { TaskModelWrapper } from 'server/dataModels/TaskModelWrapper';
 import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
 import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
@@ -30,25 +28,49 @@ import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { TemplateRequestHandler } from 'server/requestHandlers/TemplateRequestHandler';
 import { UserRequestHandler } from 'server/requestHandlers/UserRequestHandler';
 import { TaskRequestHandler } from './TaskRequestHandler';
+import { UserState } from 'common/UserState';
+import { TaskHistoryItem } from 'common/TaskHistoryItem';
+import { RequestUtils } from './RequestUtils';
+import { TaskMarginImageUploadParam } from 'common/requestParams/TaskMarginImageUploadParam';
 export class FileRequestHandler {
+    // #region -- template related methods
+    /**
+     * create a template object with file upload
+     * which is used by publisher to create task template
+     * @param fileData 
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$createTemplate(
-        fileData: Express.Multer.File | NodeJS.ReadableStream,
+        fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TemplateView> {
-        // only publisher user can create Template
-        if (!CommonUtils.isPublisher(currentUser.roles)) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
+        // only ready publisher user can create Template
+        if (!CommonUtils.isReadyPublisher(currentUser)) {
+            throw new ApiError(ApiResultCode.AuthForbidden, `Publisher:${currentUser.uid} Not Ready`);
         }
+        this.checkFileSize(fileData);
         const optionData: TemplateCreateParam = JSON.parse(reqParam.optionData as string);
         const templateView: TemplateView = await this.$$createTemplateObject(
             optionData, currentUser, fileData as Express.Multer.File);
         return templateView;
     }
 
+    /**
+     * update template file by publisher owner
+     * @param fileData 
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$updateTemplateFile(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TemplateView> {
+        // only ready publisher user can invoke this mthod
+        if (!CommonUtils.isReadyPublisher(currentUser)) {
+            throw new ApiError(ApiResultCode.AuthForbidden, `Publisher:${currentUser.uid} Not Ready`);
+        }
+        this.checkFileSize(fileData);
 
         const metadata: TemplateFileEditParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.templateUid)) {
@@ -56,14 +78,15 @@ export class FileRequestHandler {
                 'TemplateFileEditParam.templateUid should not be null');
         }
         const dbObj: TemplateObject | null = await TemplateModelWrapper.$$findOne(
-            { uid: metadata.templateUid } as TemplateObject) as TemplateObject | null;
+            { templateFileUid: metadata.templateUid } as TemplateObject) as TemplateObject | null;
         if (dbObj == null) {
             throw new ApiError(ApiResultCode.DbNotFound, `TemplateId:${metadata.templateUid}`);
         }
 
         // only owner user can update Template file
-        if (dbObj.ownerUid !== currentUser.uid) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
+        if (dbObj.publisherUid !== currentUser.uid) {
+            throw new ApiError(ApiResultCode.AuthForbidden,
+                `publisher:${currentUser.uid} not owner of template:${dbObj.publisherUid}`);
         }
 
         const fileEntryId: string = dbObj.templateFileUid as string;
@@ -85,12 +108,26 @@ export class FileRequestHandler {
             { version: dbObj.version } as TemplateObject);
         return TemplateRequestHandler.$$convertToDBView(dbObj);
     }
+    // #endregion
+
+    // #region -- user related methods
+    /**
+     * update use qualification file which will cause user to go into qualification ToBeChecked State
+     * used by user self
+     * @param fileData 
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$updateQualification(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<UserView> {
         let fileEntryId: string;
         const updatedProps: UserObject = {};
+        if (currentUser.state === UserState.Disabled) {
+            throw new ApiError(ApiResultCode.AuthForbidden, `user:${currentUser.uid} disabled`);
+        }
+        this.checkFileSize(fileData);
         if (CommonUtils.isNullOrEmpty(currentUser.qualificationUid)) {
             fileEntryId = CommonUtils.getUUIDForMongoDB();
             updatedProps.qualificationUid = fileEntryId;
@@ -100,6 +137,7 @@ export class FileRequestHandler {
             updatedProps.qualificationVersion = currentUser.qualificationVersion as number + 1;
         }
         updatedProps.qualificationState = CheckState.ToBeChecked;
+
         await FileStorage.$$saveEntry(
             fileEntryId,
             updatedProps.qualificationVersion,
@@ -119,59 +157,42 @@ export class FileRequestHandler {
         return await UserRequestHandler.$$convertToDBView(currentUser);
     }
 
-    public static async $$createUser(
-        fileData: Express.Multer.File,
-        reqParam: FileUploadParam): Promise<UserView> {
-        if (reqParam == null || reqParam.optionData == null) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'FileUploadParam or FileUploadParam.metadata should not be null in $$createUser');
-        }
-
-        const optionData: UserCreateParam = JSON.parse(reqParam.optionData as string);
-        if (optionData == null || CommonUtils.isNullOrEmpty(optionData.name)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'FileUploadParam.metadata should not be null in $$createUser');
-        }
-        const userName: string = optionData.name as string;
-        if (CommonUtils.isNullOrEmpty(userName)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam, 'UserCreateParam.name');
-        }
-        const logoSize: number = (fileData as Express.Multer.File).size;
-        if (fileData.size / 1024 / 1024 > LIMIT_LOGO_SIZE_M) {
-            LoggerManager.error(`LogoSize:${logoSize} too large for user:${userName}`);
-            throw new ApiError(ApiResultCode.InputImageTooLarge);
-        }
-
-        // create user db object
-        const view: UserView = await this.$$createUserObject(optionData, fileData);
-        if (CommonUtils.isAdmin(view.roles)) {
-            AppStatus.isSystemInitialized = true;
-        }
-        return view;
-    }
-    public static async $$updateUserFile(
+    /**
+     * Update user Identity related images which will cause user to go into Id ToBoChecked state
+     * @param fileData 
+     * @param reqParam 
+     * @param currentUser 
+     */
+    public static async $$updateUserIdImages(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<UserView> {
-        const imageSize: number = (fileData as Express.Multer.File).size;
-        if ((fileData as Express.Multer.File).size / 1024 / 1024 > LIMIT_LOGO_SIZE_M) {
-            LoggerManager.error(`ImageSize:${imageSize} too large for user:${currentUser.name}`);
-            throw new ApiError(ApiResultCode.InputImageTooLarge);
+        if (currentUser.state === UserState.Disabled) {
+            throw new ApiError(ApiResultCode.AuthForbidden, `user:${currentUser.uid} disabled`);
         }
+        this.checkImageFileSize(fileData);
         let fileIdToCreate: string;
         let fileType: FileType;
         const updatedProps: UserObject = {};
+        updatedProps.idState = CheckState.ToBeChecked;
+
         switch (reqParam.scenario) {
             case FileAPIScenario.UpdateUserLogo:
-                fileIdToCreate = currentUser.logoUid as string;
+                if (CommonUtils.isNullOrEmpty(currentUser.logoUid)) {
+                    fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                    updatedProps.logoUid = fileIdToCreate;
+                } else {
+                    fileIdToCreate = currentUser.logoUid as string;
+                    // remove existing one
+                    await FileStorage.$$deleteEntry(fileIdToCreate, 0);
+                }
                 fileType = FileType.UserLogo;
                 updatedProps.logoState = CheckState.ToBeChecked;
-                // remove existing one
-                await FileStorage.$$deleteEntry(fileIdToCreate, 0);
                 break;
             case FileAPIScenario.UpdateUserFrontId:
                 if (CommonUtils.isNullOrEmpty(currentUser.frontIdUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                    updatedProps.frontIdUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.frontIdUid as string;
                     // remove existing one
@@ -183,6 +204,7 @@ export class FileRequestHandler {
             case FileAPIScenario.UpdateUserBackId:
                 if (CommonUtils.isNullOrEmpty(currentUser.backIdUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                    updatedProps.backIdUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.backIdUid as string;
                     // remove existing one
@@ -194,6 +216,7 @@ export class FileRequestHandler {
             case FileAPIScenario.UpdateLicense:
                 if (CommonUtils.isNullOrEmpty(currentUser.licenseUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                    updatedProps.licenseUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.licenseUid as string;
                     // remove existing one
@@ -205,6 +228,7 @@ export class FileRequestHandler {
             case FileAPIScenario.UpdateLicenseWithPersion:
                 if (CommonUtils.isNullOrEmpty(currentUser.licenseWithPersonUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                    updatedProps.licenseWithPersonUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.licenseWithPersonUid as string;
                     // remove existing one
@@ -212,6 +236,18 @@ export class FileRequestHandler {
                 }
                 fileType = FileType.LicenseWithPerson;
                 updatedProps.licenseWidthPersonState = CheckState.ToBeChecked;
+                break;
+            case FileAPIScenario.UpdateAuthLetter:
+                if (CommonUtils.isNullOrEmpty(currentUser.authLetterUid)) {
+                    fileIdToCreate = CommonUtils.getUUIDForMongoDB();
+                    updatedProps.authLetterUid = fileIdToCreate;
+                } else {
+                    fileIdToCreate = currentUser.authLetterUid as string;
+                    // remove existing one
+                    await FileStorage.$$deleteEntry(fileIdToCreate, 0);
+                }
+                fileType = FileType.AuthLetter;
+                updatedProps.authLetterState = CheckState.ToBeChecked;
                 break;
             default:
                 LoggerManager.error(`Unsupported FileUploadParam.scenario:${reqParam.scenario}`);
@@ -231,40 +267,54 @@ export class FileRequestHandler {
         await UserModelWrapper.$$updateOne(
             { uid: currentUser.uid } as UserObject,
             updatedProps);
-
+        Object.assign(currentUser, updatedProps);
         return UserRequestHandler.$$convertToDBView(currentUser);
     }
+    // #endregion
 
+    // #region -- task related methods
+    /**
+     * update Task Result file which will cause Task to go into ResultUploaded state
+     * used by assigned executor
+     * @param fileData 
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$updateTaskResultFile(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
-        currentDBUser: UserObject): Promise<TaskView> {
+        currentUser: UserObject): Promise<TaskView> {
         // only task executor can update Result file
-        if (!CommonUtils.isExecutor(currentDBUser.roles)) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
-        }
-
+        RequestUtils.readyExecutorCheck(currentUser);
+        this.checkFileSize(fileData);
         const metadata: TaskResultFileUploadParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TaskResultFileUploadParam.uid should not be null');
         }
-        const dbObj: TaskObject | null = await TaskModelWrapper.$$findOne(
-            { uid: metadata.uid } as TaskObject) as TaskObject | null;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound, `TaskId:${metadata.uid}`);
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Assigned);
+        if (dbObj.executorUid !== currentUser.uid) {
+            throw new ApiError(ApiResultCode.AuthForbidden,
+                `Task:${dbObj.name} is not assigned to Executor:${currentUser.name}`);
         }
-        if (dbObj.executorUid !== currentDBUser.uid) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
-        }
+        
         const updatedProps: TaskObject = new TaskObject();
+        updatedProps.state = TaskState.ResultUploaded;
+        updatedProps.resultTime = Date.now();
         if (CommonUtils.isNullOrEmpty(dbObj.resultFileUid)) {
             updatedProps.resultFileUid = CommonUtils.getUUIDForMongoDB();
             updatedProps.resultFileversion = 0;
         } else {
             updatedProps.resultFileversion = dbObj.resultFileversion as number + 1;
         }
-        updatedProps.state = TaskState.ResultUploaded;
+        updatedProps.histories = dbObj.histories;
+        (updatedProps.histories as TaskHistoryItem[]).push({
+            uid: CommonUtils.getUUIDForMongoDB(),
+            createTime: Date.now(),
+            state: TaskState.ResultUploaded,
+            description: '',
+        } as TaskHistoryItem);
+
         Object.assign(dbObj, updatedProps);
         await FileStorage.$$saveEntry(
             dbObj.resultFileUid as string,
@@ -276,32 +326,147 @@ export class FileRequestHandler {
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
-        // update version
+        // update object
         await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
+    /**
+     * update task deposit image which will cause task to be Deposited state
+     * used by publisher owner
+     * @param fileData 
+     * @param reqParam 
+     * @param currentUser 
+     */
+    public static async $$updateTaskDepositImage(
+        fileData: Express.Multer.File,
+        reqParam: FileUploadParam,
+        currentUser: UserObject): Promise<TaskView> {
+
+        if (!CommonUtils.isReadyPublisher(currentUser)) {
+            throw new ApiError(ApiResultCode.AuthForbidden, `User:${currentUser.name} is not a ready Publisher`);
+        }
+        this.checkImageFileSize(fileData);
+        const metadata: TaskDepositImageUploadParam = JSON.parse(reqParam.optionData as string);
+        if (CommonUtils.isNullOrEmpty(metadata.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'TaskDepositImageUploadParam.uid should not be null');
+        }
+        const dbObj: TaskObject | null = await TaskModelWrapper.$$findOne(
+            { uid: metadata.uid } as TaskObject) as TaskObject | null;
+        if (dbObj == null) {
+            throw new ApiError(ApiResultCode.DbNotFound, `TaskId:${metadata.uid}`);
+        }
+        if (dbObj.publisherUid !== currentUser.uid) {
+            throw new ApiError(ApiResultCode.AuthForbidden,
+                `User:${currentUser.name} is not owner of task:${dbObj.uid}`);
+        }
+        const updatedProps: TaskObject = new TaskObject();
+        updatedProps.state = TaskState.Deposited;
+        updatedProps.receiptRequired = metadata.receiptRequired;
+        if (CommonUtils.isNullOrEmpty(dbObj.depositImageUid)) {
+            updatedProps.depositImageUid = CommonUtils.getUUIDForMongoDB();
+        } else {
+            // remove existing one
+            await FileStorage.$$deleteEntry(dbObj.depositImageUid as string, 0);
+        }
+
+        Object.assign(dbObj, updatedProps);
+        await FileStorage.$$saveEntry(
+            dbObj.depositImageUid as string,
+            0,
+            {
+                type: FileType.Deposit,
+                checked: true,
+                originalFileName: fileData.originalname,
+            } as IFileMetaData,
+            (fileData as Express.Multer.File).buffer);
+
+        // update object
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
+        return TaskRequestHandler.$$convertToDBView(dbObj);
+    }
+
+    /**
+     * update task margin image which will cause task to be ReadyToAuditApply state
+     * used by executor owner
+     * @param fileData 
+     * @param reqParam 
+     * @param currentUser 
+     */
+    public static async $$updateTaskMarginImage(
+        fileData: Express.Multer.File,
+        reqParam: FileUploadParam,
+        currentUser: UserObject): Promise<TaskView> {
+        RequestUtils.readyExecutorCheck(currentUser);
+        this.checkImageFileSize(fileData);
+        const metadata: TaskMarginImageUploadParam = JSON.parse(reqParam.optionData as string);
+        if (CommonUtils.isNullOrEmpty(metadata.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'TaskMarginImageUploadParam.uid should not be null');
+        }
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Applying);
+
+        if (dbObj.applicantUid !== currentUser.uid) {
+            throw new ApiError(ApiResultCode.AuthForbidden,
+                `User:${currentUser.name} is not applicant of task:${dbObj.uid}`);
+        }
+
+        const updatedProps: TaskObject = new TaskObject();
+        updatedProps.state = TaskState.ReadyToAuditApply;
+
+        if (CommonUtils.isNullOrEmpty(dbObj.marginImageUid)) {
+            updatedProps.marginImageUid = CommonUtils.getUUIDForMongoDB();
+        } else {
+            // remove existing one
+            await FileStorage.$$deleteEntry(dbObj.marginImageUid as string, 0);
+        }
+
+        Object.assign(dbObj, updatedProps);
+        await FileStorage.$$saveEntry(
+            dbObj.marginImageUid as string,
+            0,
+            {
+                type: FileType.Margin,
+                checked: true,
+                originalFileName: fileData.originalname,
+            } as IFileMetaData,
+            (fileData as Express.Multer.File).buffer);
+
+        // update object
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
+        return TaskRequestHandler.$$convertToDBView(dbObj);
+    }
+    // #endregion
+
+    /**
+     * every kind of file download
+     * @param reqParam 
+     * @param currentUser 
+     * @param res 
+     */
     public static async $$download(reqParam: FileDownloadParam, currentUser: UserObject, res: Response): Promise<void> {
         if (reqParam == null) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'FileDownloadParam should not be null');
-        }
-        if (CommonUtils.isNullOrEmpty(reqParam.fileId)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'FileDownloadParam.fileId should not be null');
         }
         if (reqParam.scenario == null) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'FileDownloadParam.scenario should not be null');
         }
 
-        if (reqParam.version == null) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'FileDownloadParam.version should not be null');
+        let fileId: string = '';
+        let version: number = -1;
+        if (!CommonUtils.isNullOrEmpty(reqParam.fileId)) {
+            fileId = reqParam.fileId as string;
+        }
+        if (reqParam.version != null) {
+            version = Number.parseInt(reqParam.version as any, 10);
         }
         // transform request param
         const scenario: FileAPIScenario = Number.parseInt(reqParam.scenario as any, 10);
         reqParam.scenario = scenario;
+        let taskObj: TaskObject;
         switch (scenario) {
             case FileAPIScenario.DownloadQualificationFile:
                 // only admin or owner can download the qualification
@@ -311,6 +476,12 @@ export class FileRequestHandler {
                 }
                 break;
             case FileAPIScenario.DownloadTemplateFile:
+                const template: TemplateObject = await TemplateModelWrapper.$$findOne(
+                    { templateFileUid: fileId } as TemplateObject) as TemplateObject;
+                if (template == null) {
+                    throw new ApiError(ApiResultCode.DbNotFound, `TemplateByFileUid:${fileId}`);
+                }
+                version = template.version as number;
                 // everyone can download template file
                 break;
             case FileAPIScenario.DownloadUserLogo:
@@ -334,103 +505,102 @@ export class FileRequestHandler {
                     throw new ApiError(ApiResultCode.AuthForbidden);
                 }
                 break;
+            case FileAPIScenario.DownloadAuthLetter:
+                // only admin or owner can download logo
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.authLetterUid !== reqParam.fileId) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
+            case FileAPIScenario.DownloadAuthLetter:
+                // only admin or owner can download logo
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.authLetterUid !== reqParam.fileId) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
+            case FileAPIScenario.DownloadLicense:
+                // only admin or owner can download logo
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.licenseUid !== reqParam.fileId) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
+            case FileAPIScenario.DownloadLinceWithPerson:
+                // only admin or owner can download logo
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.licenseWithPersonUid !== reqParam.fileId) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
             case FileAPIScenario.DownloadTaskResultFile:
-                const taskObj: TaskObject = await TaskModelWrapper.$$findOne(
+                taskObj = await TaskModelWrapper.$$findOne(
                     { resultFileUid: reqParam.fileId } as TaskObject) as TaskObject;
                 if (taskObj == null) {
+                    throw new ApiError(ApiResultCode.DbNotFound, `Task with resultFileUid:${reqParam.fileId}`);
+                }
+                if (!CommonUtils.isAdmin(currentUser.roles) && taskObj.publisherUid !== currentUser.uid) {
+                    throw new ApiError(ApiResultCode.AuthForbidden,
+                        `User:${currentUser.name} No Auth on task:${taskObj.name}`);
+                }
+                break;
+            case FileAPIScenario.DownloadQualificationTemplate:
+                const admin: UserObject = await UserModelWrapper.$$findOne(
+                    { uid: UserModelWrapper.adminUID } as UserObject) as UserObject;
+                if (CommonUtils.isNullOrEmpty(admin.qualificationUid)) {
                     throw new ApiError(ApiResultCode.DbNotFound);
                 }
-                if (taskObj.publisherUid !== currentUser.uid) {
+                fileId = admin.qualificationUid as string;
+                version = admin.qualificationVersion as number;
+                break;
+            case FileAPIScenario.DownloadTaskDepositImage:
+                taskObj = await TaskModelWrapper.$$findOne(
+                    { depositImageUid: reqParam.fileId } as TaskObject) as TaskObject;
+                if (taskObj == null) {
+                    throw new ApiError(ApiResultCode.DbNotFound, `depositImageUid:${reqParam.fileId}`);
+                }
+                // only admin or owner can download
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.uid !== taskObj.publisherUid) {
+                    throw new ApiError(ApiResultCode.AuthForbidden);
+                }
+                break;
+            case FileAPIScenario.DownloadTaskMarginImage:
+                taskObj = await TaskModelWrapper.$$findOne(
+                    { marginImageUid: reqParam.fileId } as TaskObject) as TaskObject;
+                if (taskObj == null) {
+                    throw new ApiError(ApiResultCode.DbNotFound, `marginImageUid:${reqParam.fileId}`);
+                }
+                // only admin or owner can download
+                if (!CommonUtils.isAdmin(currentUser.roles) &&
+                    currentUser.uid !== taskObj.publisherUid) {
                     throw new ApiError(ApiResultCode.AuthForbidden);
                 }
                 break;
             default:
                 throw new ApiError(ApiResultCode.InputInvalidScenario);
         }
-        reqParam.version = Number.parseInt(reqParam.version as any, 10);
-        const metadata = await FileStorage.$$getEntryMetaData(`${reqParam.fileId}_${reqParam.version}`);
+        if (CommonUtils.isNullOrEmpty(fileId) || version === -1) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'fileId and version should not be null');
+        }
+        const metadata = await FileStorage.$$getEntryMetaData(`${fileId}_${version}`);
         if (metadata != null && metadata.originalFileName != null) {
             res.header('content-disposition', encodeURI(`filename=${metadata.originalFileName}`));
         }
-        const readStream = FileStorage.createReadStream(reqParam.fileId as string, reqParam.version);
+        const readStream = FileStorage.createReadStream(fileId as string, version);
         await FileStorage.$$pipeStreamPromise(readStream, res);
     }
 
+    /**
+     * delete file by id
+     * @param reqParam 
+     */
     public static async $$deleteOne(reqParam: FileRemoveParam) {
         await FileStorage.$$deleteEntry(reqParam.fileId as string, reqParam.version);
     }
 
     // #region -- inner props and methods
-    public static async $$createUserObject(
-        reqParam: UserCreateParam,
-        fileData: Express.Multer.File): Promise<UserView> {
-        let dbObj: UserObject = new UserObject();
-        if (CommonUtils.isNullOrEmpty(reqParam.name)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.name');
-        }
-        dbObj.name = reqParam.name;
-
-        if (CommonUtils.isNullOrEmpty(reqParam.email)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.email');
-        }
-        dbObj.email = reqParam.email;
-
-        if (CommonUtils.isNullOrEmpty(reqParam.password)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.password');
-        }
-        dbObj.password = reqParam.password;
-
-        if (CommonUtils.isNullOrEmpty(reqParam.telephone)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.telephone');
-        }
-        dbObj.telephone = reqParam.telephone;
-
-        if (reqParam.type == null) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.type');
-        }
-        dbObj.type = reqParam.type;
-
-        if (reqParam.roles == null || reqParam.roles.length === 0) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCreateParam.roles');
-        }
-        dbObj.roles = reqParam.roles;
-
-        if (CommonUtils.isAdmin(dbObj.roles)) {
-            dbObj.uid = UserModelWrapper.adminUID;
-        } else {
-            dbObj.uid = CommonUtils.getUUIDForMongoDB();
-        }
-        dbObj.logoUid = CommonUtils.getUUIDForMongoDB();
-        dbObj.logoState = CheckState.ToBeChecked;
-        dbObj.qualificationState = CheckState.Missed;
-        dbObj.frontIdState = CheckState.Missed;
-        dbObj.backIdState = CheckState.Missed;
-        dbObj.state = UserState.Enabled;
-
-        // save logo file
-        await FileStorage.$$saveEntry(
-            dbObj.logoUid,
-            0, // version
-            {
-                type: FileType.UserLogo,
-                checked: false,
-                userUid: dbObj.uid,
-                originalFileName: fileData.originalname,
-            } as IFileMetaData,
-            (fileData as Express.Multer.File).buffer);
-
-        // if admin has been existing, the following sentence will throw dup error
-        dbObj = await UserModelWrapper.$$create(dbObj) as UserObject;
-
-        return await UserRequestHandler.$$convertToDBView(dbObj);
-    }
-
     public static async $$createTemplateObject(
         reqParam: TemplateCreateParam,
         currentUser: UserObject,
@@ -447,7 +617,7 @@ export class FileRequestHandler {
         }
         dbObj.version = 0;
         dbObj.templateFileUid = CommonUtils.getUUIDForMongoDB();
-        dbObj.ownerUid = currentUser.uid;
+        dbObj.publisherUid = currentUser.uid;
         const fileMetaData: IFileMetaData = {
             type: FileType.Template,
             checked: true,
@@ -460,7 +630,21 @@ export class FileRequestHandler {
             fileData.buffer);
         dbObj = await TemplateModelWrapper.$$create(dbObj) as TemplateObject;
         return await TemplateRequestHandler.$$convertToDBView(dbObj);
+    }
 
+    public static checkImageFileSize(fileData: Express.Multer.File): void {
+        this.checkFileSize(fileData, LIMIT_LOGO_SIZE_M);
+    }
+
+    public static checkFileSize(fileData: Express.Multer.File, limit?: number): void {
+        if (limit == null) {
+            limit = LIMIT_FILE_SIZE_M;
+        }
+        const imageSize: number = fileData.size;
+        if ((fileData as Express.Multer.File).size / 1024 / 1024 > limit) {
+            LoggerManager.error(`ImageSize:${imageSize} too large`);
+            throw new ApiError(ApiResultCode.InputImageTooLarge);
+        }
     }
     // #region
 }

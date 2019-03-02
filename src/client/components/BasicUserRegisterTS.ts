@@ -1,22 +1,22 @@
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { InputValidator } from 'client/common/InputValidator';
-import SingleImageUploaderVue from 'client/components/SingleImageUploaderVue.vue';
-import { FileAPIScenario } from 'common/FileAPIScenario';
-import { FileUploadParam } from 'common/requestParams/FileUploadParam';
-import { UserCreateParam } from 'common/requestParams/UserCreateParam';
-import { ApiResult } from 'common/responseResults/APIResult';
-import { UserRole } from 'common/UserRole';
-import { Component, Prop, Vue } from 'vue-property-decorator';
-import { ISingleImageUploaderTS } from './SingleImageUploaderTS';
-import { UserType } from 'common/UserTypes';
-import { Store } from 'vuex';
+import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
+import { UserCreateParam } from 'common/requestParams/UserCreateParam';
+import { ApiResultCode } from 'common/responseResults/ApiResultCode';
+import { UserRole } from 'common/UserRole';
+import { UserType } from 'common/UserTypes';
+import { Component, Prop, Vue } from 'vue-property-decorator';
+import { Store } from 'vuex';
 interface IFormData {
     name?: string;
     password?: string;
     confirmPassword?: string;
     email?: string;
     telephone?: string;
+    type: UserType;
 }
 enum EventNames {
     RegisterSuccess = 'success',
@@ -24,7 +24,6 @@ enum EventNames {
 }
 
 const compToBeRegistered: any = {
-    SingleImageUploaderVue,
 };
 
 @Component({
@@ -35,35 +34,27 @@ export class BasicUserRegisterTS extends Vue {
     @Prop() public roleProp!: UserRole;
     // #endregion
 
-    // #region -- referred props and methods by Vue Page
+    // #region -- referred props and methods by the page template
     private readonly formRefName: string = 'registerForm';
-    private readonly uploaderRefName: string = 'logoUploader';
+    private readonly switchActiveValue: UserType = UserType.Corp;
+    private readonly switchInactiveValue: UserType = UserType.Individual;
 
-    private get isNewUser(): boolean {
-        return CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.uid);
-    }
-
-    // the model of form
+    // the binding data of form
     private readonly formDatas: IFormData = {
         name: '',
         password: '',
         confirmPassword: '',
         email: '',
         telephone: '',
+        type: UserType.Corp,
     };
 
-    private readonly fileUploadParam: FileUploadParam = {
-        optionData: '',
-        scenario: FileAPIScenario.UploadUser,
-    } as FileUploadParam;
-
-    private isCorpUser: boolean = true;
     private isSubmitting: boolean = false;
-    private isLogoChanged: boolean = false;
+
     private readonly formRules: any = {
         name: [
             { required: true, message: '请输入账号名称', trigger: 'blur' },
-            { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
+            { validator: InputValidator.checkAccountName, trigger: 'blur' },
         ],
         password: [
             { required: true, message: '请输入密码', trigger: 'blur' },
@@ -82,25 +73,37 @@ export class BasicUserRegisterTS extends Vue {
             { required: true, message: '请输入手机号码', trigger: 'blur' },
             { validator: InputValidator.checkTelephone, trigger: 'blur' },
         ],
+        type: [
+            { required: true, trigger: 'blur' },
+        ],
     };
 
-    private isAdmin(): boolean {
+    private get isAdmin(): boolean {
         return this.roleProp === UserRole.Admin;
     }
 
-    private isReadyToSubmit(): boolean {
-        return !this.isSubmitting && this.isLogoChanged;
+    private get isReadyToSubmit(): boolean {
+        return !this.isSubmitting;
     }
+
     /**
-     *  upload logo image with new user info
+     *  create new user with account info
      */
     private onSubmitForm() {
         this.isSubmitting = true;
         (this.$refs[this.formRefName] as any).validate((valid: boolean) => {
             let result: boolean = true;
             if (valid) {
-                let finalUserRole: UserRole = this.roleProp;
-                if (this.isCorpUser) {
+                let finalUserRole: UserRole = UserRole.CorpExecutor;
+                if (CommonUtils.isAdmin([this.roleProp])) {
+                    finalUserRole = UserRole.Admin;
+                } else if (CommonUtils.isPublisher([this.roleProp])) {
+                    finalUserRole = this.roleProp;
+                } else if (CommonUtils.isExecutor([this.roleProp])) {
+                    finalUserRole = this.roleProp;
+                }
+
+                if (this.formDatas.type === UserType.Corp) {
                     if (finalUserRole === UserRole.PersonalExecutor) {
                         finalUserRole = UserRole.CorpExecutor;
                     } else if (finalUserRole === UserRole.PersonalPublisher) {
@@ -114,26 +117,29 @@ export class BasicUserRegisterTS extends Vue {
                     }
                 }
 
-                // NOTE: to serialize the metadata, otherwize the el-upload will
-                // invoke toString which cannot transfer the data to server correctly
-                if (this.isNewUser) {
-                    const metadataParam: UserCreateParam = {
-                        name: this.formDatas.name as string,
-                        password: this.formDatas.password as string,
-                        email: this.formDatas.email as string,
-                        telephone: this.formDatas.telephone as string,
-                        roles: [finalUserRole],
-                        type: this.isCorpUser ? UserType.Corp : UserType.Individual,
-                    };
-                    this.fileUploadParam.scenario = FileAPIScenario.UploadUser;
-                    this.fileUploadParam.optionData = JSON.stringify(metadataParam);
-                } else {
-                    this.fileUploadParam.scenario = FileAPIScenario.UpdateUserLogo;
-                }
+                const reqParam: UserCreateParam = {
+                    name: this.formDatas.name as string,
+                    password: this.formDatas.password as string,
+                    email: this.formDatas.email as string,
+                    telephone: this.formDatas.telephone as string,
+                    roles: [finalUserRole],
+                    type: this.formDatas.type,
+                };
+                (async () => {
+                    const apiResult = await this.store.dispatch(StoreActionNames.userCreate,
+                        {
+                            data: reqParam,
+                        } as IStoreActionArgs);
+                    if (apiResult.code !== ApiResultCode.Success) {
+                        this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+                    } else {
+                        this.$emit(EventNames.RegisterSuccess, apiResult.data);
+                    }
+                    this.isSubmitting = false;
+                })();
 
-                (this.$refs[this.uploaderRefName] as any as ISingleImageUploaderTS).submit();
             } else {
-                this.$message.warning('提交内容不合格，请检测表单是否填写正确');
+                this.$message.warning('表单中包含不合格的内容');
                 result = false;
                 this.isSubmitting = false;
             }
@@ -142,21 +148,6 @@ export class BasicUserRegisterTS extends Vue {
     }
     private resetForm() {
         (this.$refs[this.formRefName] as any).resetFields();
-        (this.$refs[this.uploaderRefName] as any as ISingleImageUploaderTS).reset();
-    }
-
-    private onLogoChanged(): void {
-        this.isLogoChanged = true;
-    }
-    private onLogoUploadSuccess(apiResult: ApiResult) {
-        this.$emit(EventNames.RegisterSuccess, apiResult.data);
-        this.isSubmitting = false;
-        this.isLogoChanged = false;
-    }
-    private onLogoUploadFailure(apiResult: ApiResult): void {
-        this.$emit(EventNames.RegisterFailure, apiResult);
-        this.isLogoChanged = false;
-        this.isSubmitting = false;
     }
     // #endregion
 
@@ -165,9 +156,9 @@ export class BasicUserRegisterTS extends Vue {
     private mounted(): void {
         if (this.roleProp === UserRole.CorpExecutor ||
             this.roleProp === UserRole.CorpPublisher) {
-            this.isCorpUser = true;
+            this.formDatas.type = UserType.Corp;
         } else {
-            this.isCorpUser = false;
+            this.formDatas.type = UserType.Individual;
         }
     }
     // #endregion

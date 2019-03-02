@@ -1,22 +1,9 @@
 import { getPropKeys } from 'common/commonDataObjects/CommonObject';
-import { DBObject } from 'server/dataObjects/DBObject';
+import { TemplateCommon } from 'common/commonDataObjects/TemplateCommon';
 
-export class TemplateObject extends DBObject {
-    [key: string]: any;
-    public name?: string;
-    public version?: number;
-    public note?: string;
-    public templateFileUid?: string;
-    public ownerUid?: string;
-    constructor(withFullProps?: boolean) {
+export class TemplateObject extends TemplateCommon {
+        constructor(withFullProps?: boolean) {
         super(withFullProps);
-        if (withFullProps === true) {
-            this.name = '';
-            this.note = '';
-            this.templateFileUid = '';
-            this.version = -1;
-            this.ownerUid = '';
-        }
     }
 
     protected getKeysOfDBObject(): string[] {

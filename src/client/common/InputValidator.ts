@@ -6,7 +6,7 @@ export class InputValidator {
         } else if (value.length < minLen) {
             return callback(new Error(`长度不能小于${minLen}`));
         } else if (/^[a-zA-Z0-9]+$/i.test(value)) {
-            return callback(new Error(`请包涵至少一个特殊字符`));
+            return callback(new Error(`请包含至少一个特殊字符`));
         } else {
             callback();
         }
@@ -24,12 +24,25 @@ export class InputValidator {
             }
         }
     }
+    public static checkAccountName(rule: any, value: string, callback: any): void {
+        if (!value) {
+            callback(new Error('账号名称不能为空'));
+        } else {
+            // tslint:disable-next-line:max-line-length
+            const namePattern = /^[0-9a-zA-Z-_]{3,}$/;
+            if (namePattern.test(value)) {
+                callback();
+            } else {
+                callback(new Error('三位或以上数字，字母，短横线和下划线的组合'));
+            }
+        }
+    }
     public static checkTelephone(rule: any, value: string, callback: any) {
         if (!value) {
             return callback(new Error('手机号码不能为空'));
         } else {
             // tslint:disable-next-line:max-line-length
-            const regexPattern = /^(\+\d{1,3}[- ]?)?\d{11}$/;
+            const regexPattern = /^(\+\d{1,3}[- ]?)?1\d{10}$/;
             if (regexPattern.test(value)) {
                 callback();
             } else {
@@ -40,27 +53,27 @@ export class InputValidator {
 
     public static checkIdNumber(rule: any, value: string, callback: any) {
         // 加权因子
-        const weight_factor: number[] = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+        const weightFactor: number[] = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
         // 校验码
-        const check_code: string[] = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+        const checkCode: string[] = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 
-        const last = value[17];//最后一个
+        const last = value[17];
 
-        var seventeen = value.substring(0, 17);
+        const seventeen = value.substring(0, 17);
 
         // ISO 7064:1983.MOD 11-2
         // 判断最后一位校验码是否正确
         const arr: string[] = seventeen.split("");
         const len: number = arr.length;
         let num: number = 0;
-        for (var i = 0; i < len; i++) {
-            num = num + parseInt(arr[i]) * weight_factor[i];
+        for (let i = 0; i < len; i++) {
+            num = num + parseInt(arr[i], 10) * weightFactor[i];
         }
 
         // 获取余数
         const resisue: number = num % 11;
-        const last_no: string = check_code[resisue];
+        const lastNo: string = checkCode[resisue];
 
         // 格式的正则
         // 正则思路
@@ -73,13 +86,14 @@ export class InputValidator {
         十五，十六，十七都是数字0-9
         十八位可能是数字0-9，也可能是X
         */
-        var idcard_patter = /^[1-9][0-9]{5}([1][9][0-9]{2}|[2][0][0|1][0-9])([0][1-9]|[1][0|1|2])([0][1-9]|[1|2][0-9]|[3][0|1])[0-9]{3}([0-9]|[X])$/;
+        // tslint:disable-next-line:max-line-length
+        const idcardPattern = /^[1-9][0-9]{5}([1][9][0-9]{2}|[2][0][0|1][0-9])([0][1-9]|[1][0|1|2])([0][1-9]|[1|2][0-9]|[3][0|1])[0-9]{3}([0-9]|[X])$/;
 
         // 判断格式是否正确
-        var format = idcard_patter.test(value);
+        const format = idcardPattern.test(value);
 
 
-        if (last === last_no && format) {
+        if (last === lastNo && format) {
             callback();
         } else {
             callback(new Error('身份证号码格式不正确'));

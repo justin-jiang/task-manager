@@ -13,7 +13,7 @@ const schemaDef = Object.assign({
     name: { type: String, required: true } as SchemaTypeOpts<any>,
     version: { type: Number, required: true },
     templateFileUid: { type: String, required: true },
-    ownerUid: { type: String, required: true },
+    publisherUid: { type: String, required: true },
     note: { type: String },
 
 }, BaseSchemaDef);

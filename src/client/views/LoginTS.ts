@@ -1,6 +1,11 @@
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { RouterUtils } from 'client/common/RouterUtils';
+import { ComponentUtils } from 'client/components/ComponentUtils';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
+import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { CommonUtils } from 'common/CommonUtils';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
@@ -8,11 +13,6 @@ import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
-import { CommonUtils } from 'common/CommonUtils';
-import { ComponentUtils } from 'client/components/ComponentUtils';
-import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
-import { FileAPIScenario } from 'common/FileAPIScenario';
 interface IFormData {
     name?: string;
     password?: string;
@@ -28,8 +28,8 @@ export class LoginTS extends Vue {
     // #region -- referred props and methods by Vue Page
     private readonly formRefName = 'registerForm';
     private readonly formDatas: IFormData = {
-        name: undefined,
-        password: undefined,
+        name: '',
+        password: '',
     };
     private isSubmitting: boolean = false;
 
@@ -58,10 +58,12 @@ export class LoginTS extends Vue {
                         StoreActionNames.sessionCreate, { data: reqParam });
                     if (apiResult.code === ApiResultCode.Success) {
                         const user: UserView = apiResult.data;
-                        user.logoUrl = await ComponentUtils.$$getImageUrl(
-                            this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
-                        this.store.commit(StoreMutationNames.sessionInfoPropUpdate,
-                            { logoUrl: user.logoUrl } as UserView);
+                        if (!CommonUtils.isNullOrEmpty(user.logoUid)) {
+                            user.logoUrl = await ComponentUtils.$$getImageUrl(
+                                this, user.logoUid as string, FileAPIScenario.DownloadUserLogo);
+                            this.store.commit(StoreMutationNames.sessionInfoPropUpdate,
+                                { logoUrl: user.logoUrl } as UserView);
+                        }
                         if (!CommonUtils.isNullOrEmpty(storeState.redirectURLAfterLogin)) {
                             window.location.assign(storeState.redirectURLAfterLogin);
                         } else {
@@ -69,22 +71,15 @@ export class LoginTS extends Vue {
                         }
                     } else if (apiResult.code === ApiResultCode.AuthUnauthorized) {
                         this.$message.error('用户名或密码错误，请重新输入');
-                        Vue.set(this.formDatas, 'password', undefined);
                     } else {
-                        this.$message.error(`登录失败：${ApiErrorHandler.getTextByCode(apiResult.code)}`);
+                        this.$message.error(`登录失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                     }
-                })().catch((ex) => {
-                    this.$message({
-                        message: '登录失败，请确认网络连接是否正常',
-                        type: 'error',
-                    });
-                }).finally(() => {
+                })().finally(() => {
                     this.isSubmitting = false;
                 });
-
             } else {
                 this.$message({
-                    message: '提交前，请检测表单是否填写正确',
+                    message: '表单中包含不合格的内容',
                     type: 'warning',
                 });
                 return false;

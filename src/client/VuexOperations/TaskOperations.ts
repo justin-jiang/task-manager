@@ -11,7 +11,7 @@ import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
 import { Commit } from 'vuex';
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
-async function taskUpdate(
+async function commonUpdate(
     { commit }: { commit: Commit, state: IStoreState },
     url: string, args: any): Promise<ApiResult> {
     let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
@@ -33,11 +33,7 @@ async function taskUpdate(
 }
 export const actions = {
 
-    /**
-     * get templates by conditions
-     * @param param0 
-     * @param args 
-     */
+    // #region -- create, query and remove
     async [StoreActionNames.taskCreation](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
         let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
@@ -81,6 +77,19 @@ export const actions = {
         }
         return apiResult;
     },
+    async [StoreActionNames.taskHistoryQuery](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.History}/${HttpPathItem.Query}`,
+                args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
+        }
+        return apiResult;
+    },
 
     async [StoreActionNames.taskRemove]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
 
@@ -102,40 +111,91 @@ export const actions = {
         }
         return apiResult;
     },
+    // #endregion
 
+    // #region -- edit
+    // #region [Black] -- -- Task
+    async [StoreActionNames.taskBasicInfoEdit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Edit}`,
+            args.data || {});
+    },
+    async [StoreActionNames.taskSubmit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Submit}`,
+            args.data || {});
+    },
+    async [StoreActionNames.taskInfoAudit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Audit}`,
+            args.data || {});
+    },
+    async [StoreActionNames.taskPublisherVisit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Visit}`,
+            args.data || {});
+    },
+    // #endregion
+
+    // #region [Black] -- -- task apply
     async [StoreActionNames.taskApplyCheck](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        return await taskUpdate({ commit, state },
+        return await commonUpdate({ commit, state },
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Check}`,
             args.data || {});
     },
 
     async [StoreActionNames.taskApply](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        return await taskUpdate({ commit, state },
+        return await commonUpdate({ commit, state },
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}`,
-            args.data || {});
-    },
-
-    async [StoreActionNames.taskResultCheck](
-        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        return await taskUpdate({ commit, state },
-            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Result}/${HttpPathItem.Check}`,
-            args.data || {});
-    },
-
-    async [StoreActionNames.taskAudit](
-        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        return await taskUpdate({ commit, state },
-            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Audit}`,
             args.data || {});
     },
     async [StoreActionNames.taskApplyAudit](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
-        return await taskUpdate({ commit, state },
+        return await commonUpdate({ commit, state },
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Audit}`,
             args.data || {});
     },
+    async [StoreActionNames.taskApplyRemove](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Remove}`,
+            args.data || {});
+    },
+    // #endregion
+
+    // #region [Black] -- -- task result
+    async [StoreActionNames.taskResultCheck](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Result}/${HttpPathItem.Check}`,
+            args.data || {});
+    },
+
+    async [StoreActionNames.taskResultAuit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Result}/${HttpPathItem.Audit}`,
+            args.data || {});
+    },
+
+    // #endregion 
+
+    // #region [Black] -- -- task deposit
+    async [StoreActionNames.taskDepositAudit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Deposit}/${HttpPathItem.Audit}`,
+            args.data || {});
+    },
+    // #endregion
+    // #endregion
+
 };
 
 export const mutations = {

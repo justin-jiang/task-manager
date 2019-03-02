@@ -7,6 +7,8 @@ export enum NotificationType {
     TaskAuditDenied = 5,
     TaskResultAccepted = 6,
     TaskResultDenied = 7,
+    TaskApplyAuditDenied = 8,
+    TaskApplyAuditAccepted = 9,
 
     UserLogoCheckFailure = 11,
     UserLogoCheckPass = 12,

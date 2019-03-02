@@ -5,6 +5,8 @@ import { BaseModelWrapper } from 'server/dataModels/BaseModelWrapper';
 import { ITaskModel, keysOfSchema } from 'server/dataModels/mongoDB/ITaskModel';
 import { TaskObject } from 'server/dataObjects/TaskObject';
 import { MongoDBModelManager } from 'server/dbDrivers/mongoDB/MongoDBModelManager';
+import { TaskState } from 'common/TaskState';
+import { TaskHistoryItem } from 'common/TaskHistoryItem';
 
 export class TaskModelWrapper extends BaseModelWrapper {
 
@@ -15,6 +17,18 @@ export class TaskModelWrapper extends BaseModelWrapper {
         // create case-insensitive name index
         await model.collection.createIndex({ name: 1 },
             { unique: true, collation: this.caseInsensitiveCollation, name: 'name_1_collation' } as any);
+    }
+    public static async $$addHistoryItem(uid: string, state: TaskState, description?: string): Promise<void> {
+        await TaskModelWrapper.$$updateOne({ uid } as TaskObject, {
+            $push: {
+                histories: {
+                    uid: CommonUtils.getUUIDForMongoDB(),
+                    createTime: Date.now(),
+                    state,
+                    description: description || '',
+                } as TaskHistoryItem,
+            },
+        });
     }
     protected static async getDBModel(): Promise<Model<ITaskModel>> {
         return await MongoDBModelManager.$$getTaskModel();

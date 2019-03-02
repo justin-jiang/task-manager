@@ -4,7 +4,7 @@ import { Response } from 'express';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { UserModelWrapper } from '../dataModels/UserModelWrapper';
-import { keysOfIUserObject, UserObject } from '../dataObjects/UserObject';
+import { keysOfUserObject, UserObject } from '../dataObjects/UserObject';
 
 export class SessionRequestHandler {
     /**
@@ -52,7 +52,7 @@ export class SessionRequestHandler {
 
     public static async  $$convertToDBView(dbObj: UserObject): Promise<UserView> {
         const view: UserView = new UserView();
-        keysOfIUserObject.forEach((key: string) => {
+        keysOfUserObject.forEach((key: string) => {
             if (key in dbObj) {
                 view[key] = dbObj[key];
             }

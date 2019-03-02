@@ -25,6 +25,7 @@
         v-else
         class="el-icon-plus avatar-uploader-icon"
       ></i>
+      <div slot="tip" class="el-upload__tip">{{limitTip}}</div>
     </el-upload>
     <el-dialog
       title="头像选取"
@@ -41,7 +42,7 @@
         :aspectRatio="1/1"
         :initialAspectRatio="1/1"
         :auto-crop-area="0.8"
-        :min-container-width="250"
+        :min-container-width="300"
         :min-container-height="180"
         :background="true"
         :rotatable="true"
@@ -71,5 +72,5 @@ export default class SingleImageUploaderVue extends SingleImageUploaderTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style lang="less" >
+<style scoped lang="less" >
 </style>

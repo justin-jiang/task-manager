@@ -14,9 +14,13 @@ export class BaseModelWrapper {
         const modelData: IModel = await dbModel.create(dbObject);
         return this.convertModelToDBObject(modelData);
     }
-    public static async $$find(conditions: IQueryConditions): Promise<CommonObject[]> {
+    public static async $$find(conditions: IQueryConditions, selectFields?: string): Promise<CommonObject[]> {
         const dbModel: Model<IModel> = await this.getDBModel();
-        const modelData: IModel[] = await dbModel.find(conditions).sort({ createTime: -1 });
+        let queryCmd = dbModel.find(conditions).sort({ createTime: -1 });
+        if (selectFields != null) {
+            queryCmd = queryCmd.select(selectFields);
+        }
+        const modelData: IModel[] = await queryCmd;
         const dbObjs: CommonObject[] = [];
         modelData.forEach((dbObj: IModel) => {
             dbObjs.push(this.convertModelToDBObject(dbObj));
@@ -43,7 +47,8 @@ export class BaseModelWrapper {
         const result = await dbModel.updateOne(conditions, dbObj);
         LoggerManager.debug('$$updateOne result:', result);
     }
-    public static async $$findOneAndUpdate(conditions: IQueryConditions, dbObj: CommonObject): Promise<CommonObject | null> {
+    public static async $$findOneAndUpdate(
+        conditions: IQueryConditions, dbObj: CommonObject): Promise<CommonObject | null> {
         const dbModel: Model<IModel> = await this.getDBModel();
         const result = await dbModel.findOneAndUpdate(
             conditions,

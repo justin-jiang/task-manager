@@ -9,4 +9,6 @@ export enum FileType {
     License = 7,
     LicenseWithPerson = 8,
     AuthLetter = 9,
+    Deposit = 10,
+    Margin = 11,
 }

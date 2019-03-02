@@ -8,9 +8,8 @@
           status-icon
           :rules="formRules"
           :ref="formRefName"
-          style="max-width:1000px; min-width:500px;"
           label-width="200px"
-          class="form-idUpload"
+          class="form-main"
           :disabled="isSubmitting"
         >
           <el-form-item
@@ -37,11 +36,17 @@
           </el-form-item>
           <el-form-item
             :label="labelOfIdNumber"
-            prop="idNumber"
+            prop="identityNumber"
           >
-            <el-input v-model="formDatas.idNumber"></el-input>
+            <el-input v-model="formDatas.identityNumber"></el-input>
           </el-form-item>
-
+          <el-form-item
+            v-if="isCorpUser"
+            label="负责人姓名"
+            prop="principalName"
+          >
+            <el-input v-model="formDatas.principalName"></el-input>
+          </el-form-item>
           <el-form-item
             :label="labelOfArea"
             prop="area"
@@ -96,8 +101,9 @@
             <el-input v-model="formDatas.address"></el-input>
           </el-form-item>
           <el-form-item
+            :ref="frontUploaderItemRefName"
             :label="labelOfFrontIdUploader"
-            prop=""
+            :prop="formDatas.frontIdUploader"
           >
             <SingleImageUploaderVue
               :ref="frontUploaderRefName"
@@ -105,13 +111,15 @@
               :noCropProp="true"
               :imageUidProp="frontIdUid"
               @imageChanged="onFrontIdImageChanged"
+              @imageReset="onFrontIdImageReset"
               @success="onFrontIdUploadSuccess"
               @failure="onFrontIdUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item
+            :ref="backUploaderItemRefName"
             :label="labelOfBackIdUploader"
-            prop="backIdUploader"
+            :prop="formDatas.backIdUploader"
           >
             <SingleImageUploaderVue
               :ref="backUploaderRefName"
@@ -119,13 +127,15 @@
               :noCropProp="true"
               :imageUidProp="backIdUid"
               @imageChanged="onBackIdImageChanged"
+              @imageReset="onBackIdImageReset"
               @success="onBackIdUploadSuccess"
               @failure="onBackIdUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item
+            :ref="licenseUploaderItemRefName"
             label="营业执照副本照"
-            prop=""
+            :prop="formDatas.licenseUploader"
             v-if="isCorpUser"
           >
             <SingleImageUploaderVue
@@ -134,13 +144,15 @@
               :noCropProp="true"
               :imageUidProp="licenseUid"
               @imageChanged="onLicenseImageChanged"
+              @imageReset="onLicenseImageReset"
               @success="onLicenseUploadSuccess"
               @failure="onLicenseUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item
+            :ref="licenseWithPersonUploaderItemRefName"
             label="负责人手持执照副本照"
-            prop=""
+            :prop="formDatas.licenseWithPersionUploader"
             v-if="isCorpUser"
           >
             <SingleImageUploaderVue
@@ -149,13 +161,13 @@
               :noCropProp="true"
               :imageUidProp="licenseWithPersonUid"
               @imageChanged="onLicenseWithPersonImageChanged"
+              @imageReset="onLicenseWithPersonImageReset"
               @success="onLicenseWithPersonUploadSuccess"
               @failure="onLicenseWithPersonUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item
             label="法人授权证书照"
-            prop=""
             v-if="isCorpUser"
           >
             <SingleImageUploaderVue
@@ -164,8 +176,20 @@
               :noCropProp="true"
               :imageUidProp="authLetterUid"
               @imageChanged="onAuthLetterImageChanged"
+              @imageReset="onAuthLetterImageReset"
               @success="onAuthLetterUploadSuccess"
               @failure="onAuthLetterUploadFailure"
+            ></SingleImageUploaderVue>
+          </el-form-item>
+          <el-form-item label="头像">
+            <SingleImageUploaderVue
+              :ref="logoUploaderRefName"
+              :filePostParamProp="logoUploadParam"
+              :imageUidProp="logoUid"
+              @imageChanged="onLogoImageChanged"
+              @imageReset="onLogoImageReset"
+              @success="onLogoUploadSuccess"
+              @failure="onLogoUploadFailure"
             ></SingleImageUploaderVue>
           </el-form-item>
           <el-form-item>

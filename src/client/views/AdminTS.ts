@@ -20,6 +20,7 @@ export class AdminTS extends Vue {
     private readonly notificationIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Notification}`;
     private readonly userIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_User}`;
     private readonly taskIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Task}`;
+    private readonly templateIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`;
 
     private onMenuSelected(key: string, keyPath: string): void {
         LoggerManager.debug('selectedMenu:', key, keyPath);

@@ -2,9 +2,11 @@
 export class CommonObject {
     [key: string]: any;
     public uid?: string;
+    public createTime?: number;
     constructor(withFullProps?: boolean) {
         if (withFullProps === true) {
             this.uid = '';
+            this.createTime = 0;
         }
     }
 }

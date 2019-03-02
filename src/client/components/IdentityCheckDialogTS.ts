@@ -1,9 +1,9 @@
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { UserCheckParam } from 'common/requestParams/UserCheckParam';
-import { CheckState } from 'common/CheckState';
 import { UserView } from 'common/responseResults/UserView';
 import { UserType } from 'common/UserTypes';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
@@ -11,8 +11,8 @@ import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
 
 enum EventNames {
-    submit = 'submit',
-    canceled = 'canceled',
+    submitted = 'submitted',
+    cancelled = 'cancelled',
 
 }
 
@@ -31,34 +31,45 @@ export class IdentityCheckDialogTS extends Vue {
     @Prop() public userUidProp!: string;
     // #endregion
 
-    // #region -- referred props and methods of the page
-    private readonly logoSwitchActiveValue: CheckState = CheckState.Checked;
-    private readonly logoSwitchInactiveValue: CheckState = CheckState.FailedToCheck;
-
+    // #region -- referred props and methods of the page template
     private readonly idSwitchActiveValue: CheckState = CheckState.Checked;
     private readonly idSwitchInactiveValue: CheckState = CheckState.FailedToCheck;
 
     private targetUser: UserView = {};
+    private previewedImageUrl: string = '';
+    private previewDialogVisible: boolean = false;
 
-    private get isLogoToBeChecked(): boolean {
-        return this.targetUser.logoState === CheckState.ToBeChecked;
-    }
-    private get isFrontIdToBeChecked(): boolean {
-        return this.targetUser.frontIdState === CheckState.ToBeChecked;
-    }
-    private get isBackIdToBeChecked(): boolean {
-        return this.targetUser.backIdState === CheckState.ToBeChecked;
-    }
-    private reasonOfDeny: string = '';
     private idCheckParam: UserCheckParam = {
         uid: this.userUidProp,
-        logoState: CheckState.Checked,
-        noteForLogo: '',
-        frontIdState: CheckState.Checked,
-        noteForFrontId: '',
-        backIdState: CheckState.Checked,
-        noteForBackId: '',
+        idState: CheckState.Missed,
+        idCheckNote: '',
     };
+
+    private get userType(): string {
+        if (this.targetUser.type === UserType.Individual) {
+            return '个人';
+        } else {
+            return '企业';
+        }
+    }
+    private get titleOfId(): string {
+        if (this.targetUser.type === UserType.Individual) {
+            return '身份证：';
+        } else {
+            return '社会信用代码：';
+        }
+    }
+    private get isCorpUser(): boolean {
+        return this.targetUser.type === UserType.Corp;
+    }
+
+    private get islogoIdReady(): boolean {
+        return !CommonUtils.isNullOrEmpty(this.targetUser.logoUid);
+    }
+    private get isAuthLetterIdReady(): boolean {
+        return this.isCorpUser && !CommonUtils.isNullOrEmpty(this.targetUser.authLetterUid);
+    }
+
     private get titleOfFrontImage(): string {
         const sessionInfo = this.storeState.sessionInfo;
         if (sessionInfo.type === UserType.Corp) {
@@ -76,57 +87,48 @@ export class IdentityCheckDialogTS extends Vue {
         }
     }
     private get logoUrl(): string {
-        const index = this.storeState.userObjs.findIndex((item) => {
-            if (item.uid === this.userUidProp) {
-                return true;
-            } else {
-                return false;
-            }
-        });
-        if (index >= 0) {
-            this.getLogoUrl(this.storeState.userObjs[index]);
-            return this.storeState.userObjs[index].logoUrl as string || '';
-        } else {
-            return '';
-        }
+        return this.targetUser.logoUrl || '';
     }
     private get frontImageUrl(): string {
-        const index = this.storeState.userObjs.findIndex((item) => {
-            if (item.uid === this.userUidProp) {
-                return true;
-            } else {
-                return false;
-            }
-        });
-        if (index >= 0) {
-            this.getFrontImageUrl(this.storeState.userObjs[index]);
-            return this.storeState.userObjs[index].frondIdUrl as string || '';
-        } else {
-            return '';
-        }
+        return this.targetUser.frondIdUrl || '';
     }
     private get backImageUrl(): string {
-        const index = this.storeState.userObjs.findIndex((item) => {
-            if (item.uid === this.userUidProp) {
-                return true;
-            } else {
-                return false;
-            }
-        });
-        if (index >= 0) {
-            this.getBackImageUrl(this.storeState.userObjs[index]);
-            return this.storeState.userObjs[index].backIdUrl as string || '';
-        } else {
-            return '';
+        return this.targetUser.backIdUrl || '';
+    }
+    private get licenseImageUrl(): string {
+        return this.targetUser.licenseUrl || '';
+    }
+    private get licenseWithPersonImageUrl(): string {
+        return this.targetUser.licenseWithPersonUrl || '';
+    }
+    private get authLetterUrl(): string {
+        return this.targetUser.authLetterUrl || '';
+    }
+    private get area(): string {
+        return CommonUtils.isNullOrEmpty(this.targetUser.province) ? '' :
+            `${this.targetUser.province} ${this.targetUser.city} ${this.targetUser.district}`;
+    }
+    private get isAccepted(): boolean {
+        return this.idCheckParam.idState === CheckState.Checked;
+    }
+    private get isReadyToSubmit(): boolean {
+        if (this.idCheckParam.idState === CheckState.FailedToCheck &&
+            CommonUtils.isNullOrEmpty(this.idCheckParam.idCheckNote)) {
+            return false;
         }
+        return true;
     }
-    onCheckSubmit(): void {
-        this.$emit(EventNames.submit, this.idCheckParam);
+    private onCheckSubmit(): void {
+        this.$emit(EventNames.submitted, this.idCheckParam);
     }
-    onCheckCanceled(): void {
-        this.$emit(EventNames.canceled);
+    private onCheckCancelled(): void {
+        this.$emit(EventNames.cancelled);
     }
 
+    private onPreview(imageUrl: string): void {
+        this.previewedImageUrl = imageUrl as string;
+        this.previewDialogVisible = true;
+    }
     // #endregion
 
     // #region -- vue life-circle methods
@@ -139,8 +141,8 @@ export class IdentityCheckDialogTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     @Watch('userUidProp', { immediate: true })
     private onUserUidChanged(currentValue: string, previousValue: string) {
-        const index = this.storeState.userObjs.findIndex((currentValue) => {
-            if (currentValue.uid === this.userUidProp) {
+        const index = this.storeState.userObjs.findIndex((user: UserView) => {
+            if (user.uid === this.userUidProp) {
                 return true;
             } else {
                 return false;
@@ -149,13 +151,18 @@ export class IdentityCheckDialogTS extends Vue {
         if (index >= 0) {
             this.targetUser = this.storeState.userObjs[index];
             this.idCheckParam.uid = this.targetUser.uid;
-            this.idCheckParam.backIdState = this.targetUser.backIdState;
-            this.idCheckParam.logoState = this.targetUser.logoState;
-            this.idCheckParam.frontIdState = this.targetUser.frontIdState;
+            this.idCheckParam.idState = CheckState.Checked;
+            this.idCheckParam.idCheckNote = '';
+            this.getLogoUrl(this.targetUser);
+            this.getBackImageUrl(this.targetUser);
+            this.getFrontImageUrl(this.targetUser);
+            this.getAuthLetterUrl(this.targetUser);
+            this.getLicenseImageUrl(this.targetUser);
+            this.getLicenseWithPersonImageUrl(this.targetUser);
         }
     }
     private getLogoUrl(user: UserView): void {
-        if (CommonUtils.isNullOrEmpty(user.logoUrl)) {
+        if (!CommonUtils.isNullOrEmpty(user.logoUid) && CommonUtils.isNullOrEmpty(user.logoUrl)) {
             (async () => {
                 user.logoUrl = await ComponentUtils.$$getImageUrl(
                     this, user.logoUid as string, FileAPIScenario.DownloadUserLogo);
@@ -164,6 +171,7 @@ export class IdentityCheckDialogTS extends Vue {
                         uid: user.uid,
                         logoUrl: user.logoUrl,
                     } as UserView);
+                    this.targetUser = Object.assign({}, user);
                 } else {
                     this.$message.error('获取头像信息失败');
                 }
@@ -171,7 +179,8 @@ export class IdentityCheckDialogTS extends Vue {
         }
     }
     private getFrontImageUrl(user: UserView): void {
-        if (CommonUtils.isNullOrEmpty(user.frondIdUrl)) {
+        if (!CommonUtils.isNullOrEmpty(user.frontIdUid) &&
+            CommonUtils.isNullOrEmpty(user.frondIdUrl)) {
             (async () => {
                 user.frondIdUrl = await ComponentUtils.$$getImageUrl(
                     this, user.frontIdUid as string, FileAPIScenario.DownloadFrontId);
@@ -180,33 +189,77 @@ export class IdentityCheckDialogTS extends Vue {
                         uid: user.uid,
                         frondIdUrl: user.frondIdUrl,
                     } as UserView);
+                    this.targetUser = Object.assign({}, user);
                 } else {
-                    if (user.type === UserType.Corp) {
-                        this.$message.error('获取手持营业执照照片失败');
-                    } else {
-                        this.$message.error('获取手持身份证正面照片失败');
-                    }
+                    this.$message.error('获取身份证正面照片失败');
                 }
             })();
         }
     }
     private getBackImageUrl(user: UserView): void {
-        if (CommonUtils.isNullOrEmpty(user.backIdUrl)) {
+        if (!CommonUtils.isNullOrEmpty(user.backIdUid) && CommonUtils.isNullOrEmpty(user.backIdUrl)) {
             (async () => {
                 user.backIdUrl = await ComponentUtils.$$getImageUrl(
                     this, user.backIdUid as string, FileAPIScenario.DownloadBackId);
                 if (!CommonUtils.isNullOrEmpty(user.backIdUrl)) {
                     this.store.commit(StoreMutationNames.userItemUpdate,
                         { uid: user.uid, backIdUrl: user.backIdUrl } as UserView);
+                    this.targetUser = Object.assign({}, user);
                 } else {
-                    if (user.type === UserType.Corp) {
-                        this.$message.error('获取手持营业执照照片失败');
-                    } else {
-                        this.$message.error('获取手持身份证正面照片失败');
-                    }
+                    this.$message.error('获取身份证背面照片失败');
                 }
             })();
         }
     }
+    private getLicenseImageUrl(user: UserView): void {
+        if (!CommonUtils.isNullOrEmpty(user.licenseUid) && CommonUtils.isNullOrEmpty(user.licenseUrl)) {
+            (async () => {
+                user.licenseUrl = await ComponentUtils.$$getImageUrl(
+                    this, user.licenseUid as string, FileAPIScenario.DownloadLicense);
+                if (!CommonUtils.isNullOrEmpty(user.licenseUrl)) {
+                    this.store.commit(StoreMutationNames.userItemUpdate,
+                        { uid: user.uid, licenseUrl: user.licenseUrl } as UserView);
+                    this.targetUser = Object.assign({}, user);
+                } else {
+                    this.$message.error('获取营业执照照片失败');
+                }
+            })();
+        }
+    }
+
+    private getLicenseWithPersonImageUrl(user: UserView): void {
+        if (!CommonUtils.isNullOrEmpty(user.licenseWithPersonUid) &&
+            CommonUtils.isNullOrEmpty(user.licenseWithPersonUrl)) {
+            (async () => {
+                user.licenseWithPersonUrl = await ComponentUtils.$$getImageUrl(
+                    this, user.licenseWithPersonUid as string, FileAPIScenario.DownloadLinceWithPerson);
+                if (!CommonUtils.isNullOrEmpty(user.licenseWithPersonUrl)) {
+                    this.store.commit(StoreMutationNames.userItemUpdate,
+                        { uid: user.uid, licenseWithPersonUrl: user.licenseWithPersonUrl } as UserView);
+                    this.targetUser = Object.assign({}, user);
+                } else {
+                    this.$message.error('获取手持营业执照照片失败');
+                }
+            })();
+        }
+    }
+    private getAuthLetterUrl(user: UserView): void {
+        if (!CommonUtils.isNullOrEmpty(user.authLetterUid) && CommonUtils.isNullOrEmpty(user.authLetterUrl)) {
+            (async () => {
+                user.authLetterUrl = await ComponentUtils.$$getImageUrl(
+                    this, user.authLetterUid as string, FileAPIScenario.DownloadAuthLetter);
+                if (!CommonUtils.isNullOrEmpty(user.authLetterUrl)) {
+                    this.store.commit(StoreMutationNames.userItemUpdate, {
+                        uid: user.uid,
+                        authLetterUrl: user.authLetterUrl,
+                    } as UserView);
+                    this.targetUser = Object.assign({}, user);
+                } else {
+                    this.$message.error('获取法人授权书图片失败');
+                }
+            })();
+        }
+    }
+
     // #endregion
 }

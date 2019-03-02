@@ -1,9 +1,9 @@
 <template>
   <div>
     <el-row style="margin-bottom:20px">
-      <el-col :span="12">
+      <el-col :span="24">
         <el-upload
-          class="upload-qualificationFile"
+          class="uploader-qualificationFile"
           drag
           :accept="acceptFileTypes"
           :name="keyNameOfuploadedFile"
@@ -23,17 +23,17 @@
           <div
             class="el-upload__tip"
             slot="tip"
-          >{{uploadTip()}}</div>
+          >{{uploadTip}}</div>
 
         </el-upload>
       </el-col>
     </el-row>
-    <el-row>
-      <el-col :span="12">
+    <el-row v-if="!hideSubmitButton">
+      <el-col :span="24">
         <el-button
           size="small"
           type="primary"
-          :disabled="!isReadyToSubmit()"
+          :disabled="!isReadyToSubmit"
           @click="onSubmit"
         >{{buttonText}}</el-button>
       </el-col>
@@ -42,10 +42,10 @@
 </template>
 
 <script lang="ts">
-import { SingleFileUploadTS } from './SingleFileUploadTS';
+import { SingleFileUploadTS } from "./SingleFileUploadTS";
 export default class SingleFileUploadVue extends SingleFileUploadTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style lang="less" >
+<style scoped lang="less" >
 </style>

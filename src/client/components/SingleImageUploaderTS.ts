@@ -15,9 +15,11 @@ import VueCropper from 'vue-cropperjs';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
+import { LoggerManager } from 'client/LoggerManager';
 
 enum EventNames {
     ImageChanged = 'imageChanged',
+    ImageReset = 'imageReset',
     UploadSuccess = 'success',
     UploadFailure = 'failure',
 
@@ -39,10 +41,10 @@ export interface ISingleImageUploaderTS {
 export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS {
     // #region -- component props and methods
     @Prop() public filePostParamProp!: FileUploadParam;
-    @Prop() public imageUidProp!: string | undefined;
-    @Prop() public noCropProp!: boolean | undefined;
+    @Prop() public imageUidProp!: string;
+    @Prop() public noCropProp!: boolean;
     public reset(): void {
-        this.uploadData.blob = undefined;
+        this.uploadData.blob = null;
         this.cropDialogVisible = false;
         (this.$refs[this.uploaderRefName] as any).clearFiles();
         this.getImageUrlByUid(this.imageUidProp);
@@ -51,6 +53,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
             (this.$refs[this.cropperRefName] as any).replace(this.imageUrlForCropper);
             (this.$refs[this.cropperRefName] as any).reset();
         }
+        this.$emit(EventNames.ImageReset);
     }
 
     public submit() {
@@ -73,7 +76,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     private readonly cropperRefName: string = 'cropper';
     private readonly uploadAPIURL = `${HttpPathItem.Api}/${HttpPathItem.File}`;
     private fileTypes: string[] = ['image/jpeg', 'image/png'];
-    private fileSizeM: number = 5;
+    private fileSizeM: number = LIMIT_LOGO_SIZE_M;
 
     private isSubmitting: boolean = false;
 
@@ -92,6 +95,9 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     private get isImageUrlReady(): boolean {
         return !CommonUtils.isNullOrEmpty(this.imageUrlForUploader);
     }
+    private get limitTip(): string {
+        return `上传图片格式：${this.fileTypes}，大小：小于${LIMIT_LOGO_SIZE_M} MB`;
+    }
 
     private beforeUpload(): boolean {
         let isTypeMatched: boolean = true;
@@ -102,16 +108,10 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
             isTypeMatched = this.fileTypes.includes(fileType);
         }
         isSizeMatched = fileSize < LIMIT_LOGO_SIZE_M * 1024 * 1024;
-        if (!isTypeMatched) {
-            this.$message.error(`上传头像图片只能是 ${this.fileTypes} 格式，实际格式：${fileType}`);
-        }
-        if (!isSizeMatched) {
-            this.$message.error(`上传头像图片大小不能超过 ${LIMIT_LOGO_SIZE_M} MB.`);
-        }
         if (!(isTypeMatched && isSizeMatched)) {
             this.reset();
             const apiResult: ApiResult = new ApiResult();
-            apiResult.code = ApiResultCode.InputImageTooLarge;
+            apiResult.code = !isSizeMatched ? ApiResultCode.InputImageTooLarge : ApiResultCode.InputImageInvalidType;
             this.onFileUploadDone(apiResult);
         }
         return isTypeMatched && isSizeMatched;
@@ -120,11 +120,11 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     private onFileChange(file: { raw: File }, fileList: Array<{ raw: File }>): void {
         if (fileList.length > 0) {
             fileList.splice(0, fileList.length, file);
-            this.imageUrlForCropper = URL.createObjectURL(file.raw);
             if ((this.$refs[this.cropperRefName] as any) != null) {
                 (this.$refs[this.cropperRefName] as any).replace(this.imageUrlForCropper);
             }
             if (this.noCropProp !== true) {
+                this.imageUrlForCropper = URL.createObjectURL(file.raw);
                 this.cropDialogVisible = true;
             } else {
                 this.uploadData.blob = file.raw;
@@ -137,10 +137,11 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
 
     private onFileRemove(file: { raw: File }, fileList: Array<{ raw: File }>): void {
         this.getImageUrlByUid(this.imageUidProp);
+        this.$emit(EventNames.ImageReset);
     }
 
     /**
-     * custom upload action
+     * custom upload action will be trigger when invoking the submit
      */
     private uploadCroppedFile() {
         (async () => {
@@ -152,9 +153,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
 
             this.onFileUploadDone(apiResult);
             (this.$refs[this.uploaderRefName] as any).clearFiles();
-        })().catch((ex) => {
-            RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
-        });
+        })();
     }
     private onFileCountExceed(files: { raw: File }, fileList: Array<{ raw: File }>) {
         this.$message.warning(`每次只能上传一个文件`);
@@ -209,18 +208,37 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
             this.imageUrlForUploader = '';
         } else {
             (async () => {
-                let scenario: FileAPIScenario;
-                if (this.filePostParamProp.scenario === FileAPIScenario.UpdateUserBackId) {
-                    scenario = FileAPIScenario.DownloadBackId;
-                } else if (this.filePostParamProp.scenario === FileAPIScenario.UpdateUserFrontId) {
-                    scenario = FileAPIScenario.DownloadFrontId;
-                } else {
-                    scenario = FileAPIScenario.DownloadUserLogo;
+                let scenario: FileAPIScenario = FileAPIScenario.None;
+                switch (this.filePostParamProp.scenario) {
+                    case FileAPIScenario.UpdateUserBackId:
+                        scenario = FileAPIScenario.DownloadBackId;
+                        break;
+                    case FileAPIScenario.UpdateUserFrontId:
+                        scenario = FileAPIScenario.DownloadFrontId;
+                        break;
+                    case FileAPIScenario.UpdateAuthLetter:
+                        scenario = FileAPIScenario.DownloadAuthLetter;
+                        break;
+                    case FileAPIScenario.UpdateLicense:
+                        scenario = FileAPIScenario.DownloadLicense;
+                        break;
+                    case FileAPIScenario.UpdateLicenseWithPersion:
+                        scenario = FileAPIScenario.DownloadLinceWithPerson;
+                        break;
+                    case FileAPIScenario.UpdateUserLogo:
+                        scenario = FileAPIScenario.DownloadUserLogo;
+                        break;
+                    default:
+                        this.$message.error(`不支持指定的图片类型：${this.filePostParamProp.scenario}`);
+                        LoggerManager.error(`Unsupport scenario:${this.filePostParamProp.scenario}`);
+                        break;
+
                 }
-                this.imageUrlForUploader = await ComponentUtils.$$getImageUrl(this, imageUid as string, scenario) || '';
-            })().catch((ex) => {
-                RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
-            });
+                if (scenario !== FileAPIScenario.None) {
+                    this.imageUrlForUploader = await ComponentUtils.$$getImageUrl(
+                        this, imageUid as string, scenario) || '';
+                }
+            })();
         }
     }
     // #endregion

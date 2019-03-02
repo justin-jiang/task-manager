@@ -1,5 +1,5 @@
-import { FileAPIScenario } from 'common/FileAPIScenario';
-import { FileUploadParam } from 'common/requestParams/FileUploadParam';
+import { HttpPathItem } from 'common/HttpPathItem';
+import { HttpUploadKey } from 'common/HttpUploadKey';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { NextFunction, Request, Response, Router } from 'express';
 import * as multer from 'multer';
@@ -11,8 +11,6 @@ import { UserObject } from 'server/dataObjects/UserObject';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { ApiRouter } from '../ApiRouter';
-import { HttpPathItem } from 'common/HttpPathItem';
-import { HttpUploadKey } from 'common/HttpUploadKey';
 
 
 export enum UploadType {
@@ -119,17 +117,11 @@ export class ApiBuilder {
 
         //  we should check filePost api before isSystemInitialized, because the system initialize
         // depends on the filePost api(i.e. admin register)
-        const filePostPattern = new RegExp(`^\/${HttpPathItem.Api}/${HttpPathItem.File}\/?$`, 'i');
-        if (req.method === 'POST' && filePostPattern.test(req.path)) {
-            const reqParam: FileUploadParam = req.body as FileUploadParam;
-            // parameter transform, which has been converted to string by el-uploader component
-            const scenario: FileAPIScenario = Number.parseInt(reqParam.scenario as any, 10);
-            reqParam.scenario = scenario;
-            if (reqParam.scenario === FileAPIScenario.UploadUser) {
-                // only postuser(i.e. user register) does not need to login check
-                next();
-                return;
-            }
+        const userPostPattern = new RegExp(`^\/${HttpPathItem.Api}/${HttpPathItem.User}\/?$`, 'i');
+        if (req.method === 'POST' && userPostPattern.test(req.path)) {
+            // only postuser(i.e. user register) does not need to login check
+            next();
+            return;
         }
 
         // check whether system has been initialized

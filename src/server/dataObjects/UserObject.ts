@@ -1,20 +1,9 @@
 import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 import { UserCommon } from 'common/commonDataObjects/UserCommon';
 export class UserObject extends UserCommon {
-    public publishedTaskCount?: number;
-    public executedTaskCount?: number;
-    public executorStar?: number;
-    public publisherStar?: number;
-
     constructor(withFullProps?: boolean) {
         super(withFullProps);
-        if (withFullProps) {
-            this.publishedTaskCount = 0;
-            this.executedTaskCount = 0;
-            this.executorStar = 0;
-            this.publisherStar = 0;
-        }
     }
 }
 
-export const keysOfIUserObject: string[] = getPropKeys(new UserObject(true));
+export const keysOfUserObject: string[] = getPropKeys(new UserObject(true));

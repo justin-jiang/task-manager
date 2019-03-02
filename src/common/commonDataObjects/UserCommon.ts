@@ -40,6 +40,15 @@ export class UserCommon extends CommonObject {
     public idState?: CheckState;
     public idCheckNote?: string;
     public qualificationCheckNote?: string;
+    public principalName?: string;
+    public principalIDNumber?: string;
+
+    public publishedTaskCount?: number;
+    public executedTaskCount?: number;
+    public executorStar?: number;
+    public publisherStar?: number;
+    public qualificationStar?: number;
+    public qualificationScore?: number;
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
@@ -52,6 +61,8 @@ export class UserCommon extends CommonObject {
             this.description = '';
             this.district = '';
             this.email = '';
+            this.executedTaskCount = 0;
+            this.executorStar = 0;
             this.frontIdState = CheckState.Missed;
             this.frontIdUid = '';
             this.idCheckNote = '';
@@ -65,16 +76,22 @@ export class UserCommon extends CommonObject {
             this.logoState = CheckState.Missed;
             this.name = '';
             this.nickName = '';
-            this.telephone = '';
+            this.principalName = '';
+            this.principalIDNumber = '';
             this.province = '';
+            this.publishedTaskCount = 0;
+            this.publisherStar = 0;
             this.qualificationUid = '';
             this.qualificationVersion = -1;
             this.qualificationState = CheckState.Missed;
             this.qualificationCheckNote = '';
+            this.qualificationStar = 0;
+            this.qualificationScore = 0;
             this.realName = '';
             this.roles = [];
             this.sex = -1;
             this.state = UserState.None;
+            this.telephone = '';
             this.type = UserType.None;
         }
     }

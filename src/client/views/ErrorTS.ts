@@ -2,6 +2,7 @@ import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { CommonUtils } from 'common/CommonUtils';
+import { RouterUtils } from 'client/common/RouterUtils';
 
 const compToBeRegistered: any = {
 };
@@ -16,7 +17,10 @@ export class ErrorTS extends Vue {
         } else {
             return '服务出错了！';
         }
+    }
 
+    private onImageClick(): void {
+        RouterUtils.goToUserHomePage(this.$router, this.storeState.sessionInfo);
     }
 
     // #region Vue life-circle method
@@ -26,6 +30,7 @@ export class ErrorTS extends Vue {
     // region -- internal props and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
+
     // #endregion
 
 }

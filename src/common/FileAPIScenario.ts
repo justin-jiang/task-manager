@@ -2,8 +2,7 @@
  * the following scenario will leverage file API to create new DB object or update file
  */
 export enum FileAPIScenario {
-    NONE = 0,
-    UploadUser = 1,
+    None = 0,
     UploadTemplate = 2,
 
 
@@ -16,16 +15,22 @@ export enum FileAPIScenario {
     DownloadAuthLetter = 16,
     DownloadLicense = 17,
     DownloadLinceWithPerson = 18,
+    DownloadQualificationTemplate = 19,
+    DownloadTaskDepositImage = 20,
+    DownloadTaskMarginImage = 21,
+    
 
-    UpdateUserLogo = 20,
-    UpdateTemplateFile = 21,
-    UpdateQualificationFile = 22,
-    UpdateTaskResultFile = 23,
-    UpdateUserFrontId = 24,
-    UpdateUserBackId = 25,
-    UpdateLicense = 26,
-    UpdateLicenseWithPersion = 27,
-    UpdateAuthLetter = 28,
+    UpdateUserLogo = 30,
+    UpdateTemplateFile = 31,
+    UpdateQualificationFile = 32,
+    UpdateTaskResultFile = 33,
+    UpdateUserFrontId = 34,
+    UpdateUserBackId = 35,
+    UpdateLicense = 36,
+    UpdateLicenseWithPersion = 37,
+    UpdateAuthLetter = 38,
+    UpdateDeposit = 39,
+    UpdateMargin = 40,
 
 
 }

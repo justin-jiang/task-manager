@@ -1,21 +1,36 @@
 <template>
-  <el-container id="app">
-    <el-header id="nav">
+  <el-container
+    id="app"
+    class="container-app"
+  >
+    <el-header
+      id="nav"
+      class="header-app"
+    >
       <el-row>
-        <el-col :span="16">
-          <span>替换为图片。。。</span>
+        <el-col
+          :span="16"
+          style="text-align:left;"
+        >
+          <img
+            class="img-logo"
+            src="./assets/companyLogo_mini.jpg"
+          />
         </el-col>
         <el-col
           :span="8"
-          style="text-align:right;"
+          style="text-align:right;padding-right:10px;"
         >
           <el-dropdown
+            style="width:250px"
             @command="handleCommand"
             v-if="isLogon"
           >
             <AvatarWithNameVue
-              :nameProp="logUserName"
+              :nameProp="logonUserName"
               :logoUrlProp="logoUrl"
+              :qualificationStarProp="qualificationStar"
+              :qualificationScoreProp="qualificationScore"
             ></AvatarWithNameVue>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item :command="LogoffCommand">退出登录</el-dropdown-item>
@@ -26,9 +41,11 @@
       </el-row>
 
     </el-header>
-    <el-main>
+
+    <el-main class="main-app">
       <router-view />
     </el-main>
+
   </el-container>
 </template>
 <script lang="ts">
@@ -36,16 +53,57 @@ import { AppTS } from "./AppTS";
 export default class AppVue extends AppTS {}
 </script>
 <style lang="less">
-#app {
+@headerPaddingTop: 20px;
+@headerHeight: @headerPaddingTop + 60px;
+
+.container-app {
   font-family: "Avenir", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  min-height: 800px;
 }
-#nav {
-  height: 50px;
+.header-app {
+  height: @headerHeight !important;
+  position: fixed;
+  background-color: white;
+  width: 100%;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  padding-top: @headerPaddingTop;
+}
+.main-app {
+  margin-top: @headerHeight;
+}
+
+.form-main {
+  max-width: 800px;
+  min-width: 300px;
+}
+.row-align-form {
+  max-width: 800px;
+  min-width: 300px;
+}
+.el-form-item__content {
+  text-align: left;
+}
+.el-tabs__content {
+  overflow: visible;
+}
+
+.el-badge__content {
+  z-index: 900;
+}
+.dialog-deposit .el-dialog__header {
+  padding-bottom: 0px;
+}
+.dialog-deposit .el-dialog__body {
+  padding-top: 0px;
+}
+
+.dialog-fund-audit .el-dialog__body {
+  padding-top: 0px;
 }
 
 .avatar-uploader .el-upload {
@@ -71,9 +129,6 @@ export default class AppVue extends AppTS {}
   height: 178px;
   display: block;
 }
-.el-main {
-  padding: 0px;
-}
 
 .el-menu-view-page {
   margin-bottom: 10px;
@@ -83,5 +138,11 @@ export default class AppVue extends AppTS {}
   height: 54px;
   width: 54px;
   font-size: 24px;
+}
+</style>
+<style scoped lang="less">
+.img-logo {
+  height: 60px;
+  width: 500px;
 }
 </style>

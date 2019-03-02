@@ -9,7 +9,7 @@ import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
 import { TemplateObject } from 'server/dataObjects/TemplateObject';
 import { UserObject } from 'server/dataObjects/UserObject';
 import { FileStorage } from 'server/dbDrivers/mongoDB/FileStorage';
-import { LoggerManager } from 'server/libsWrapper/LoggerManager';
+import { RequestUtils } from './RequestUtils';
 
 export class TemplateRequestHandler {
 
@@ -34,26 +34,16 @@ export class TemplateRequestHandler {
         if (dbObj == null) {
             throw new ApiError(ApiResultCode.DbNotFound);
         }
-        if (dbObj.ownerUid !== currentUser.uid) {
+        if (dbObj.publisherUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
-        let hasUpdateItems: boolean = false;
-        const updateObjParam: TemplateObject = {
-        } as TemplateObject;
-        if (!CommonUtils.isNullOrEmpty(reqParam.name)) {
-            updateObjParam.name = reqParam.name;
-            hasUpdateItems = true;
-        }
-        if (reqParam.note != null) {
-            updateObjParam.note = reqParam.note;
-            hasUpdateItems = true;
-        }
 
-        if (hasUpdateItems) {
-            await TemplateModelWrapper.$$updateOne({ uid: reqParam.uid } as TemplateObject, updateObjParam);
-            Object.assign(dbObj, updateObjParam);
+        const updatedProps: TemplateObject = RequestUtils.pickUpKeysByModel(reqParam, new TemplateEditParam(true));
+        const updatedKeys = Object.keys(updatedProps);
+        if (updatedKeys.length > 1) {
+            await TemplateModelWrapper.$$updateOne({ uid: updatedProps.uid } as TemplateObject, updatedProps);
+            Object.assign(dbObj, updatedProps);
         }
-
         return await this.$$convertToDBView(dbObj);
     }
 
@@ -69,7 +59,7 @@ export class TemplateRequestHandler {
         }
 
         // only admin or owner can remove template
-        if (!CommonUtils.isAdmin(currentUser.roles) && dbObj.ownerUid !== currentUser.uid) {
+        if (!CommonUtils.isAdmin(currentUser.roles) && dbObj.publisherUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
         // remove template file
@@ -85,10 +75,7 @@ export class TemplateRequestHandler {
         keysOfITemplateView.forEach((key: string) => {
             if (key in dbObj) {
                 view[key] = dbObj[key];
-            } else {
-                LoggerManager.warn('missed Key in TemplateObject:', key);
             }
-
         });
         return view;
     }

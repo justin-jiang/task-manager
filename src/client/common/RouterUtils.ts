@@ -13,6 +13,7 @@ export enum RoutePathItem {
 
     Admin_Task = 'task',
     Admin_User = 'user',
+    Admin_Template = 'template',
 
     Error = 'error',
     Executor = 'executor',
@@ -33,6 +34,7 @@ export enum RouterName {
     Admin_Notification = 'admin_notification',
     Admin_User = 'admin_user',
     Admin_Task = 'admin_task',
+    Admin_Template = 'admin_template',
     Error = 'error',
     Executor = 'executor',
     Executor_Task = 'executor_task',
@@ -74,6 +76,7 @@ export class RouterUtils {
     }
 
     public static goToUserRegisterView(router: VueRouter, role: UserRole) {
+        role = role || UserRole.CorpExecutor;
         router.push({
             name: RouterName.UserRegister,
             query: { role: role.valueOf().toString() } as RouteQuery,
@@ -88,7 +91,7 @@ export class RouterUtils {
     public static goToPublisherTaskView(router: VueRouter, tabName?: string) {
         router.push({
             name: RouterName.Publisher_Task,
-            query: { tabName } as RouteQuery
+            query: { tabName } as RouteQuery,
         } as RawLocation);
     }
     public static goToPublisherUserInfoView(router: VueRouter) {
@@ -147,15 +150,20 @@ export class RouterUtils {
     }
 
     public static isLoginUrl(): boolean {
-        const loginUrlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Login}`, 'i');
-        return loginUrlPattern.test(window.location.href);
+        const urlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Login}`, 'i');
+        return urlPattern.test(window.location.href);
     }
     public static isUserRegisterUrl(): boolean {
-        const loginUrlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.UserRegister}`, 'i');
-        return loginUrlPattern.test(window.location.href);
+        const urlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.UserRegister}`, 'i');
+        return urlPattern.test(window.location.href);
     }
     public static isAdminRoot(): boolean {
-        const loginUrlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Admin}\/?$`, 'i');
-        return loginUrlPattern.test(window.location.href);
+        const urlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Admin}\/?$`, 'i');
+        return urlPattern.test(window.location.href);
+    }
+
+    public static isPublishRoot(): boolean {
+        const urlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Publisher}\/?$`, 'i');
+        return urlPattern.test(window.location.href);
     }
 }

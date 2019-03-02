@@ -1,5 +1,5 @@
 import { Schema, SchemaOptions } from 'mongoose';
-import { keysOfIUserObject as KeysOfIDBObject } from 'server/dataObjects/UserObject';
+import { keysOfUserObject as KeysOfIDBObject } from 'server/dataObjects/UserObject';
 import { BaseSchemaDef, IModel } from './IModel';
 export const schemaName: string = 'users';
 
@@ -10,7 +10,7 @@ const schemaDef = Object.assign({
     // the name col index will be created in UserModelWrapper.$$warmUp
     name: { type: String, required: true },
     password: { type: String, required: true },
-    telephone: { type: String },
+    telephone: { type: String, required: true, index: true, unique: true },
     nickName: { type: String },
     // the email col index will be created in UserModelWrapper.$$warmUp
     email: { type: String },
@@ -35,6 +35,8 @@ const schemaDef = Object.assign({
     lastLogonTime: { type: Number },
     // the individual real name or corp real name
     realName: { type: String },
+    principalName: { type: String },
+    principalIDNumber: { type: String },
     // the indivudual sex
     sex: { type: Number },
     description: { type: String },
@@ -45,11 +47,21 @@ const schemaDef = Object.assign({
     district: { type: String },
     publishedTaskCount: { type: Number, default: 0 },
     executedTaskCount: { type: Number, default: 0 },
+    // the executor total stars from publisher because of task execution
     executorStar: { type: Number, default: 0 },
+    // the publisher total stars from executor becaus of task execution
     publisherStar: { type: Number, default: 0 },
     idState: { type: Number },
     idCheckNote: { type: String },
     qualificationCheckNote: { type: String },
+    // qualification start from admin
+    qualificationStar: { type: Number, default: 0 },
+    // qualification score from admin
+    qualificationScore: { type: Number, default: 0 },
+    bankName: { type: String },
+    bankAccountName: { type: String },
+    bankAccountNumber: { type: String },
+
 }, BaseSchemaDef);
 /**
  * User Schema

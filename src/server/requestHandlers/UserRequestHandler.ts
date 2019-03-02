@@ -1,26 +1,27 @@
 import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
-import { IQueryConditions } from 'common/IQueryConditions';
-import { NotificationType } from 'common/NotificationType';
+import { UserAccountInfoEditParam } from 'common/requestParams/UserAccountInfoEditParam';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import { UserCheckParam } from 'common/requestParams/UserCheckParam';
+import { UserCreateParam } from 'common/requestParams/UserCreateParam';
 import { UserPasswordEditParam } from 'common/requestParams/UserPasswordEditParam';
+import { UserPasswordResetParam } from 'common/requestParams/UserPasswordResetParam';
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { keysOfIUserView, UserView } from 'common/responseResults/UserView';
 import { UserState } from 'common/UserState';
+import * as nodemailer from 'nodemailer';
 import { ApiError } from 'server/common/ApiError';
-import { UserNotificationModelWrapper } from 'server/dataModels/UserNotificationModelWrapper';
-import { UserNotificationObject } from 'server/dataObjects/UserNotificationObject';
-import { LoggerManager } from 'server/libsWrapper/LoggerManager';
+import { AppStatus } from 'server/common/AppStatus';
 import { UserModelWrapper } from '../dataModels/UserModelWrapper';
 import { UserObject } from '../dataObjects/UserObject';
-import { NotificationRequestHandler } from './NotificationRequestHandler';
 import { RequestUtils } from './RequestUtils';
 
 export class UserRequestHandler {
-    public static async $$find(conditions: IQueryConditions): Promise<UserView[]> {
-        const dbObjs: UserObject[] = await UserModelWrapper.$$find(conditions) as UserObject[];
+    public static async $$query(currentUser: UserObject): Promise<UserView[]> {
+        RequestUtils.adminCheck(currentUser);
+        const dbObjs: UserObject[] = await UserModelWrapper.$$find(
+            { uid: { $ne: UserModelWrapper.adminUID } }) as UserObject[];
         const views: UserView[] = [];
         if (dbObjs != null && dbObjs.length > 0) {
             for (const obj of dbObjs) {
@@ -30,10 +31,91 @@ export class UserRequestHandler {
         return views;
     }
 
+    public static async $$create(reqParam: UserCreateParam): Promise<UserView> {
+        let dbObj: UserObject = new UserObject();
+        if (CommonUtils.isNullOrEmpty(reqParam.name)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'UserCreateParam.name');
+        }
+        dbObj.name = reqParam.name;
+
+        if (CommonUtils.isNullOrEmpty(reqParam.email)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'UserCreateParam.email');
+        }
+        dbObj.email = reqParam.email;
+
+        if (CommonUtils.isNullOrEmpty(reqParam.password)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'UserCreateParam.password');
+        }
+        dbObj.password = reqParam.password;
+
+        if (CommonUtils.isNullOrEmpty(reqParam.telephone)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'UserCreateParam.telephone');
+        }
+        dbObj.telephone = reqParam.telephone;
+
+        if (reqParam.type == null) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'UserCreateParam.type');
+        }
+        dbObj.type = reqParam.type;
+
+        if (!CommonUtils.isAdmin(reqParam.roles) &&
+            !CommonUtils.isExecutor(reqParam.roles) &&
+            !CommonUtils.isPublisher(reqParam.roles)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam,
+                'UserCreateParam.roles');
+        }
+        dbObj.roles = reqParam.roles;
+
+        if (CommonUtils.isAdmin(dbObj.roles)) {
+            dbObj.uid = UserModelWrapper.adminUID;
+        } else {
+            dbObj.uid = CommonUtils.getUUIDForMongoDB();
+        }
+        dbObj.idState = CheckState.Missed;
+        dbObj.qualificationState = CheckState.Missed;
+        dbObj.state = UserState.Enabled;
+
+
+        // if admin has been existing, the following sentence will throw dup error
+        dbObj = await UserModelWrapper.$$create(dbObj) as UserObject;
+        if (CommonUtils.isAdmin(dbObj.roles)) {
+            AppStatus.isSystemInitialized = true;
+        }
+        return await UserRequestHandler.$$convertToDBView(dbObj);
+    }
+
+    /**
+     * the individual or corp related prop update which NEED admin audit
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$basicInfoEdit(
         reqParam: UserBasicInfoEditParam, currentUser: UserObject): Promise<UserView> {
         const updatedProps: UserObject = RequestUtils.pickUpKeysByModel(reqParam, new UserBasicInfoEditParam(true));
-        if (Object.keys(updatedProps).length > 0) {
+        const updatedKeys = Object.keys(updatedProps);
+        if (updatedKeys.length > 0) {
+            updatedProps.idState = CheckState.ToBeChecked;
+            await UserModelWrapper.$$updateOne({ uid: currentUser.uid } as UserObject, updatedProps);
+            Object.assign(currentUser, updatedProps);
+        }
+        return await this.$$convertToDBView(currentUser);
+    }
+
+    /**
+     * the account related prop update which doesn't need admin audit
+     * @param reqParam 
+     * @param currentUser 
+     */
+    public static async $$accountInfoEdit(
+        reqParam: UserAccountInfoEditParam, currentUser: UserObject): Promise<UserView> {
+        const updatedProps: UserObject = RequestUtils.pickUpKeysByModel(reqParam, new UserAccountInfoEditParam(true));
+        const updatedKeys = Object.keys(updatedProps);
+        if (updatedKeys.length > 0) {
             await UserModelWrapper.$$updateOne({ uid: currentUser.uid } as UserObject, updatedProps);
             Object.assign(currentUser, updatedProps);
         }
@@ -48,6 +130,39 @@ export class UserRequestHandler {
         const dbObj: UserObject = { password: reqParam.newPassword } as UserObject;
 
         await UserModelWrapper.$$updateOne({ uid: currentUser.uid } as UserObject, dbObj);
+    }
+    public static async $$passwordReset(
+        reqParam: UserPasswordResetParam, currentUser: UserObject): Promise<void> {
+        if (!CommonUtils.isAdmin(currentUser.roles)) {
+            throw new ApiError(ApiResultCode.AuthForbidden);
+        }
+        const targetUser: UserObject = await UserModelWrapper.$$findOne(
+            { uid: reqParam.uid } as UserObject) as UserObject;
+        if (targetUser == null) {
+            throw new ApiError(ApiResultCode.DbNotFound, `UserUid:${reqParam.uid}`);
+        }
+        const adminEmail = 'justinjiang_email@163.com';
+        const adminEmailPassword = 'TaskManag2';
+        const randomPassword = CommonUtils.getRandomPassword();
+        const transporter = nodemailer.createTransport(
+            {
+                host: 'smtp.163.com',
+                secure: true,
+                port: 465,
+                auth: { user: adminEmail, pass: adminEmailPassword },
+            });
+
+        const mailOptions = {
+            from: adminEmail,
+            to: targetUser.email,
+            subject: '尽调系统密码重置',
+            html: `新密码：${randomPassword}`,
+        };
+
+        // send mail with defined transport object
+        await transporter.sendMail(mailOptions);
+        const updatedProps: UserObject = { password: randomPassword } as UserObject;
+        await UserModelWrapper.$$updateOne({ uid: targetUser.uid } as UserObject, updatedProps);
     }
 
     public static async $$remove(reqParam: UserRemoveParam, currentUser: UserObject): Promise<UserView | null> {
@@ -86,105 +201,11 @@ export class UserRequestHandler {
         if (dbObj == null) {
             throw new ApiError(ApiResultCode.DbNotFound, `UserId:${reqParam.uid}`);
         }
-        const updatedProps: UserObject = {};
-        const notifications: UserNotificationObject[] = [];
-        if (reqParam.qualitificationState != null) {
-            if (reqParam.qualitificationState === CheckState.FailedToCheck) {
-                updatedProps.qualificationState = CheckState.FailedToCheck;
+        const updatedProps: UserObject = RequestUtils.pickUpKeysByModel(reqParam, new UserCheckParam(true));
 
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserQualificationCheckFailure,
-                        dbObj.uid as string,
-                        dbObj.qualificationUid as string,
-                        reqParam.qualificationCheckNote));
-
-            } else if (reqParam.qualitificationState === CheckState.Checked) {
-                updatedProps.qualificationState = CheckState.Checked;
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserQualificationCheckPass,
-                        dbObj.uid as string,
-                        dbObj.qualificationUid as string,
-                        reqParam.qualificationCheckNote));
-            }
-            updatedProps.qualificationCheckNote = reqParam.qualificationCheckNote;
-        }
-
-        if (reqParam.idState != null) {
-            if (reqParam.idState === CheckState.FailedToCheck) {
-                updatedProps.idState = CheckState.FailedToCheck;
-
-            } else if (reqParam.frontIdState === CheckState.Checked) {
-                updatedProps.idState = CheckState.Checked;
-            }
-        }
-
-        if (reqParam.backIdState != null) {
-            if (reqParam.backIdState === CheckState.FailedToCheck) {
-                updatedProps.backIdState = CheckState.FailedToCheck;
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.BackIdCheckFailure,
-                        dbObj.uid as string,
-                        dbObj.backIdUid as string,
-                        reqParam.noteForBackId));
-            } else if (reqParam.backIdState === CheckState.Checked) {
-                updatedProps.backIdState = CheckState.Checked;
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.BackIdCheckPass,
-                        dbObj.uid as string,
-                        dbObj.backIdUid as string,
-                        reqParam.noteForBackId));
-            }
-        }
-
-        if (reqParam.frontIdState != null) {
-            if (reqParam.frontIdState === CheckState.FailedToCheck) {
-                updatedProps.frontIdState = CheckState.FailedToCheck;
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.FrontIdCheckFailure,
-                        dbObj.uid as string,
-                        dbObj.frontIdUid as string,
-                        reqParam.noteForFrontId));
-            } else if (reqParam.frontIdState === CheckState.Checked) {
-                updatedProps.frontIdState = CheckState.Checked;
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.FrontIdCheckPass,
-                        dbObj.uid as string,
-                        dbObj.frontIdUid as string,
-                        reqParam.noteForFrontId));
-            }
-        }
-        if (reqParam.logoState != null) {
-            if (reqParam.logoState === CheckState.FailedToCheck) {
-                updatedProps.logoState = CheckState.FailedToCheck;
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserLogoCheckFailure,
-                        dbObj.uid as string,
-                        dbObj.logoUid as string,
-                        reqParam.noteForLogo)
-                );
-            } else if (reqParam.logoState === CheckState.Checked) {
-                updatedProps.logoState = CheckState.Checked;
-                notifications.push(
-                    NotificationRequestHandler.createNotificationObject(
-                        NotificationType.UserLogoCheckPass,
-                        dbObj.uid as string,
-                        dbObj.logoUid as string,
-                        reqParam.noteForLogo));
-            }
-        }
         if (Object.keys(updatedProps).length > 0) {
             await UserModelWrapper.$$updateOne({ uid: dbObj.uid } as UserObject, updatedProps);
             Object.assign(dbObj, updatedProps);
-        }
-        for (const item of notifications) {
-            await UserNotificationModelWrapper.$$create(item);
         }
         return await this.$$convertToDBView(dbObj);
     }
@@ -215,10 +236,7 @@ export class UserRequestHandler {
         keysOfIUserView.forEach((key: string) => {
             if (key in dbObj) {
                 view[key] = dbObj[key];
-            } else {
-                LoggerManager.warn('missed Key in UserObjects:', key);
             }
-
         });
         return view;
     }

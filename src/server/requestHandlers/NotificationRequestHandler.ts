@@ -1,6 +1,6 @@
 import { UserNotificationView } from 'common/responseResults/UserNotificationView';
 import { UserNotificationModelWrapper } from 'server/dataModels/UserNotificationModelWrapper';
-import { keysOfIDBObject, UserNotificationObject } from 'server/dataObjects/UserNotificationObject';
+import { keysOfUserNotificationObject, UserNotificationObject } from 'server/dataObjects/UserNotificationObject';
 import { UserObject } from '../dataObjects/UserObject';
 import { CommonUtils } from 'common/CommonUtils';
 import { NotificationType } from 'common/NotificationType';
@@ -25,9 +25,12 @@ export class NotificationRequestHandler {
         return objViews;
     }
 
-    public static async $$read(reqParam: NotificationReadParam, currentUser: UserObject): Promise<UserNotificationView | null> {
+    public static async $$read(
+        reqParam: NotificationReadParam,
+        currentUser: UserObject): Promise<UserNotificationView | null> {
         const dbObj: UserNotificationObject = await UserNotificationModelWrapper.$$findOneAndUpdate(
-            { uid: reqParam.uid } as UserNotificationObject, { state: NotificationState.Read } as UserNotificationObject) as UserNotificationObject;
+            { uid: reqParam.uid } as UserNotificationObject,
+            { state: NotificationState.Read } as UserNotificationObject) as UserNotificationObject;
         if (dbObj != null) {
             return this.$$convertToDBView(dbObj);
         } else {
@@ -37,7 +40,7 @@ export class NotificationRequestHandler {
 
     public static async  $$convertToDBView(dbObj: UserNotificationObject): Promise<UserNotificationView> {
         const view: UserNotificationView = new UserNotificationView();
-        keysOfIDBObject.forEach((key: string) => {
+        keysOfUserNotificationObject.forEach((key: string) => {
             if (key in dbObj) {
                 view[key] = dbObj[key];
             }
@@ -53,52 +56,6 @@ export class NotificationRequestHandler {
         notification.type = type;
         notification.targetUserUid = targetUserUid;
         notification.targetObjectUid = targetObjectUid;
-
-        switch (type) {
-            case NotificationType.TaskApply:
-                notification.title = '任务申请';
-                break;
-            case NotificationType.TaskApplyAccepted:
-                notification.title = '任务申请通过';
-                break;
-            case NotificationType.TaskApplyDenied:
-                notification.title = '任务申请被拒绝';
-                break;
-            case NotificationType.TaskAuditAccepted:
-                notification.title = '任务申请已通过平台审核并提交给发布者';
-                break;
-            case NotificationType.TaskAuditDenied:
-                notification.title = '任务申请没有通过平台审核';
-                break;
-            case NotificationType.TaskResultAccepted:
-                notification.title = '任务结果审核通过';
-                break;
-            case NotificationType.TaskResultDenied:
-                notification.title = '任务结果被拒绝';
-                break;
-            case NotificationType.FrontIdCheckFailure:
-            case NotificationType.BackIdCheckFailure:
-                notification.title = '用户身份审查被拒绝';
-                break;
-            case NotificationType.FrontIdCheckPass:
-            case NotificationType.BackIdCheckPass:
-                notification.title = '用户身份审查通过';
-                break;
-            case NotificationType.UserLogoCheckFailure:
-                notification.title = '用户头像审查被拒绝';
-                break;
-            case NotificationType.UserLogoCheckPass:
-                notification.title = '用户头像审查通过';
-                break;
-            case NotificationType.UserQualificationCheckFailure:
-                notification.title = '资质文件审核被拒绝';
-                break;
-            case NotificationType.UserQualificationCheckPass:
-                notification.title = '资质文件审核通过';
-                break;
-            default:
-                notification.title = '消息';
-        }
         notification.content = content || '';
         return notification;
     }
