@@ -9,6 +9,9 @@ import { ApiResult } from 'common/responseResults/APIResult';
 import { TaskView } from 'common/responseResults/TaskView';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { timingSafeEqual } from 'crypto';
+import { ReceiptState } from 'common/ReceiptState';
+import { FeeCalculator } from 'common/FeeCalculator';
 enum EventNames {
     success = 'success',
     cancelled = 'cancelled',
@@ -27,18 +30,18 @@ const compToBeRegistered: any = {
 export class DepositDialogTS extends Vue {
     // #region -- component props and methods
     @Prop() public visibleProp!: boolean;
-    @Prop() public targetTaskProp!: TaskView;
+    @Prop() public taskProp!: TaskView;
     // #endregion
 
     // #region -- referred props and methods by page template
     private readonly depositUploaderRefName: string = 'depositUploader';
-    private readonly NO_RECEIPT: number = 0;
-    private readonly NEED_RECEIPT: number = 1;
+    private readonly LABEL_NO_RECEIPT: number = ReceiptState.NotRequired;
+    private readonly LABEL_RECEIPT: number = ReceiptState.Required;
     private targetTaskView: TaskView = {};
-    private receiptRequired: number = 1;
+    private receiptRequired: number = this.LABEL_RECEIPT;
     private onlinePayType: number = 0;
     private depositUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateDeposit,
+        scenario: FileAPIScenario.UploadTaskDeposit,
     };
     private depositUid: string = '';
     private isDepositImageChanged: boolean = false;
@@ -49,10 +52,17 @@ export class DepositDialogTS extends Vue {
         return this.targetTaskView.reward || 0;
     }
     private get taskAgentFee(): number {
-        return Math.round(this.taskReward * 0.1);
+        return FeeCalculator.calcAgentFee(this.taskReward);
+    }
+    private get taxFee(): number {
+        if (this.receiptRequired === this.LABEL_NO_RECEIPT) {
+            return 0;
+        } else {
+            return FeeCalculator.calcReceiptTax(this.taskReward);
+        }
     }
     private get taskTotalFee(): number {
-        return this.taskReward + this.taskAgentFee;
+        return this.taskReward + this.taskAgentFee + this.taxFee;
     }
     private get isAliPay(): boolean {
         return this.onlinePayType === 1;
@@ -66,7 +76,7 @@ export class DepositDialogTS extends Vue {
         }
         this.depositUploadParam.optionData = {
             uid: this.targetTaskView.uid,
-            receiptRequired: this.receiptRequired,
+            publisherReceiptRequired: this.receiptRequired,
         } as TaskDepositImageUploadParam;
         (this.$refs[this.depositUploaderRefName] as any as ISingleImageUploaderTS).submit();
     }
@@ -91,17 +101,17 @@ export class DepositDialogTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.targetTaskView = this.targetTaskProp || {};
+        this.targetTaskView = this.taskProp || {};
     }
     // #endregion
 
     // #region -- internal variables and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
-    @Watch('targetTaskProp', { immediate: true })
-    private onTargetTaskChanged(currentValue: TaskView, previousValue: TaskView) {
+    @Watch('taskProp', { immediate: true })
+    private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
         this.targetTaskView = currentValue || {};
-        this.receiptRequired = this.NO_RECEIPT;
+        this.receiptRequired = this.LABEL_NO_RECEIPT;
         if (this.$refs[this.depositUploaderRefName] != null) {
             (this.$refs[this.depositUploaderRefName] as any as ISingleImageUploaderTS).reset();
         }

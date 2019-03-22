@@ -12,10 +12,10 @@
           :span="16"
           style="text-align:left;"
         >
-          <img
+          <!-- <img
             class="img-logo"
             src="./assets/companyLogo_mini.jpg"
-          />
+          /> -->
         </el-col>
         <el-col
           :span="8"
@@ -45,7 +45,6 @@
     <el-main class="main-app">
       <router-view />
     </el-main>
-
   </el-container>
 </template>
 <script lang="ts">
@@ -85,6 +84,10 @@ export default class AppVue extends AppTS {}
   max-width: 800px;
   min-width: 300px;
 }
+
+.el-form-item {
+  margin-bottom: 15px;
+}
 .el-form-item__content {
   text-align: left;
 }
@@ -95,6 +98,12 @@ export default class AppVue extends AppTS {}
 .el-badge__content {
   z-index: 900;
 }
+
+// dialog
+.el-dialog {
+  border-radius: 8px;
+}
+
 .dialog-deposit .el-dialog__header {
   padding-bottom: 0px;
 }
@@ -105,6 +114,16 @@ export default class AppVue extends AppTS {}
 .dialog-fund-audit .el-dialog__body {
   padding-top: 0px;
 }
+
+.dialog-task-form .el-dialog__body {
+  padding-top: 0px;
+  padding-left: 0px;
+}
+.dialog-progress .el-dialog__body {
+  padding-top: 15px;
+}
+
+//
 
 .avatar-uploader .el-upload {
   border: 1px dashed #d9d9d9;
@@ -138,6 +157,11 @@ export default class AppVue extends AppTS {}
   height: 54px;
   width: 54px;
   font-size: 24px;
+}
+.confirm-danger {
+  .el-message-box__status.el-icon-warning {
+    color: red !important;
+  }
 }
 </style>
 <style scoped lang="less">

@@ -1,7 +1,14 @@
 <template>
   <div>
-    <!-- task radio button group -->
+    <!-- task radio button group and create_task button -->
     <el-row>
+      <el-col :span="4">
+        <el-button
+          type="success"
+          icon="el-icon-plus"
+          @click="onTaskCreate()"
+        >创建新任务</el-button>
+      </el-col>
       <el-col
         :span="20"
         style="margin-top:10px"
@@ -61,13 +68,6 @@
           </div>
         </el-radio-group>
       </el-col>
-      <el-col :span="4">
-        <el-button
-          type="success"
-          icon="el-icon-plus"
-          @click="onTaskCreate()"
-        >创建新任务</el-button>
-      </el-col>
     </el-row>
 
     <!-- task table -->
@@ -77,7 +77,8 @@
           style="width: 100%"
           stripe
           :ref="taskTableName"
-          :data="filtredTaskObjs"
+          :data="filteredTaskObjs"
+          @row-click="onRowClick"
         >
           <el-table-column type="expand">
             <template slot-scope="props">
@@ -121,7 +122,7 @@
                 v-if="isSearchReady(scope.row)"
                 v-model="search"
                 size="mini"
-                placeholder="任务名称搜索"
+                placeholder="名称搜索"
               />
             </template>
             <template slot-scope="scope">
@@ -130,20 +131,21 @@
                 size="mini"
                 plain
                 v-if="isToBeDeposited(scope.$index, scope.row)"
-                @click="onDeposit(scope.$index, scope.row)"
+                @click.stop="onDeposit(scope.$index, scope.row)"
               >资金托管</el-button>
               <el-button
                 type="primary"
                 size="mini"
                 plain
                 v-if="isTaskResultPassed(scope.$index, scope.row)"
-                @click="onTaskResultCheck(scope.$index, scope.row)"
+                @click.stop="onTaskResultCheck(scope.$index, scope.row)"
               >验收确认</el-button>
               <el-button
                 type="primary"
                 size="mini"
                 plain
-                @click="onTaskProgressCheck(scope.$index, scope.row)"
+                v-if="!isNotSubmitted(scope.$index, scope.row)"
+                @click.stop="onTaskProgressCheck(scope.$index, scope.row)"
               >进度查询</el-button>
 
               <el-button
@@ -151,28 +153,29 @@
                 size="mini"
                 plain
                 v-if="!isNotSubmitted(scope.$index, scope.row)"
-                @click="onTaskDetailCheck(scope.$index, scope.row)"
+                @click.stop="onTaskDetailCheck(scope.$index, scope.row)"
               >任务详情</el-button>
               <el-button
                 size="mini"
                 type="primary"
                 plain
                 v-if="isNotSubmitted(scope.$index, scope.row)"
-                @click="onTaskEdit(scope.$index, scope.row)"
+                @click.stop="onTaskEdit(scope.$index, scope.row)"
               >编辑</el-button>
 
               <el-button
                 size="mini"
                 type="primary"
+                plain
                 v-if="isNotSubmitted(scope.$index, scope.row)"
-                @click="onSubmit(scope.$index, scope.row)"
+                @click.stop="onSubmit(scope.$index, scope.row)"
               >提交</el-button>
 
               <el-button
                 size="mini"
                 type="danger"
-                v-if="isNotDeposited(scope.$index, scope.row)"
-                @click="onTaskDelete(scope.$index, scope.row)"
+                v-if="isNotSubmitted(scope.$index, scope.row)"
+                @click.stop="onTaskDelete(scope.$index, scope.row)"
               >删除</el-button>
             </template>
           </el-table-column>
@@ -194,8 +197,9 @@
 
     <!-- dialog to create or edit task -->
     <el-dialog
-      width="50%"
+      width="800px"
       :title="taskCreateOrEditDialogTitle"
+      custom-class="dialog-task-form"
       :show-close="false"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -204,10 +208,11 @@
       <el-row>
         <el-col :span="24">
           <TaskFormVue
-            :taskViewProp="selectedTask"
+            :ref="taskFormRefName"
+            :taskProp="selectedTask"
             :usageSenario="usageSenario"
             @success="onTaskCreateOrEditSuccess"
-            @cancelled="onTaskCreateOrEditCancelled"
+            @cancel="onTaskCreateOrEditCancel"
           ></TaskFormVue>
         </el-col>
       </el-row>
@@ -216,7 +221,7 @@
     <!-- dialog to deposit and upload the deposit image -->
     <DepositDialogVue
       :visibleProp="depositDialogVisible"
-      :targetTaskProp="selectedTask"
+      :taskProp="selectedTask"
       @cancelled="onDepositCancelled"
       @success="onDepositSuccess"
     >
@@ -225,7 +230,7 @@
     <!-- task progress check dialog -->
     <TaskProgressDialogVue
       :visibleProp="taskProgressDialogVisible"
-      :targetTaskProp="selectedTask"
+      :taskProp="selectedTask"
       @closed="onTaskProgressDialogClosed"
     >
     </TaskProgressDialogVue>

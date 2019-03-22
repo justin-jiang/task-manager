@@ -7,60 +7,109 @@ const schemaOptions: SchemaOptions = {
     collection: schemaName,
 };
 const schemaDef = Object.assign({
-    // the name col index will be created in UserModelWrapper.$$warmUp
-    name: { type: String, required: true },
-    password: { type: String, required: true },
-    telephone: { type: String, required: true, index: true, unique: true },
-    nickName: { type: String },
+    /**
+     * Basic Info
+     */
+    address: { type: String },
+
+    city: { type: String },
+
+    description: { type: String },
+    // the district of location
+    district: { type: String },
+
+
     // the email col index will be created in UserModelWrapper.$$warmUp
     email: { type: String },
+    // the system user Id(for indivual, it means user himself, for corp, it means the user who use the system)
+    identityNumber: { type: String },
+
     logoUid: { type: String },
     logoState: { type: Number },
-    qualificationUid: { type: String },
-    qualificationVersion: { type: Number },
-    qualificationState: { type: Number },
-    frontIdUid: { type: String },
-    frontIdState: { type: Number },
-    backIdUid: { type: String },
-    backIdState: { type: Number },
-    licenseUid: { type: String },
-    licenseState: { type: Number },
-    licenseWithPersonUid: { type: String },
-    licenseWidthPersonState: { type: Number },
-    authLetterUid: { type: String },
-    authLetterState: { type: Number },
-    roles: { type: [Number] },
-    type: { type: Number },
-    state: { type: Number },
-    lastLogonTime: { type: Number },
-    // the individual real name or corp real name
-    realName: { type: String },
+
+    // the name col index will be created in UserModelWrapper.$$warmUp
+    name: { type: String, required: true },
+    nickName: { type: String },
+
+    password: { type: String, required: true },
+    // for corp user, the principal user name who use the system
     principalName: { type: String },
+    // for corp user, the principal user Id number
     principalIDNumber: { type: String },
+    province: { type: String },
+
+    // the individual real name or the corp name
+    realName: { type: String },
+    // Executor or Publisher or Admin
+    roles: { type: [Number] },
+
     // the indivudual sex
     sex: { type: Number },
-    description: { type: String },
-    identityNumber: { type: String },
-    address: { type: String },
-    province: { type: String },
-    city: { type: String },
-    district: { type: String },
-    publishedTaskCount: { type: Number, default: 0 },
+
+    telephone: { type: String, required: true, index: true, unique: true },
+    // Induvidual or type
+    type: { type: Number },
+
+    /**
+     * qualification info
+     */
+    authLetterUid: { type: String },
+    authLetterState: { type: Number },
+
+    backIdUid: { type: String },
+    backIdState: { type: Number },
+
+    frontIdUid: { type: String },
+    frontIdState: { type: Number },
+
+    licenseUid: { type: String },
+    licenseState: { type: Number },
+
+    licenseWithPersonUid: { type: String },
+    licenseWidthPersonState: { type: Number },
+
+    // for admin, it is used as the qualification template
+    qualificationUid: { type: String },
+    qualificationVersion: { type: Number },
+
+
+
+    /**
+     * status info
+     */
+
     executedTaskCount: { type: Number, default: 0 },
-    // the executor total stars from publisher because of task execution
-    executorStar: { type: Number, default: 0 },
-    // the publisher total stars from executor becaus of task execution
-    publisherStar: { type: Number, default: 0 },
     idState: { type: Number },
     idCheckNote: { type: String },
+    lastLogonTime: { type: Number },
+    publishedTaskCount: { type: Number, default: 0 },
+    qualificationState: { type: Number },
     qualificationCheckNote: { type: String },
+    state: { type: Number },
+
+    /**
+     * Rate Info
+     */
+    // the executor total stars from publisher because of task execution
+    executorStar: { type: Number },
+    // the publisher total stars from executor becaus of task execution
+    publisherStar: { type: Number },
     // qualification start from admin
-    qualificationStar: { type: Number, default: 0 },
+    qualificationStar: { type: Number },
     // qualification score from admin
-    qualificationScore: { type: Number, default: 0 },
+    qualificationScore: { type: Number },
+
+    // Bank Info
     bankName: { type: String },
     bankAccountName: { type: String },
     bankAccountNumber: { type: String },
+    linkBankAccountNumber: { type: String },
+
+    /**
+     * Others
+     */
+    registerProtocolUid: { type: String },
+    registerProtocolVersion: { type: Number },
 
 }, BaseSchemaDef);
 /**

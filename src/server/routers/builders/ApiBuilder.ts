@@ -11,6 +11,8 @@ import { UserObject } from 'server/dataObjects/UserObject';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { ApiRouter } from '../ApiRouter';
+import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 
 
 export enum UploadType {
@@ -137,6 +139,25 @@ export class ApiBuilder {
             next();
             return;
         }
+        // ignore register protocol download api
+        const downloadPattern = new RegExp(
+            `^\/${HttpPathItem.Api}/${HttpPathItem.File}/${HttpPathItem.Download}\/?$`, 'i');
+        if (req.method === 'POST' && downloadPattern.test(req.path)) {
+            const reqParam: FileDownloadParam = req.body as FileDownloadParam;
+            if (reqParam.scenario === FileAPIScenario.DownloadRegisterProtocol) {
+                next();
+                return;
+            }
+        }
+
+        // ignore password recover api
+        const passwordRecoverPattern = new RegExp(
+            `^\/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Recover}\/?$`, 'i');
+        if (req.method === 'POST' && passwordRecoverPattern.test(req.path)) {
+            next();
+            return;
+        }
+
         // check if cookie is available
         if (await this.$$cookieChecking(loginUserInCookie) === false) {
             res.json({ code: ApiResultCode.AuthUnauthorized }).end();

@@ -14,6 +14,7 @@
           :limit="countLimit"
           :before-upload="beforeUpload"
           :on-change="onFileChange"
+          :on-remove="onFileRemove"
           :on-exceed="onFileCountExceed"
           :on-success="onFileUploadDone"
           :on-error="onFileUploadError"
@@ -31,6 +32,7 @@
     <el-row v-if="!hideSubmitButton">
       <el-col :span="24">
         <el-button
+          v-if="!hideSubmitButton"
           size="small"
           type="primary"
           :disabled="!isReadyToSubmit"

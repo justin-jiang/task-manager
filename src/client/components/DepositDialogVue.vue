@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    width="30%"
+    width="430px"
     custom-class="dialog-deposit"
     :show-close="false"
     :close-on-click-modal="false"
@@ -8,7 +8,7 @@
     :visible.sync="visibleProp"
   >
     <el-row
-      class="row-item"
+      class="row-item row-item-icon"
       slot="title"
     >
       <el-col :span="24">
@@ -18,11 +18,11 @@
         />
       </el-col>
     </el-row>
-    <el-row class="row-item">
-      <el-col :span="6">
+    <el-row class="row-item row-item-title">
+      <el-col :span="4">
         名称：
       </el-col>
-      <el-col :span="18">
+      <el-col :span="20">
         {{taskName}}
       </el-col>
     </el-row>
@@ -49,8 +49,8 @@
           v-model="receiptRequired"
           size="mini"
         >
-          <el-radio :label="1">开具发票</el-radio>
-          <el-radio :label="0">不开发票</el-radio>
+          <el-radio :label="LABEL_RECEIPT">开具发票</el-radio>
+          <el-radio :label="LABEL_NO_RECEIPT">不开发票</el-radio>
         </el-radio-group>
       </el-col>
 
@@ -58,7 +58,7 @@
         应付金额：
       </el-col>
       <el-col :span="4">
-        ￥{{taskAgentFee}}
+        ￥{{taskTotalFee}}
       </el-col>
     </el-row>
     <el-row class="row-item row-item-border">
@@ -136,8 +136,8 @@
           :filePostParamProp="depositUploadParam"
           :noCropProp="true"
           :imageUidProp="depositUid"
-          @imageChanged="onDepositImageChanged"
-          @imageReset="onDepositImageReset"
+          @change="onDepositImageChanged"
+          @reset="onDepositImageReset"
           @success="onDepositUploadSuccess"
           @failure="onDepositUploadFailure"
         ></SingleImageUploaderVue>
@@ -147,16 +147,18 @@
     <el-row>
       <el-col :span="24">
         <el-button
+          type="primary"
+          size="small"
+          plain
+          @click="onCancelled()"
+        >取消</el-button>
+        <el-button
           size="small"
           type="primary"
           :disabled="!isDepositImageReady"
           @click="onSubmit()"
         >支付完毕</el-button>
 
-        <el-button
-          size="small"
-          @click="onCancelled()"
-        >取消</el-button>
       </el-col>
     </el-row>
   </el-dialog>
@@ -172,6 +174,13 @@ export default class DepositDialogVue extends DepositDialogTS {}
 .row-item {
   margin-bottom: 15px;
   text-align: left;
+}
+.row-item-icon {
+  margin-bottom: 10px;
+}
+.row-item-title {
+  font-size: 20px;
+  font-weight: 800;
 }
 .row-item-no-margin {
   text-align: left;

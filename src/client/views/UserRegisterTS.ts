@@ -1,5 +1,6 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { RouteQuery } from 'client/common/RouteQuery';
+import { RouterUtils } from 'client/common/RouterUtils';
 import BasicUserRegisterVue from 'client/components/BasicUserRegisterVue.vue';
 import { ComponentUtils } from 'client/components/ComponentUtils';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
@@ -11,15 +12,13 @@ import { CommonUtils } from 'common/CommonUtils';
 import { LIMIT_FILE_SIZE_M } from 'common/Config';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { NotificationType } from 'common/NotificationType';
+import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
-import { RouterUtils } from 'client/common/RouterUtils';
-import { TaskState } from 'common/TaskState';
 
 enum RegisterStep {
     BasicInfo = 0,
@@ -60,9 +59,9 @@ export class UserRegisterTS extends Vue {
     private title(): string {
         if (this.userRole === UserRole.CorpExecutor ||
             this.userRole === UserRole.PersonalExecutor) {
-            return '执行人注册';
+            return '雇员注册';
         } else {
-            return '发布人注册';
+            return '雇主注册';
         }
     }
     private isBasicUserRegister(): boolean {
@@ -115,7 +114,7 @@ export class UserRegisterTS extends Vue {
         if (sessionInfo.idState === CheckState.FailedToCheck) {
             return StepStatus.error;
         }
-        if (sessionInfo.idState === CheckState.Checked) {
+        if (sessionInfo.idState === CheckState.Checked || sessionInfo.idState === CheckState.ToBeChecked) {
             return StepStatus.success;
         }
 
@@ -252,7 +251,7 @@ export class UserRegisterTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.filePostParam.scenario = FileAPIScenario.UpdateQualificationFile;
+        this.filePostParam.scenario = FileAPIScenario.UploadQualification;
         const query = this.$route.query as RouteQuery;
         if (query != null && !CommonUtils.isNullOrEmpty(query.role)) {
             this.targetRole = Number.parseInt(query.role as string, 10) as UserRole;
@@ -270,7 +269,7 @@ export class UserRegisterTS extends Vue {
         this.initialize();
     }
     private initialize() {
-        if (CommonUtils.isAdmin(this.storeState.sessionInfo.roles)) {
+        if (CommonUtils.isAdmin(this.storeState.sessionInfo)) {
             RouterUtils.goToAdminView(this.$router);
         } else {
             this.calculateRegisterStep();

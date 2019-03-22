@@ -59,7 +59,7 @@ export class TemplateRequestHandler {
         }
 
         // only admin or owner can remove template
-        if (!CommonUtils.isAdmin(currentUser.roles) && dbObj.publisherUid !== currentUser.uid) {
+        if (!CommonUtils.isAdmin(currentUser) && dbObj.publisherUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
         // remove template file

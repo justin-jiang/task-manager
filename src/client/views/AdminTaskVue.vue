@@ -10,18 +10,6 @@
           <el-radio-button :label="allTasksLab">全部</el-radio-button>
 
           <el-badge
-            v-if="toBeAuditInfoCount>0"
-            :value="toBeAuditInfoCount"
-            class="item"
-          >
-            <el-radio-button :label="toBeAuditInfoLab">待通过</el-radio-button>
-          </el-badge>
-          <el-radio-button
-            v-else
-            :label="toBeAuditInfoLab"
-          >待通过</el-radio-button>
-
-          <el-badge
             v-if="toBeAuditDepositsCount>0"
             :value="toBeAuditDepositsCount"
             class="item"
@@ -85,13 +73,15 @@
         </el-radio-group>
       </el-col>
     </el-row>
+    <!-- task table -->
     <el-row>
       <el-col :span="24">
         <el-table
           style="width: 100%"
           stripe
           :ref="taskTableName"
-          :data="filtredTaskObjs"
+          :data="filteredTaskObjs"
+          @row-click="onRowClick"
         >
           <el-table-column type="expand">
             <template slot-scope="props">
@@ -138,7 +128,7 @@
                 v-if="isSearchReady(scope.row)"
                 v-model="search"
                 size="mini"
-                placeholder="任务名称搜索"
+                placeholder="名称搜索"
               />
             </template>
             <template slot-scope="scope">
@@ -147,31 +137,39 @@
                 size="mini"
                 plain
                 v-if="isInfoReadyToBeAudited(scope.$index, scope.row)"
-                @click="onInfoAudit(scope.$index, scope.row)"
-              >信息审核</el-button>
+                @click.stop="onInfoAudit(scope.$index, scope.row)"
+              >任务信息审核</el-button>
 
               <el-button
                 type="primary"
                 size="mini"
                 plain
                 v-if="isDepositReadyToBeAudited(scope.$index, scope.row)"
-                @click="onDepositAudit(scope.$index, scope.row)"
+                @click.stop="onDepositAudit(scope.$index, scope.row)"
               >托管资金审核</el-button>
 
               <el-button
                 type="primary"
                 size="mini"
                 plain
+                v-if="isExecutorReadyToBeAudited(scope.$index, scope.row)"
+                @click.stop="onExecutorAudit(scope.$index, scope.row)"
+              >雇员资质审核</el-button>
+
+              <el-button
+                type="primary"
+                size="mini"
+                plain
                 v-if="isMarginReadyToBeAudited(scope.$index, scope.row)"
-                @click="onMarginAudit(scope.$index, scope.row)"
-              >保证金审核</el-button>
+                @click.stop="onMarginAudit(scope.$index, scope.row)"
+              >保证金托管审核</el-button>
 
               <el-button
                 type="primary"
                 size="mini"
                 plain
                 v-if="isResultReadyToBeAudited(scope.$index, scope.row)"
-                @click="onResultAudit(scope.$index, scope.row)"
+                @click.stop="onResultAudit(scope.$index, scope.row)"
               >结果审核</el-button>
 
               <el-button
@@ -179,15 +177,31 @@
                 size="mini"
                 plain
                 v-if="isReadyToVisitPublisher(scope.$index, scope.row)"
-                @click="onPublisherVisit(scope.$index, scope.row)"
+                @click.stop="onPublisherVisit(scope.$index, scope.row)"
               >用户回访</el-button>
 
               <el-button
                 type="primary"
                 size="mini"
                 plain
+                v-if="isReadyToPayToExecutor(scope.$index, scope.row)"
+                @click.stop="onPayToExecutor(scope.$index, scope.row)"
+              >支付酬劳</el-button>
+
+              <el-button
+                type="primary"
+                size="mini"
+                plain
+                v-if="isReadyToReceiptUpload(scope.$index, scope.row)"
+                @click.stop="onReceiptUpload(scope.$index, scope.row)"
+              >发票入账</el-button>
+
+              <el-button
+                type="primary"
+                size="mini"
+                plain
                 v-if="!isNotSubmitted(scope.$index, scope.row)"
-                @click="onTaskProgressCheck(scope.$index, scope.row)"
+                @click.stop="onTaskProgressCheck(scope.$index, scope.row)"
               >进度查询</el-button>
 
               <el-button
@@ -195,7 +209,7 @@
                 size="mini"
                 plain
                 v-if="!isNotSubmitted(scope.$index, scope.row)"
-                @click="onTaskDetailCheck(scope.$index, scope.row)"
+                @click.stop="onTaskDetailCheck(scope.$index, scope.row)"
               >任务详情</el-button>
 
             </template>
@@ -206,107 +220,29 @@
     <!-- task process dialog -->
     <TaskProgressDialogVue
       :visibleProp="taskProgressDialogVisible"
-      :targetTaskProp="selectedTask"
+      :taskProp="selectedTask"
       @closed="onTaskProgressDialogClosed"
     >
     </TaskProgressDialogVue>
-
-    <!-- publisher visit dialog -->
-    <el-dialog
-      width="30%"
-      title="用户回访"
-      class="dialog-publisher-visit"
-      :show-close="false"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :visible.sync="publisherVisitDialogVisible"
-    >
-      <el-row class="row-dialog-item">
-        <el-col :span="8">
-          企业联系人：
-        </el-col>
-        <el-col
-          :span="16"
-          class="col-align-left"
-        >
-          {{publisherOfSelectedTask.principalName}}
-        </el-col>
-      </el-row>
-      <el-row class="row-dialog-item">
-        <el-col :span="8">
-          联系电话：
-        </el-col>
-        <el-col
-          :span="16"
-          class="col-align-left"
-        >
-          {{publisherOfSelectedTask.telephone}}
-        </el-col>
-      </el-row>
-      <el-row class="row-dialog-item">
-        <el-col :span="8">
-          满意度：
-        </el-col>
-        <el-col
-          :span="16"
-          class="col-align-left"
-        >
-          <el-rate v-model="publisherRateStar">
-          </el-rate>
-        </el-col>
-      </el-row>
-      <el-row class="row-dialog-item">
-        <el-col :span="8">
-          备注：
-        </el-col>
-        <el-col
-          :span="16"
-          class="col-align-left"
-        >
-          <el-input
-            type="textarea"
-            :rows="4"
-            placeholder="请输入内容"
-            v-model="publisherVisitNote"
-          >
-          </el-input>
-        </el-col>
-      </el-row>
-      <el-row class="row-dialog-item">
-        <el-col :span="24">
-          <el-button
-            type="primary"
-            size="small"
-            @click="onPublisherVisitSubmitted()"
-          >提交</el-button>
-          <el-button
-            type="primary"
-            plain
-            size="small"
-            @click="onPublisherVisitCancelled()"
-          >取消</el-button>
-        </el-col>
-      </el-row>
-
-    </el-dialog>
 
     <!-- dialog to audit the task info -->
     <AuditDialogVue
       titleProp="任务信息审核"
       widthProp="40%"
       :visibleProp="infoAuditDialogVisible"
-      @submitted="onInfoAuditSubmitted"
-      @cancelled="onInfoAuditCancelled"
+      @submit="onInfoAuditSubmit"
+      @cancel="onInfoAuditCancel"
     >
-      【任务信息请点击’任务详情‘按钮查看】
+      【点击’任务详情‘按钮可以查看任务信息】
     </AuditDialogVue>
 
-    <!-- dialog for fund(deposit and margin) audit -->
+    <!-- dialog for deposit and margin audit -->
     <AuditDialogVue
       :titleProp="fundAuditDialogTitle"
       :visibleProp="fundAuditDialogVisible"
-      @submitted="onDepositAuditSubmitted"
-      @cancelled="onDepositAuditCancelled"
+      @submit="onFundAuditSubmit"
+      @cancel="onFundAuditCancel"
+      @refund="onRefund"
     >
       <el-row class="row-dialog-item">
         <el-col :span="24">
@@ -321,15 +257,47 @@
               class="image-item"
               :src="fundImageUrl"
             >
-            <span class="span-image-mask">
+            <span
+              class="span-image-mask"
+              @click="onFundPreview()"
+            >
               <i
                 class="el-icon-zoom-in"
-                @click="onDepositPreview()"
+                @click="onFundPreview()"
               ></i>
             </span>
           </div>
         </el-col>
       </el-row>
+    </AuditDialogVue>
+
+    <!-- dailog for deposit and margin refund -->
+    <RefundDialogVue
+      :visibleProp="refundAuditDialogVisible"
+      :refundScenarioProp="refundScenario"
+      :taskProp="selectedTask"
+      :userProp="refundUser"
+      @success="onRefundSuccess"
+      @cancel="onRefundCancel"
+    >
+
+    </RefundDialogVue>
+
+    <!-- dialog for executor qualification audit -->
+    <AuditDialogVue
+      titleProp="雇员资质审核"
+      widthProp="40%"
+      :visibleProp="executorAuditDialogVisible"
+      @submit="onExecutorAuditSubmit"
+      @cancel="onExecutorAuditCancel"
+    >
+      <AvatarWithNameVue
+        :nameProp="executorName"
+        :logoUrlProp="executorLogoUrl"
+        :qualificationStarProp="executorQualificationStar"
+        :qualificationScoreProp="executorQualificationScore"
+      >
+      </AvatarWithNameVue>
     </AuditDialogVue>
 
     <!-- dialog for result audit -->
@@ -344,21 +312,36 @@
     >
     </FileCheckDialogVue>
 
-    <!-- dialog for executor qualification audit -->
-    <AuditDialogVue
-      titleProp="雇员资质审核"
-      :visibleProp="executorAuditDialogVisible"
-      @submitted="onExecutorAuditSubmitted"
-      @cancelled="onExecutorAuditCancelled"
+    <!-- publisher visit dialog -->
+    <PublisherVisitDialogVue
+      :visibleProp="publisherVisitDialogVisible"
+      :taskProp="selectedTask"
+      :targetTaskPublisherProp="publisherOfSelectedTask"
+      @success="onPublisherVisitSuccess"
+      @cancel="onPublisherVisitCancel"
+      @failure="onPublisherVisitFailure"
     >
-      <AvatarWithNameVue
-        :nameProp="executorName"
-        :logoUrlProp="executorLogoUrl"
-        :qualificationStarProp="executorQualificationStar"
-        :qualificationScoreProp="executorQualificationScore"
-      ></AvatarWithNameVue>
-    </AuditDialogVue>
+    </PublisherVisitDialogVue>
 
+    <!-- dialog for pay to executor -->
+    <PayToExecutorDialogVue
+      :visibleProp="payToExecutorDialogVisible"
+      :taskProp="selectedTask"
+      :targetTaskExecutorProp="executorOfSelectedTask"
+      @success="onPayToExecutorSuccess"
+      @cancel="onPayToExecutorCancel"
+    >
+    </PayToExecutorDialogVue>
+
+    <!-- receipt upload dialog -->
+    <ReceiptUploadDialogVue
+      :visibleProp="receiptDialogVisible"
+      :taskProp="selectedTask"
+      @success="onReceiptUploadSuccess"
+      @cancel="onReceiptUploadCancel"
+    >
+
+    </ReceiptUploadDialogVue>
   </div>
 </template>
 
@@ -377,6 +360,7 @@ export default class AdminTaskVue extends AdminTaskTS {}
     position: relative;
     margin: 0 auto;
     .image-item {
+      width: 100%;
       max-height: @maxImageHeight;
     }
     .span-image-mask {

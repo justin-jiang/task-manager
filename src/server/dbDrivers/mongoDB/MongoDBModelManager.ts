@@ -1,15 +1,15 @@
+// tslint:disable:max-line-length
 import { Connection, Model } from 'mongoose';
 import { mongodbName } from 'server/common/Constants';
-// tslint:disable-next-line:max-line-length
 import { ITaskApplicationModel, schema as taskApplicationSchema, schemaName as taskApplicationSchemaName } from 'server/dataModels/mongoDB/ITaskApplicationModel';
+import { ITaskCheckRecordModel, schema as taskCheckRecordSchema, schemaName as taskCheckRecordSchemaName } from 'server/dataModels/mongoDB/ITaskCheckRecordModel';
 import { ITaskModel, schema as taskSchema, schemaName as taskSchemaName } from 'server/dataModels/mongoDB/ITaskModel';
-// tslint:disable-next-line:max-line-length
 import { ITemplateModel, schema as templateSchema, schemaName as templateSchemaName } from 'server/dataModels/mongoDB/ITemplateModel';
 import { IUserModel, schema as userSchema, schemaName as userSchemaName } from 'server/dataModels/mongoDB/IUserModel';
+import { IUserNotificationModel, schema as userNotificationSchema, schemaName as userNotificationSchemaName } from 'server/dataModels/mongoDB/IUserNotificationModel';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { MongoDBDriver } from './MongoDBDriver';
-import { ITaskCheckRecordModel, schema as taskCheckRecordSchema, schemaName as taskCheckRecordSchemaName } from 'server/dataModels/mongoDB/ITaskCheckRecordModel';
-import { IUserNotificationModel, schema as userNotificationSchema, schemaName as userNotificationSchemaName } from 'server/dataModels/mongoDB/IUserNotificationModel';
+
 export class MongoDBModelManager {
     public static async $$getUserModel(): Promise<Model<IUserModel>> {
         if (this.modelCache[this.userModelName] == null) {

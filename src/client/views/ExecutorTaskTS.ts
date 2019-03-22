@@ -2,22 +2,18 @@ import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { RouterUtils } from 'client/common/RouterUtils';
 import { ViewTextUtils } from 'client/common/ViewTextUtils';
 import MarginDialogVue from 'client/components/MarginDialogVue.vue';
-import { ISingleFileUploadTS } from 'client/components/SingleFileUploadTS';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
 import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import TaskProgressDialogVue from 'client/components/TaskProgressDialogVue.vue';
+import TaskResultUploadDialogVue from 'client/components/TaskResultUploadDialogVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CommonUtils } from 'common/CommonUtils';
-import { ACCEPTED_UPLOAD_FILE_TYPES, LIMIT_FILE_SIZE_M } from 'common/Config';
-import { FileAPIScenario } from 'common/FileAPIScenario';
 import { locations } from 'common/Locations';
-import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { TaskApplyParam } from 'common/requestParams/TaskApplyParam';
 import { TaskApplyRemoveParam } from 'common/requestParams/TaskApplyRemoveParam';
-import { TaskResultFileUploadParam } from 'common/requestParams/TaskResultFileUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
@@ -30,20 +26,21 @@ const compToBeRegistered: any = {
     TaskDetailInTableVue,
     MarginDialogVue,
     TaskProgressDialogVue,
+    TaskResultUploadDialogVue,
 };
 
 @Component({
     components: compToBeRegistered,
 })
 export class ExecutorTaskTS extends Vue {
-    // #region -- props and methods for Whole Page
+    // #region -- reference by template
     private readonly readyToApplyTaskTabName: string = 'readyToApplyTaskTab';
     private isInitialized: boolean = false;
     private activeTabName: string = this.readyToApplyTaskTabName;
     // #endregion
 
     // #region -- references by query and sort conditions of ready-to-apply task
-    private provinceFilter: string = '';
+    private provinceFilter: string[] = [];
     private publishTimeFilter: number | null = null;
     private startRewardFilter: number = 0;
     private endRewardFilter: number = Number.MAX_VALUE;
@@ -112,6 +109,9 @@ export class ExecutorTaskTS extends Vue {
         this.startRewardFilter = 0;
         this.endRewardFilter = Number.MAX_VALUE;
     }
+    private onTaskSearchSubmit(): void {
+
+    }
     // #endregion
 
     // #region -- reference by ready-to-apply task List
@@ -121,8 +121,7 @@ export class ExecutorTaskTS extends Vue {
             if (item.state !== TaskState.ReadyToApply) {
                 isMatched = false;
             }
-            if (!CommonUtils.isNullOrEmpty(this.provinceFilter) &&
-                this.provinceFilter !== item.province) {
+            if (this.provinceFilter.length > 0 && !this.provinceFilter.includes(item.province as string)) {
                 isMatched = false;
             }
             if (!CommonUtils.isNullOrEmpty(this.publishTimeFilter) &&
@@ -155,7 +154,7 @@ export class ExecutorTaskTS extends Vue {
         });
     }
     private deadlineToText(timestamp: number): string {
-        return CommonUtils.convertTimeStampToText(timestamp, true/* only date */);
+        return ViewTextUtils.convertTimeStampToDate(timestamp);
     }
     private onTaskApply(task: TaskView) {
         const confirm = this.$confirm(
@@ -233,15 +232,13 @@ export class ExecutorTaskTS extends Vue {
     // #region -- referenced applied Task Table
     private readonly appliedTaskTableName: string = 'appliedTaskTable';
     private readonly appliedTaskTabName: string = 'appliedTaskTab';
-    private readonly resultUploaderRefName: string = 'resultUploader';
 
     private marginDialogVisible: boolean = false;
     private taskResultDialogVisible: boolean = false;
     private taskProgressDialogVisible: boolean = false;
     private appliedTaskSearch: string = '';
-    private taskResultFileTypes: string[] = ACCEPTED_UPLOAD_FILE_TYPES;
-    private taskResultFileSizeMLimit: number = LIMIT_FILE_SIZE_M;
-    private filePostParam: FileUploadParam = {};
+
+
     private selectedTask: TaskView = {};
 
     private taskStateRadio: TaskState = TaskState.None;
@@ -287,7 +284,7 @@ export class ExecutorTaskTS extends Vue {
         return ViewTextUtils.getTaskStateText(state);
     }
     private timestampToText(timestamp: number): string {
-        return CommonUtils.convertTimeStampToText(timestamp);
+        return ViewTextUtils.convertTimeStampToDatetime(timestamp);
     }
     private isTaskApplying(index: number, task: TaskView): boolean {
         return task.state === TaskState.Applying;
@@ -295,33 +292,43 @@ export class ExecutorTaskTS extends Vue {
     private isTaskAssigned(index: number, task: TaskView): boolean {
         return task.state === TaskState.Assigned;
     }
+    private onRowClick(task: TaskView, column: any): void {
+        (this.$refs[this.appliedTaskTableName] as any).toggleRowExpansion(task);
+    }
     private onSelectTaskResultUpload(index: number, task: TaskView): void {
         this.selectedTask = task;
-        this.filePostParam.scenario = FileAPIScenario.UpdateTaskResultFile;
-        this.filePostParam.optionData = new TaskResultFileUploadParam();
-        this.filePostParam.optionData.uid = task.uid;
         this.taskResultDialogVisible = true;
     }
     private onApplyingReleased(index: number, task: TaskView): void {
-        (async () => {
-            const store = (this.$store as Store<IStoreState>);
-            const apiResult: ApiResult = await store.dispatch(
-                StoreActionNames.taskApplyRemove,
-                {
-                    data: {
-                        uid: task.uid,
-                    } as TaskApplyRemoveParam,
-                } as IStoreActionArgs);
-            if (apiResult.code === ApiResultCode.Success) {
-                this.$message.success(`提交成功`);
-            } else {
-                this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-            }
-        })();
+        const confirm = this.$confirm(
+            '确认要释放此任务吗？',
+            '提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                center: true,
+                closeOnClickModal: false,
+            });
+        confirm.then(() => {
+            (async () => {
+                const store = (this.$store as Store<IStoreState>);
+                const apiResult: ApiResult = await store.dispatch(
+                    StoreActionNames.taskApplyRemove,
+                    {
+                        data: {
+                            uid: task.uid,
+                        } as TaskApplyRemoveParam,
+                    } as IStoreActionArgs);
+                if (apiResult.code === ApiResultCode.Success) {
+                    this.$message.success(`提交成功`);
+                } else {
+                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+                }
+            })();
+        }).catch(() => {
+            // do nothing for cancel
+        });
     }
-    private onTaskResultSubmit(): void {
-        (this.$refs[this.resultUploaderRefName] as any as ISingleFileUploadTS).submit();
-    }
+
     private onTaskResultCancel(): void {
         this.taskResultDialogVisible = false;
     }
@@ -341,6 +348,7 @@ export class ExecutorTaskTS extends Vue {
     private onMarginUploadSuccess(apiResult: ApiResult): void {
         this.$message.success('保证金凭证上传成功');
         this.store.commit(StoreMutationNames.taskItemReplace, apiResult.data);
+        this.marginDialogVisible = false;
     }
 
     private onTaskProgressCheck(index: number, task: TaskView): void {

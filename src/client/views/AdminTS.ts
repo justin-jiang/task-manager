@@ -21,7 +21,7 @@ export class AdminTS extends Vue {
     private readonly userIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_User}`;
     private readonly taskIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Task}`;
     private readonly templateIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`;
-
+    private readonly registerProtocolIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Protocol}`;
     private onMenuSelected(key: string, keyPath: string): void {
         LoggerManager.debug('selectedMenu:', key, keyPath);
     }
@@ -61,7 +61,7 @@ export class AdminTS extends Vue {
     private initialize() {
         const sessionInfo = this.storeState.sessionInfo;
         if (sessionInfo != null && sessionInfo.roles != null && this.isLoading) {
-            if (!CommonUtils.isAdmin(sessionInfo.roles)) {
+            if (!CommonUtils.isAdmin(sessionInfo)) {
                 RouterUtils.goToUserHomePage(this.$router, sessionInfo);
             } else {
                 this.isLoading = false;

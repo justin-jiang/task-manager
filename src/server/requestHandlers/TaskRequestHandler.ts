@@ -3,13 +3,14 @@ import { keysOfTaskBasicCommon } from 'common/commonDataObjects/TaskBasicCommon'
 import { CommonUtils } from 'common/CommonUtils';
 import { IQueryConditions } from 'common/IQueryConditions';
 import { NotificationType } from 'common/NotificationType';
+import { ReceiptState } from 'common/ReceiptState';
 import { FileRemoveParam } from 'common/requestParams/FileRemoveParam';
-import { TaskApplyCheckParam } from 'common/requestParams/TaskApplyCheckParam';
 import { TaskApplyParam } from 'common/requestParams/TaskApplyParam';
 import { TaskApplyRemoveParam } from 'common/requestParams/TaskApplyRemoveParam';
 import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
 import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
+import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
 import { TaskHistoryQueryParam } from 'common/requestParams/TaskHistoryQueryParam';
 import { TaskPublisherVisitParam } from 'common/requestParams/TaskPublisherVisitParam';
 import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
@@ -48,14 +49,6 @@ export class TaskRequestHandler {
         dbObj.uid = CommonUtils.getUUIDForMongoDB();
         dbObj.createTime = Date.now();
         dbObj.publisherUid = currentUser.uid;
-        // create the created history item
-        dbObj.histories = [];
-        dbObj.histories.push({
-            uid: CommonUtils.getUUIDForMongoDB(),
-            createTime: dbObj.createTime,
-            state: TaskState.Created,
-            description: '',
-        } as TaskHistoryItem);
         dbObj.state = TaskState.Created;
         dbObj = await TaskModelWrapper.$$create(dbObj) as TaskObject;
         return await this.$$convertToDBView(dbObj);
@@ -71,19 +64,29 @@ export class TaskRequestHandler {
                 `User:${currentUser.name} state(${currentUser.state}) is not ready`);
         }
 
-        const isExecutor: boolean = CommonUtils.isExecutor(currentUser.roles);
-        const isPublisher: boolean = CommonUtils.isPublisher(currentUser.roles);
+        const isExecutor: boolean = CommonUtils.isExecutor(currentUser);
+        const isPublisher: boolean = CommonUtils.isPublisher(currentUser);
 
         const queryCondition: IQueryConditions = {};
         if (isExecutor) {
             // for executor, only can query the task 
-            // 1, whose state is ReadyToAppy or 
+            // 1, whose state is ReadyToAppy and qualification-matched + executor-type-matched or 
             // 2, whose applicantUid is current user or
             // 3, whose executorUid is current user
-            queryCondition.$or = [];
-            queryCondition.$or.push({ state: TaskState.ReadyToApply } as TaskObject);
-            queryCondition.$or.push({ applicantUid: currentUser.uid } as TaskObject);
-            queryCondition.$or.push({ executorUid: currentUser.uid } as TaskObject);
+            queryCondition.$or = [
+                // new task with qualification condition
+                {
+                    $and: [
+                        { minExecutorStar: { $lte: currentUser.qualificationStar } as any } as TaskObject,
+                        { state: TaskState.ReadyToApply } as TaskObject,
+                        { executorTypes: { $elemMatch: { $eq: currentUser.type } } as any } as TaskObject,
+                    ],
+                },
+                // permission condition
+                { applicantUid: currentUser.uid } as TaskObject,
+                { executorUid: currentUser.uid } as TaskObject,
+
+            ];
         } else if (isPublisher) {
             // for publisher, only can query task published by current user
             queryCondition.$or = [];
@@ -111,11 +114,11 @@ export class TaskRequestHandler {
             throw new ApiError(ApiResultCode.DbNotFound, `task:${reqParam.uid} Not Found`);
         }
 
-        if (CommonUtils.isPublisher(currentUser.roles) && dbObj.publisherUid !== currentUser.uid) {
+        if (CommonUtils.isPublisher(currentUser) && dbObj.publisherUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden,
                 `Publisher:${currentUser.name} not owner of task:${dbObj.name}`);
         }
-        if (CommonUtils.isExecutor(currentUser.roles) && dbObj.applicantUid !== currentUser.uid) {
+        if (CommonUtils.isExecutor(currentUser) && dbObj.applicantUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden,
                 `task:${dbObj.name} Not Assigned to Executor:${currentUser.name}`);
         }
@@ -139,7 +142,7 @@ export class TaskRequestHandler {
         publisherUid = dbObj.publisherUid;
 
         // only admin or ownered publisher can remove task
-        if (!CommonUtils.isAdmin(currentUser.roles) && currentUser.uid !== publisherUid) {
+        if (!CommonUtils.isAdmin(currentUser) && currentUser.uid !== publisherUid) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
 
@@ -197,16 +200,7 @@ export class TaskRequestHandler {
     public static async $$submit(reqParam: TaskSubmitParam, currentUser: UserObject): Promise<TaskView> {
         // only ready publisher can apply task
         RequestUtils.readyPublisherCheck(currentUser);
-
-        const dbObj: TaskObject | null = await TaskModelWrapper.$$findOne(
-            { uid: reqParam.uid } as TaskObject) as TaskObject;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound, `task id:${reqParam.uid}`);
-        }
-        if (dbObj.state !== TaskState.Created) {
-            throw new ApiError(ApiResultCode.AuthForbidden,
-                `task:(${dbObj.name}) state:(${dbObj.state}) is not expected:(${TaskState.Created})`);
-        }
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(reqParam.uid as string, TaskState.Created);
         const updatedProps: TaskObject = new TaskObject();
         updatedProps.state = TaskState.Submitted;
         updatedProps.histories = dbObj.histories;
@@ -214,12 +208,11 @@ export class TaskRequestHandler {
             createTime: Date.now(),
             description: '',
             state: TaskState.Submitted,
+            title: `雇主提交“${dbObj.name}”任务`,
             uid: CommonUtils.getUUIDForMongoDB(),
         } as TaskHistoryItem);
 
         await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
-        // create sumbit history item
-
 
         Object.assign(dbObj, updatedProps);
         return await this.$$convertToDBView(dbObj);
@@ -233,11 +226,30 @@ export class TaskRequestHandler {
     public static async $$infoAudit(reqParam: TaskAuditParam, currentUser: UserObject): Promise<TaskView> {
         return await this.$$taskAudit(
             reqParam,
-            TaskState.Submitted /* expected state */,
-            TaskState.InfoPassed /* target approve state */,
+            TaskState.DepositUploaded /* expected state */,
+            TaskState.ReadyToApply /* target approve state, should be decided in the method */,
             TaskState.InfoAuditDenied /* target deny state */,
-            TaskState.Created /* gobackState */);
+            TaskState.Created /* gobackState */,
+            { infoAuditState: CheckState.Checked } as TaskObject,
+            { infoAuditState: CheckState.FailedToCheck, infoAuditNote: reqParam.note } as TaskObject);
     }
+    /**
+     * used by admin to audit the task deposit
+     * @param reqParam 
+     * @param currentUser 
+     */
+    public static async $$depositAudit(reqParam: TaskAuditParam, currentUser: UserObject): Promise<TaskView> {
+        RequestUtils.adminCheck(currentUser);
+        return await this.$$taskAudit(
+            reqParam,
+            TaskState.DepositUploaded /* expected state */,
+            TaskState.ReadyToApply /* target approve state, decided in method */,
+            TaskState.DepositAuditDenied /* target deny state */,
+            TaskState.Submitted /* go back state*/,
+            { depositAuditState: CheckState.Checked } as TaskObject,
+            { depositAuditState: CheckState.FailedToCheck, depositAuditNote: reqParam.note } as TaskObject);
+    }
+
     /**
      * Executor applies specified task
      * @param reqParam 
@@ -265,7 +277,10 @@ export class TaskRequestHandler {
 
         await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, dbObjWithUpdatedProps);
 
-        await TaskModelWrapper.$$addHistoryItem(dbObj.uid as string, TaskState.Applying);
+        await TaskModelWrapper.$$addHistoryItem(
+            dbObj.uid as string,
+            dbObjWithUpdatedProps.state,
+            CommonUtils.getStepTitleByTaskState(dbObjWithUpdatedProps.state));
         Object.assign(dbObj, dbObjWithUpdatedProps);
         return await this.$$convertToDBView(dbObj);
     }
@@ -295,6 +310,9 @@ export class TaskRequestHandler {
                 `executor:${currentUser.uid} is not the task:${dbObj.uid} applicant`);
         }
 
+        // delete the apply record
+        await TaskApplicationModelWrapper.$$deleteByTaskId(dbObj.uid as string);
+
         // update the task state and executorUid 
         const dbObjWithUpdatedProps: TaskObject = new TaskObject();
         dbObjWithUpdatedProps.state = TaskState.ReadyToApply;
@@ -302,120 +320,54 @@ export class TaskRequestHandler {
         await TaskModelWrapper.$$updateOne(
             { uid: dbObj.uid } as TaskObject, dbObjWithUpdatedProps);
 
-        // delete the apply record
-        await TaskApplicationModelWrapper.$$deleteByTaskId(dbObj.uid as string);
-
-        Object.assign(dbObj, dbObjWithUpdatedProps);
-        return await this.$$convertToDBView(dbObj);
-    }
-    /**
-     * used by publisher to approve or deny the task apply
-     * @param reqParam 
-     * @param currentUser 
-     */
-    public static async $$applyCheck(reqParam: TaskApplyCheckParam, currentUser: UserObject): Promise<TaskView> {
-        if (!CommonUtils.isUserReady(currentUser)) {
-            LoggerManager.error(`User(${currentUser.name}) is not ready`);
-            throw new ApiError(ApiResultCode.AuthForbidden);
-        }
-        const dbObj: TaskObject | null = await TaskModelWrapper.$$findOne(
-            { uid: reqParam.uid } as TaskObject) as TaskObject;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound, `task id:${reqParam.uid}`);
-        }
-        if (currentUser.uid !== dbObj.publisherUid) {
-            LoggerManager.error(`User(${currentUser.name}) is not task(${dbObj.publisherUid}) publisher`);
-            throw new ApiError(ApiResultCode.AuthForbidden);
-        }
-        if (dbObj.state !== TaskState.ReadyToAuditApply) {
-            LoggerManager.error(
-                `task(${reqParam.uid}) state(${dbObj.state}) is not expected(${TaskState.ReadyToAuditApply})`);
-            throw new ApiError(ApiResultCode.AuthForbidden, 'task state is not expected');
-        }
-
-        // update the task state and executorUid 
-        const dbObjWithUpdatedProps: TaskObject = new TaskObject();
-        if (reqParam.pass === true) {
-            dbObjWithUpdatedProps.executorUid = dbObj.applicantUid;
-            dbObjWithUpdatedProps.state = TaskState.Assigned;
-            // create task-denied notification
-            const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskApplyAccepted,
-                dbObj.applicantUid as string,
-                dbObj.uid as string,
-                `发布者接受了你对任务（${dbObj.name}）的申请。`);
-            await UserNotificationModelWrapper.$$create(userNotification);
-        } else {
-            dbObjWithUpdatedProps.state = TaskState.ReadyToApply;
-            dbObjWithUpdatedProps.applicantUid = '';
-            // create task-denied notification
-            const reason: string | undefined = reqParam.note || '无';
-            const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskApplyDenied,
-                dbObj.applicantUid as string,
-                dbObj.uid as string,
-                `发布者拒绝了你对任务（${dbObj.name}）的申请。理由：${reason}`);
-            await UserNotificationModelWrapper.$$create(userNotification);
-        }
-        await TaskModelWrapper.$$updateOne(
-            { uid: dbObj.uid } as TaskObject, dbObjWithUpdatedProps);
-
-        // delete the apply record
-        await TaskApplicationModelWrapper.$$deleteByTaskId(reqParam.uid as string);
-
         Object.assign(dbObj, dbObjWithUpdatedProps);
         return await this.$$convertToDBView(dbObj);
     }
 
+
     /**
-     * used by publisher to approve or deny the task apply from executor
+     * used by admin to approve or deny the task executor qualification
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$applyAudit(reqParam: TaskAuditParam, currentUser: UserObject): Promise<TaskView> {
+    public static async $$executorAudit(reqParam: TaskAuditParam, currentUser: UserObject): Promise<TaskView> {
         RequestUtils.adminCheck(currentUser);
         const dbObj = await this.$$taskAudit(
             reqParam,
-            TaskState.ReadyToAuditApply /* expected state */,
-            TaskState.Assigned /* target approve state */,
-            TaskState.ApplyAuditDenied /* target deny state */,
+            TaskState.MarginUploaded /* expected state */,
+            TaskState.Assigned /* target approve state, decided in method */,
+            reqParam.state as TaskState /* target deny state */,
             TaskState.ReadyToApply /* go back state*/,
-            {} as TaskObject /* updated props after approve*/,
-            { applicantUid: '' } as TaskObject /* updated props after deny*/);
-        if (reqParam.auditState === CheckState.Checked) {
-            const executorNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskApplyAuditAccepted,
-                dbObj.applicantUid as string,
-                dbObj.uid as string,
-                `你对任务（${dbObj.name}）的申请已通过`);
-            await UserNotificationModelWrapper.$$create(executorNotification);
-        } else {
-            const reason: string | undefined = reqParam.note || '无';
-            const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskApplyAuditDenied,
-                dbObj.applicantUid as string,
-                dbObj.uid as string,
-                `你对任务（${dbObj.name}）的申请，已被管理员拒绝，原因：${reason}`);
-            await UserNotificationModelWrapper.$$create(userNotification);
-        }
-
+            { executorAuditState: CheckState.Checked } as TaskObject /* updated props after approve*/,
+            {
+                applicantUid: '',
+                executorAuditState: CheckState.FailedToCheck,
+                executorAuditNote: reqParam.note,
+            } as TaskObject /* updated props after deny*/);
         return dbObj;
     }
 
     /**
-     * used by admin to audit the task deposit
+     * used by admin to audit the margin from executor
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$depositAudit(reqParam: TaskAuditParam, currentUser: UserObject): Promise<TaskView> {
+    public static async $$marginAudit(reqParam: TaskAuditParam, currentUser: UserObject): Promise<TaskView> {
         RequestUtils.adminCheck(currentUser);
-        return await this.$$taskAudit(
+        const dbObj = await this.$$taskAudit(
             reqParam,
-            TaskState.Deposited /* expected state */,
-            TaskState.ReadyToApply /* target approve state */,
-            TaskState.DepositAuditDenied /* target deny state */,
-            TaskState.InfoPassed /* go back state*/);
+            TaskState.MarginUploaded /* expected state */,
+            TaskState.Assigned /* target approve state, decided in method */,
+            reqParam.state as TaskState /* target deny state */,
+            TaskState.Applying /* go back state*/,
+            { marginAditState: CheckState.Checked } as TaskObject /* updated props after approve*/,
+            {
+                marginAditState: CheckState.FailedToCheck,
+                marginAuditNote: reqParam.note,
+            } as TaskObject /* updated props after deny*/);
+        return dbObj;
     }
+
 
     /**
      * used by admin to approve or deny the task result from executor
@@ -433,23 +385,23 @@ export class TaskRequestHandler {
             { adminSatisfiedStar: reqParam.satisfiedStar } as TaskObject /* updated props after approve*/,
             {} as TaskObject /* updated props after deny*/);
 
-        if (reqParam.auditState === CheckState.Checked) {
-            const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskApplyAuditAccepted,
-                dbObj.executorUid as string,
-                dbObj.uid as string,
-                `你对任务（${dbObj.name}）的执行结果，已被平台审核通过`);
-            await UserNotificationModelWrapper.$$create(userNotification);
-        } else {
-            // create notification to executor
-            const reason: string = reqParam.note || '无';
-            const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskAuditDenied,
-                dbObj.executorUid as string,
-                dbObj.uid as string,
-                `你对任务（${dbObj.name}）的执行结果，已被平台拒绝，原因：${reason}`);
-            await UserNotificationModelWrapper.$$create(userNotification);
-        }
+        // if (reqParam.auditState === CheckState.Checked) {
+        //     const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
+        //         NotificationType.TaskApplyAuditAccepted,
+        //         dbObj.executorUid as string,
+        //         dbObj.uid as string,
+        //         `你对任务（${dbObj.name}）的执行结果，已被平台审核通过`);
+        //     await UserNotificationModelWrapper.$$create(userNotification);
+        // } else {
+        //     // create notification to executor
+        //     const reason: string = reqParam.note || '无';
+        //     const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
+        //         NotificationType.TaskAuditDenied,
+        //         dbObj.executorUid as string,
+        //         dbObj.uid as string,
+        //         `你对任务（${dbObj.name}）的执行结果，已被平台拒绝，原因：${reason}`);
+        //     await UserNotificationModelWrapper.$$create(userNotification);
+        // }
         return dbObj;
     }
 
@@ -469,23 +421,23 @@ export class TaskRequestHandler {
             { publisherResultSatisfactionStar: reqParam.satisfiedStar } as TaskObject /* updated props after approve*/,
             {} as TaskObject /* updated props after deny*/);
 
-        if (reqParam.auditState === CheckState.Checked) {
-            const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskResultAccepted,
-                dbObj.executorUid as string,
-                dbObj.uid as string,
-                `你对任务（${dbObj.name}）的执行结果，已被雇主通过`);
-            await UserNotificationModelWrapper.$$create(userNotification);
-        } else {
-            // create notification to executor
-            const reason: string = reqParam.note || '无';
-            const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
-                NotificationType.TaskResultDenied,
-                dbObj.executorUid as string,
-                dbObj.uid as string,
-                `你对任务（${dbObj.name}）的执行结果，已被雇主拒绝，原因：${reason}`);
-            await UserNotificationModelWrapper.$$create(userNotification);
-        }
+        // if (reqParam.auditState === CheckState.Checked) {
+        //     const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
+        //         NotificationType.TaskResultAccepted,
+        //         dbObj.executorUid as string,
+        //         dbObj.uid as string,
+        //         `你对任务（${dbObj.name}）的执行结果，已被雇主通过`);
+        //     await UserNotificationModelWrapper.$$create(userNotification);
+        // } else {
+        //     // create notification to executor
+        //     const reason: string = reqParam.note || '无';
+        //     const userNotification: UserNotificationObject = NotificationRequestHandler.createNotificationObject(
+        //         NotificationType.TaskResultDenied,
+        //         dbObj.executorUid as string,
+        //         dbObj.uid as string,
+        //         `你对任务（${dbObj.name}）的执行结果，已被雇主拒绝，原因：${reason}`);
+        //     await UserNotificationModelWrapper.$$create(userNotification);
+        // }
         return dbObj;
     }
 
@@ -510,6 +462,30 @@ export class TaskRequestHandler {
                 reqParam, new TaskPublisherVisitParam(true)) /* updated props after approve*/,
             {} as TaskObject /* updated props after deny*/);
     }
+
+    /**
+     * used by admin to abandon the receipt from executor
+     * @param reqParam 
+     * @param currentUser 
+     */
+    public static async $$receiptDeny(reqParam: TaskExecutorReceiptUploadParam, currentUser: UserObject) {
+        RequestUtils.adminCheck(currentUser);
+        const auditParam: TaskAuditParam = {
+            auditState: CheckState.Checked,
+            uid: reqParam.uid,
+        };
+        return await this.$$taskAudit(
+            auditParam,
+            TaskState.PublisherVisited /* expected state */,
+            TaskState.ExecutorPaid /* target approve state */,
+            TaskState.None /* target deny state */,
+            TaskState.None /* go back state*/,
+            {
+                executorReceiptNote: reqParam.executorReceiptNote,
+                executorReceiptRequired: ReceiptState.NotRequired,
+            } as TaskObject /* updated props after approve*/,
+            {} as TaskObject /* updated props after deny*/);
+    }
     // #endregion
 
 
@@ -522,7 +498,7 @@ export class TaskRequestHandler {
         const view: TaskView = new TaskView();
         let returnedKeys: string[] = keysOfTaskView;
         if (currentUser != null &&
-            CommonUtils.isExecutor(currentUser.roles) &&
+            CommonUtils.isExecutor(currentUser) &&
             dbObj.executorUid !== currentUser.uid) {
             // for executor who is not the current task executor, we only return the basic info
             returnedKeys = keysOfTaskBasicCommon;
@@ -567,7 +543,16 @@ export class TaskRequestHandler {
         }
         return views;
     }
-
+    /**
+     * Common Logic for task audit
+     * @param reqParam 
+     * @param expectedState 
+     * @param targetApproveState 
+     * @param targetDenyState 
+     * @param goBackState 
+     * @param updatedPropsAfterApprove 
+     * @param updatedPropsAfterDeny 
+     */
     private static async $$taskAudit(
         reqParam: TaskAuditParam,
         expectedState: TaskState,
@@ -579,40 +564,109 @@ export class TaskRequestHandler {
         if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam, 'TaskAuditParam.uid');
         }
+
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
             reqParam.uid as string, expectedState);
+        // the followings are special cases
 
         // update the task state
-        const dbObjWithUpdatedProps: TaskObject = new TaskObject();
+        const allUpdatedProps: TaskObject = new TaskObject();
         if (reqParam.auditState === CheckState.Checked) {
             // approve
-            Object.assign(dbObjWithUpdatedProps, updatedPropsAfterApprove);
-            dbObjWithUpdatedProps.state = targetApproveState;
-            await TaskModelWrapper.$$addHistoryItem(dbObj.uid as string, targetApproveState);
+            Object.assign(allUpdatedProps, updatedPropsAfterApprove);
+            allUpdatedProps.state = targetApproveState;
 
             // the followings are some logic for some special state
             switch (targetApproveState) {
                 case TaskState.ReadyToApply:
-                    dbObjWithUpdatedProps.publishTime = Date.now();
+                    // only both infoaudit and depositadit pass, we set the state to be TaskState.ReadyToApply
+                    if (allUpdatedProps.infoAuditState == null) {
+                        allUpdatedProps.infoAuditState = dbObj.infoAuditState;
+                    }
+                    if (allUpdatedProps.depositAuditState == null) {
+                        allUpdatedProps.depositAuditState = dbObj.depositAuditState;
+                    }
+                    if (allUpdatedProps.infoAuditState === CheckState.Checked &&
+                        allUpdatedProps.depositAuditState === CheckState.Checked) {
+                        allUpdatedProps.state = TaskState.ReadyToApply;
+                        allUpdatedProps.publishTime = Date.now();
+                    } else {
+                        allUpdatedProps.state = dbObj.state;
+                    }
                     break;
                 case TaskState.Assigned:
-                    dbObjWithUpdatedProps.executorUid = dbObj.applicantUid;
+                    // only both executoraudit and marginadit pass, we set the state to be TaskState.Assigned
+                    if (allUpdatedProps.executorAuditState == null) {
+                        allUpdatedProps.executorAuditState = dbObj.executorAuditState;
+                    }
+                    if (allUpdatedProps.marginAditState == null) {
+                        allUpdatedProps.marginAditState = dbObj.marginAditState;
+                    }
+                    if (allUpdatedProps.executorAuditState === CheckState.Checked &&
+                        allUpdatedProps.marginAditState === CheckState.Checked) {
+                        allUpdatedProps.state = TaskState.Assigned;
+                        allUpdatedProps.executorUid = dbObj.applicantUid;
+                    } else {
+                        allUpdatedProps.state = dbObj.state;
+                    }
                     break;
+                case TaskState.ExecutorPaid:
+                    // only both executor receipt and payment done, we can set the state to be TaskState.ExecutorPaid
+                    if (allUpdatedProps.executorReceiptNumber == null) {
+                        allUpdatedProps.executorReceiptNumber = dbObj.executorReceiptNumber;
+                    }
+                    if (allUpdatedProps.executorReceiptRequired == null) {
+                        allUpdatedProps.executorReceiptRequired = dbObj.executorReceiptRequired;
+                    }
+                    if (allUpdatedProps.payToExecutorImageUid == null) {
+                        allUpdatedProps.payToExecutorImageUid = dbObj.payToExecutorImageUid;
+                    }
+
+                    if ((allUpdatedProps.executorReceiptRequired === ReceiptState.NotRequired ||
+                        !CommonUtils.isNullOrEmpty(allUpdatedProps.executorReceiptNumber)) &&
+                        CommonUtils.isNullOrEmpty(allUpdatedProps.payToExecutorImageUid)) {
+                        allUpdatedProps.state = TaskState.ExecutorPaid;
+                    } else {
+                        allUpdatedProps.state = dbObj.state;
+                    }
+                    break;
+                default:
+            }
+            if (dbObj.state !== allUpdatedProps.state) {
+                await TaskModelWrapper.$$addHistoryItem(
+                    dbObj.uid as string,
+                    targetApproveState,
+                    CommonUtils.getStepTitleByTaskState(targetApproveState, targetApproveState));
             }
         } else {
             // deny and return back to goBackState
-            Object.assign(dbObjWithUpdatedProps, updatedPropsAfterDeny);
-            dbObjWithUpdatedProps.state = goBackState;
+            Object.assign(allUpdatedProps, updatedPropsAfterDeny);
+            allUpdatedProps.state = goBackState;
             await TaskModelWrapper.$$addHistoryItem(
                 dbObj.uid as string,
                 targetDenyState,
+                CommonUtils.getStepTitleByTaskState(targetApproveState, targetDenyState),
                 reqParam.note);
+            // the followings are some logic for some special state
+            switch (targetApproveState) {
+                case TaskState.ReadyToApply:
+                    if (allUpdatedProps.infoAuditState === CheckState.FailedToCheck) {
+                        const userNotification: UserNotificationObject =
+                            NotificationRequestHandler.createNotificationObject(
+                                NotificationType.TaskApplyDenied,
+                                dbObj.publisherUid as string,
+                                dbObj.uid as string,
+                                reqParam.note);
+                        await UserNotificationModelWrapper.$$create(userNotification);
+                    }
+                    break;
+            }
         }
 
         await TaskModelWrapper.$$updateOne(
-            { uid: dbObj.uid } as TaskObject, dbObjWithUpdatedProps);
+            { uid: dbObj.uid } as TaskObject, allUpdatedProps);
 
-        Object.assign(dbObj, dbObjWithUpdatedProps);
+        Object.assign(dbObj, allUpdatedProps);
         return await this.$$convertToDBView(dbObj);
     }
     // #endregion

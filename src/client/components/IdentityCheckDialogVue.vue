@@ -8,6 +8,7 @@
     :visible.sync="visibleProp"
   >
     <el-carousel
+      :ref="carouselRefName"
       arrow="always"
       indicator-position="none"
       class="carousel-dialog"
@@ -131,7 +132,10 @@
                 class="image-item"
                 :src="logoUrl"
               >
-              <span class="span-image-mask">
+              <span
+                class="span-image-mask"
+                @click="onPreview(logoUrl)"
+              >
                 <i
                   class="el-icon-zoom-in"
                   @click="onPreview(logoUrl)"
@@ -155,7 +159,10 @@
                 class="image-item"
                 :src="frontImageUrl"
               >
-              <span class="span-image-mask">
+              <span
+                class="span-image-mask"
+                @click="onPreview(frontImageUrl)"
+              >
                 <i
                   class="el-icon-zoom-in"
                   @click="onPreview(frontImageUrl)"
@@ -183,7 +190,10 @@
                   class="image-item"
                   :src="backImageUrl"
                 >
-                <span class="span-image-mask">
+                <span
+                  class="span-image-mask"
+                  @click="onPreview(backImageUrl)"
+                >
                   <i
                     class="el-icon-zoom-in"
                     @click="onPreview(backImageUrl)"
@@ -215,7 +225,10 @@
                   class="image-item"
                   :src="licenseImageUrl"
                 >
-                <span class="span-image-mask">
+                <span
+                  class="span-image-mask"
+                  @click="onPreview(licenseImageUrl)"
+                >
                   <i
                     class="el-icon-zoom-in"
                     @click="onPreview(licenseImageUrl)"
@@ -247,7 +260,10 @@
                   class="image-item"
                   :src="licenseWithPersonImageUrl"
                 >
-                <span class="span-image-mask">
+                <span
+                  class="span-image-mask"
+                  @click="onPreview(licenseWithPersonImageUrl)"
+                >
                   <i
                     class="el-icon-zoom-in"
                     @click="onPreview(licenseWithPersonImageUrl)"
@@ -279,7 +295,10 @@
                   class="image-item"
                   :src="authLetterUrl"
                 >
-                <span class="span-image-mask">
+                <span
+                  class="span-image-mask"
+                  @click="onPreview(authLetterUrl)"
+                >
                   <i
                     class="el-icon-zoom-in"
                     @click="onPreview(authLetterUrl)"
@@ -329,22 +348,18 @@
       <el-col :span="24">
         <el-button
           type="primary"
+          size="mini"
+          plain
+          @click="onCheckCancel()"
+        >取消</el-button>
+        <el-button
+          type="primary"
+          size="mini"
           :disabled="!isReadyToSubmit"
           @click="onCheckSubmit()"
         >提交</el-button>
-        <el-button @click="onCheckCancelled()">取消</el-button>
       </el-col>
     </el-row>
-    <el-dialog
-      :visible.sync="previewDialogVisible"
-      append-to-body
-    >
-      <img
-        width="100%"
-        :src="previewedImageUrl"
-        alt=""
-      >
-    </el-dialog>
   </el-dialog>
 </template>
 
@@ -359,7 +374,6 @@ export default class IdentityCheckDialogVue extends IdentityCheckDialogTS {}
 @maxImageHeight: @carouselHeight - 30px;
 .carousel-dialog {
   height: @carouselHeight;
-  margin-bottom: 30px;
   .row-image {
     height: @maxImageHeight + 5px;
     overflow-y: auto;
@@ -385,7 +399,7 @@ export default class IdentityCheckDialogVue extends IdentityCheckDialogTS {}
         }
         .el-icon-zoom-in {
           position: absolute;
-          top: 50%;
+          top: 40%;
           cursor: pointer;
           opacity: 10;
           color: antiquewhite;

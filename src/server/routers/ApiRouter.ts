@@ -2,24 +2,23 @@ import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
 import { IQueryConditions } from 'common/IQueryConditions';
-import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { NotificationReadParam } from 'common/requestParams/NotificationReadParam';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
-import { TaskApplyCheckParam } from 'common/requestParams/TaskApplyCheckParam';
 import { TaskApplyParam } from 'common/requestParams/TaskApplyParam';
 import { TaskApplyRemoveParam } from 'common/requestParams/TaskApplyRemoveParam';
 import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
 import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
+import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
 import { TaskHistoryQueryParam } from 'common/requestParams/TaskHistoryQueryParam';
+import { TaskPublisherVisitParam } from 'common/requestParams/TaskPublisherVisitParam';
 import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
 import { TaskResultCheckParam } from 'common/requestParams/TaskResultCheckParam';
 import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
 import { TemplateRemoveParam } from 'common/requestParams/TemplateRemoveParam';
 import { UserAccountInfoEditParam } from 'common/requestParams/UserAccountInfoEditParam';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
-import { UserCheckParam } from 'common/requestParams/UserCheckParam';
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
 import { UserDisableParam } from 'common/requestParams/UserDisableParam';
 import { UserEnableParam } from 'common/requestParams/UserEnableParam';
@@ -36,10 +35,11 @@ import { TaskHistoryItem } from 'common/TaskHistoryItem';
 import { UserState } from 'common/UserState';
 import { NextFunction, Request, Response, Router } from 'express';
 import { ApiError } from 'server/common/ApiError';
-import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
+import { TemplateObject } from 'server/dataObjects/TemplateObject';
 import { UserObject } from 'server/dataObjects/UserObject';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { NotificationRequestHandler } from 'server/requestHandlers/NotificationRequestHandler';
+import { RequestUtils } from 'server/requestHandlers/RequestUtils';
 import { SessionRequestHandler } from 'server/requestHandlers/SessionRequestHandler';
 import { TaskRequestHandler } from 'server/requestHandlers/TaskRequestHandler';
 import { LoggerManager } from '../libsWrapper/LoggerManager';
@@ -48,7 +48,7 @@ import { TemplateRequestHandler } from '../requestHandlers/TemplateRequestHandle
 import { UserRequestHandler } from '../requestHandlers/UserRequestHandler';
 import { BaseRouter } from './BaseRouter';
 import { ApiBuilder, IApiHandlers, UploadType } from './builders/ApiBuilder';
-import { TaskPublisherVisitParam } from 'common/requestParams/TaskPublisherVisitParam';
+import { UserPasswordRecoverParam } from 'common/requestParams/UserPasswordRecoverParam';
 /**
  * API Router for all the /api/* RESTful URI
  *
@@ -77,9 +77,6 @@ export class ApiRouter extends BaseRouter {
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Remove}`, {
             post: this.$$userRemove.bind(this),
         } as IApiHandlers);
-        apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Check}`, {
-            post: this.$$userCheck.bind(this),
-        } as IApiHandlers);
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Enable}`, {
             post: this.$$userEnable.bind(this),
         } as IApiHandlers);
@@ -94,9 +91,29 @@ export class ApiRouter extends BaseRouter {
             `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Reset}`, {
                 post: this.$$userPasswordReset.bind(this),
             } as IApiHandlers);
+        // used by executor or publisher to notify the admin to reset password
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Recover}`, {
+                post: this.$$userPasswordRecover.bind(this),
+            } as IApiHandlers);
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.AccoutInfo}/${HttpPathItem.Edit}`, {
                 post: this.$$userAccountInfoEdit.bind(this),
+            } as IApiHandlers);
+
+        /**
+         * used by admin to check the user identity info
+         */
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Identity}/${HttpPathItem.Check}`, {
+                post: this.$$userCheck.bind(this),
+            } as IApiHandlers);
+        /**
+         * used by admin to check the user qualification
+         */
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Qualification}/${HttpPathItem.Check}`, {
+                post: this.$$userCheck.bind(this),
             } as IApiHandlers);
 
         // #endregion
@@ -148,15 +165,16 @@ export class ApiRouter extends BaseRouter {
                 post: this.$$taskApplyRemove.bind(this),
             } as IApiHandlers);
 
+        // api for admin to audit task executor
         apiBuilder.buildApiForPath(
-            `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Check}`, {
-                post: this.$$taskApplyCheck.bind(this),
+            `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Executor}/${HttpPathItem.Audit}`, {
+                post: this.$$taskExecutorAudit.bind(this),
             } as IApiHandlers);
 
-        // api for admin to audit the new task apply from executor
+        // api for admin to audit margin from executor
         apiBuilder.buildApiForPath(
-            `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Audit}`, {
-                post: this.$$taskApplyAudit.bind(this),
+            `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Margin}/${HttpPathItem.Audit}`, {
+                post: this.$$taskMarginAudit.bind(this),
             } as IApiHandlers);
 
         // #endregion
@@ -186,7 +204,7 @@ export class ApiRouter extends BaseRouter {
         // api for admin to audit the new created task info from publisher
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Audit}`, {
-                post: this.$$taskAudit.bind(this),
+                post: this.$$taskInfoAudit.bind(this),
             } as IApiHandlers);
         // #endregion
 
@@ -213,6 +231,12 @@ export class ApiRouter extends BaseRouter {
             `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Deposit}/${HttpPathItem.Audit}`, {
                 post: this.$$taskDepositAudit.bind(this),
             } as IApiHandlers);
+
+        apiBuilder.buildApiForPath(
+            `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Receipt}/${HttpPathItem.Deny}`, {
+                post: this.$$receiptDeny.bind(this),
+            } as IApiHandlers);
+
         // #endregion
 
         // #region -- build UserNotification Api
@@ -287,6 +311,13 @@ export class ApiRouter extends BaseRouter {
         await UserRequestHandler.$$passwordReset(reqParam, currentUser);
         res.json(apiResult).end();
     }
+    private async $$userPasswordRecover(req: Request, res: Response, next: NextFunction) {
+        const apiResult: ApiResult = { code: ApiResultCode.Success };
+        const reqParam: UserPasswordRecoverParam = req.body as UserPasswordRecoverParam;
+        await UserRequestHandler.$$passwordRecover(reqParam);
+        res.json(apiResult).end();
+    }
+
     private async $$userRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const reqParam: UserRemoveParam = req.body as UserRemoveParam;
@@ -301,9 +332,8 @@ export class ApiRouter extends BaseRouter {
     }
     private async $$userCheck(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserCheckParam = req.body as UserCheckParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        apiResult.data = await UserRequestHandler.$$check(reqParam, currentUser);
+        apiResult.data = await UserRequestHandler.$$check(req.body, currentUser);
         res.json(apiResult).end();
     }
     private async $$userEnable(req: Request, res: Response, next: NextFunction) {
@@ -324,16 +354,21 @@ export class ApiRouter extends BaseRouter {
 
     // #region -- Template relative API entry
     /**
-     * create new template
+     * used by publisher to query all owned template
      * @param req 
      * @param res 
      * @param next 
      */
     private async $$templateQuery(req: Request, res: Response, next: NextFunction) {
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        let views: TemplateView[] = [];
+        if (CommonUtils.isAdmin(currentUser)) {
+            views = await TemplateRequestHandler.$$find({} as IQueryConditions);
+        } else {
+            views = await TemplateRequestHandler.$$find(
+                { publisherUid: currentUser.uid } as TemplateObject);
+        }
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: IQueryConditions = req.body as IQueryConditions;
-        // every one can query the template
-        const views: TemplateView[] = await TemplateRequestHandler.$$find(reqParam);
         apiResult.data = views;
         res.json(apiResult).end();
     }
@@ -376,58 +411,76 @@ export class ApiRouter extends BaseRouter {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const reqParam: FileUploadParam = req.body as FileUploadParam;
         if (req.file == null) {
-            throw new ApiError(ApiResultCode.InputInvalidParam, 'req.file should not be null');
+            throw new ApiError(ApiResultCode.InputInvalidParam, 'No file prop in Request');
+        }
+        if (reqParam == null) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, 'No FileUploadParam in Request.Body');
+        }
+        if (reqParam.scenario == null || isNaN(reqParam.scenario)) {
+            throw new ApiError(ApiResultCode.InputInvalidFileScenario, JSON.stringify(reqParam));
         }
         reqParam.scenario = Number.parseInt(reqParam.scenario as any, 10);
         let currentDBUser: UserObject | undefined;
         switch (reqParam.scenario) {
-            case FileAPIScenario.UpdateQualificationFile:
+            case FileAPIScenario.UploadQualification:
                 // don't need to check permission, every user can upload his owned qualification file
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateQualification(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$uploadQualificationFile(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.UploadTemplate:
-                //  only Admin can create or edit Template File
+            case FileAPIScenario.CreateTemplate:
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$createTemplate(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$createTaskTemplate(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.UpdateTemplateFile:
-                //  only Admin can create or edit Template File
+            case FileAPIScenario.UploadRegisterProtocol:
+                //  only Admin can create or edit Protocol 
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateTemplateFile(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$uploadRegisterProtocolFile(
+                    req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.UpdateUserLogo:
-            case FileAPIScenario.UpdateUserFrontId:
-            case FileAPIScenario.UpdateUserBackId:
-            case FileAPIScenario.UpdateAuthLetter:
-            case FileAPIScenario.UpdateLicense:
-            case FileAPIScenario.UpdateLicenseWithPersion:
+            case FileAPIScenario.UploadUserLogo:
+            case FileAPIScenario.UploadUserFrontId:
+            case FileAPIScenario.UploadUserBackId:
+            case FileAPIScenario.UploadAuthLetter:
+            case FileAPIScenario.UploadLicense:
+            case FileAPIScenario.UploadLicenseWithPerson:
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$updateUserIdImages(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.UpdateTaskResultFile:
+            case FileAPIScenario.UploadTaskResult:
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$updateTaskResultFile(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.UpdateDeposit:
+            case FileAPIScenario.UploadTaskDeposit:
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$updateTaskDepositImage(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.UpdateMargin:
+            case FileAPIScenario.UploadTaskMargin:
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$updateTaskMarginImage(req.file, reqParam, currentDBUser);
                 break;
+            case FileAPIScenario.UploadTaskExecutorPay:
+                currentDBUser = await this.$$getCurrentUser(req);
+                apiResult.data = await FileRequestHandler.$$updateTaskPayToExecutorImage(
+                    req.file, reqParam, currentDBUser);
+                break;
+            case FileAPIScenario.UploadExecutorTaskReceipt:
+                currentDBUser = await this.$$getCurrentUser(req);
+                apiResult.data = await FileRequestHandler.$$updateExecutorReceiptImage(
+                    req.file, reqParam, currentDBUser);
+                break;
+                case FileAPIScenario.UploadTaskRefund:
+                currentDBUser = await this.$$getCurrentUser(req);
+                apiResult.data = await FileRequestHandler.$$uploadRefundImage(
+                    req.file, reqParam, currentDBUser);
+                break;
             default:
-                LoggerManager.error(`Invalid API Scenario:${reqParam.scenario}`);
-                throw new ApiError(ApiResultCode.InputInvalidScenario);
+                throw new ApiError(ApiResultCode.InputInvalidFileScenario, JSON.stringify(reqParam));
         }
         res.json(apiResult).end();
     }
 
     private async $$fileDownload(req: Request, res: Response, next: NextFunction): Promise<void> {
-        const reqParam: FileDownloadParam = req.body as FileDownloadParam;
-        const currentUser: UserObject = await this.$$getCurrentUser(req);
-        await FileRequestHandler.$$download(reqParam, currentUser, res);
+        await FileRequestHandler.$$download(req, res);
     }
     // #endregion
 
@@ -591,25 +644,6 @@ export class ApiRouter extends BaseRouter {
     }
 
     /**
-     * publisher to accept a task apply
-     * @param req 
-     * @param res 
-     * @param next 
-     */
-    private async $$taskApplyCheck(req: Request, res: Response, next: NextFunction) {
-        const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskApplyCheckParam = req.body as TaskApplyCheckParam;
-        if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TaskApplyCheckParam.uid should not be null');
-        }
-        const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const taskView: TaskView = await TaskRequestHandler.$$applyCheck(reqParam, currentUser);
-        apiResult.data = taskView;
-        res.json(apiResult).end();
-    }
-
-    /**
      * publisher to deny a task apply
      * @param req 
      * @param res 
@@ -643,7 +677,7 @@ export class ApiRouter extends BaseRouter {
         res.json(apiResult).end();
     }
 
-    private async $$taskAudit(req: Request, res: Response, next: NextFunction): Promise<void> {
+    private async $$taskInfoAudit(req: Request, res: Response, next: NextFunction): Promise<void> {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const reqParam: TaskAuditParam = req.body as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
@@ -666,11 +700,26 @@ export class ApiRouter extends BaseRouter {
      * @param res 
      * @param next 
      */
-    private async $$taskApplyAudit(req: Request, res: Response, next: NextFunction) {
+    private async $$taskExecutorAudit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const reqParam: TaskAuditParam = req.body as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const taskView: TaskView = await TaskRequestHandler.$$applyAudit(reqParam, currentUser);
+        const taskView: TaskView = await TaskRequestHandler.$$executorAudit(reqParam, currentUser);
+        apiResult.data = taskView;
+        res.json(apiResult).end();
+    }
+
+    /**
+     * used by admin to audit the margin from executor
+     * @param req 
+     * @param res 
+     * @param next 
+     */
+    private async $$taskMarginAudit(req: Request, res: Response, next: NextFunction) {
+        const apiResult: ApiResult = { code: ApiResultCode.Success };
+        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        const taskView: TaskView = await TaskRequestHandler.$$marginAudit(reqParam, currentUser);
         apiResult.data = taskView;
         res.json(apiResult).end();
     }
@@ -698,6 +747,14 @@ export class ApiRouter extends BaseRouter {
         apiResult.data = taskView;
         res.json(apiResult).end();
     }
+    private async $$receiptDeny(req: Request, res: Response, next: NextFunction) {
+        const apiResult: ApiResult = { code: ApiResultCode.Success };
+        const reqParam: TaskExecutorReceiptUploadParam = req.body as TaskExecutorReceiptUploadParam;
+        const currentUser: UserObject = await this.$$getCurrentUser(req);
+        const taskView: TaskView = await TaskRequestHandler.$$receiptDeny(reqParam, currentUser);
+        apiResult.data = taskView;
+        res.json(apiResult).end();
+    }
     // #endregion
 
     // #region -- notification relative API
@@ -719,15 +776,7 @@ export class ApiRouter extends BaseRouter {
     // #endregion
     // #region -- internal props and methods
     private async $$getCurrentUser(req: Request): Promise<UserObject> {
-        const loginUserInCookie: ILoginUserInfoInCookie =
-            CookieUtils.getUserFromCookie(req) as ILoginUserInfoInCookie;
-        // TODO: consider to use cache
-        const dbUsers: UserObject[] = await UserModelWrapper.$$find(
-            { uid: loginUserInCookie.uid } as UserObject) as UserObject[];
-        if (dbUsers == null || dbUsers.length === 0) {
-            throw new ApiError(ApiResultCode.DbNotFound, `UserID:${loginUserInCookie.uid}`);
-        }
-        return dbUsers[0];
+        return await RequestUtils.$$getCurrentUser(req);
     }
     // #endregion
 }

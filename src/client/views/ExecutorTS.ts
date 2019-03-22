@@ -75,7 +75,6 @@ export class ExecutorTS extends Vue {
                         break;
                 }
             }
-            ComponentUtils.pullNotification(this);
             this.isInitialized = true;
         } else {
             RouterUtils.goToUserHomePage(this.$router, sessionInfo);

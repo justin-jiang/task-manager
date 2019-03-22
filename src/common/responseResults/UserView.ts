@@ -4,7 +4,7 @@ import { UserCommon } from 'common/commonDataObjects/UserCommon';
 
 export class UserView extends UserCommon {
     public logoUrl?: string;
-    public frondIdUrl?: string;
+    public frontIdUrl?: string;
     public backIdUrl?: string;
     public authLetterUrl?: string;
     public licenseUrl?: string;
@@ -13,7 +13,7 @@ export class UserView extends UserCommon {
         super(withFullProps);
         if (withFullProps) {
             this.backIdUrl = '';
-            this.frondIdUrl = '';
+            this.frontIdUrl = '';
             this.logoUrl = '';
             this.authLetterUrl = '';
             this.licenseUrl = '';

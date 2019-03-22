@@ -8,7 +8,7 @@
     :visible.sync="visibleProp"
   >
     <el-row
-      class="row-item"
+      class="row-item-no-margin"
       slot="title"
     >
       <el-col :span="24">
@@ -18,7 +18,10 @@
         />
       </el-col>
     </el-row>
-    <el-row class="row-item">
+    <el-row
+      class="row-item"
+      style="font-size:20px;font-weight:500"
+    >
       <el-col :span="6">
         名称：
       </el-col>
@@ -115,8 +118,8 @@
           :filePostParamProp="marginUploadParam"
           :noCropProp="true"
           :imageUidProp="marginUid"
-          @imageChanged="onMarginImageChanged"
-          @imageReset="onMarginImageReset"
+          @change="onMarginImageChanged"
+          @reset="onMarginImageReset"
           @success="onMarginUploadSuccess"
           @failure="onMarginUploadFailure"
         ></SingleImageUploaderVue>

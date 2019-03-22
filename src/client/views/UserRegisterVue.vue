@@ -1,7 +1,5 @@
 <template>
-  <el-container
-    v-loading="!isInitialized"
-  >
+  <el-container v-loading="!isInitialized">
     <el-aside width="200px">
       <div style="height: 300px;">
         <el-steps
@@ -49,7 +47,7 @@
         :description="checkAlertDesc"
       >
       </el-alert>
-      <el-row style="padding-bottom:50px;font-size:20px;text-align:left;">
+      <el-row class="row-title">
         <el-col :span=24>
           <span>{{title()}}</span>
         </el-col>
@@ -71,19 +69,17 @@
       <el-row v-else-if="isQualificationUpload()">
         <el-col :span=24>
           <el-row style="margin-bottom:10px">
-            <el-col :span=12>
+            <el-col :span=24>
               请参照模板中的资料，上传您或贵公司的资质材料，该材料将作为我们对您或贵公司等级评定的重要依据
             </el-col>
-            <el-col
-              :span=12
-              style="text-align:left"
-            >
+          </el-row>
+          <el-row style="margin-bottom:10px">
+            <el-col :span=24>
               <el-button
                 size="small"
                 type="primary"
-                plain
                 @click="onQaulificationTemplateDownload"
-              >模板下载<i class="el-icon-download el-icon--right"></i></el-button>
+              >资质模板下载<i class="el-icon-download el-icon--right"></i></el-button>
             </el-col>
           </el-row>
           <el-row>
@@ -123,5 +119,9 @@ export default class UserRegisterVue extends UserRegisterTS {}
 <style scoped lang="less" >
 .el-main {
   padding: 0px;
+}
+.row-title {
+  padding-bottom: 20px;
+  font-size: 20px;
 }
 </style>

@@ -25,7 +25,10 @@
         v-else
         class="el-icon-plus avatar-uploader-icon"
       ></i>
-      <div slot="tip" class="el-upload__tip">{{limitTip}}</div>
+      <div
+        slot="tip"
+        class="el-upload__tip"
+      >{{limitTip}}</div>
     </el-upload>
     <el-dialog
       title="头像选取"
@@ -55,7 +58,11 @@
         slot="footer"
         class="dialog-footer"
       >
-        <el-button @click="onImageCropCancel()">取 消</el-button>
+        <el-button
+          type="primary"
+          plain
+          @click="onImageCropCancel()"
+        >取 消</el-button>
         <el-button
           type="primary"
           :loading="isCropping"

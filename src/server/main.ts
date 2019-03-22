@@ -1,3 +1,5 @@
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
+import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
 import * as http from 'http';
 import { ArgsParser } from 'server/common/ArgsParser';
 import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
@@ -5,11 +7,15 @@ import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
 import { FileStorage } from 'server/dbDrivers/mongoDB/FileStorage';
 import { IndexExpress } from 'server/expresses/IndexExpress';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
-import { LoggerManagerInitParam } from './libsWrapper/LoggersManagerInitParam';
-import { TaskModelWrapper } from './dataModels/TaskModelWrapper';
 import { TaskApplicationModelWrapper } from './dataModels/TaskApplicationModelWrapper';
 import { TaskCheckRecordModelWrapper } from './dataModels/TaskCheckRecordModelWrapper';
+import { TaskModelWrapper } from './dataModels/TaskModelWrapper';
 import { UserNotificationModelWrapper } from './dataModels/UserNotificationModelWrapper';
+import { keysOfTaskObject } from './dataObjects/TaskObject';
+import { LoggerManagerInitParam } from './libsWrapper/LoggersManagerInitParam';
+import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
+import { keysOfUserObject } from './dataObjects/UserObject';
+import { TaskDepositImageUploadParam } from 'common/requestParams/TaskDepositImageUploadParam';
 /**
  * Event listener for HTTP server "error" event.
  */
@@ -76,6 +82,42 @@ async function $$databaseWarmUp(): Promise<void> {
     await FileStorage.initialize();
 }
 
+function reqParamValidationAgainstTask(reqParams: any[]): void {
+    reqParams.forEach((param) => {
+        getPropKeys(param).forEach((paramItem) => {
+            if (!keysOfTaskObject.includes(paramItem)) {
+                LoggerManager.error(`${paramItem} missed in TaskObject`);
+                process.exit();
+            }
+        });
+    });
+}
+
+function reqParamValidationAgainstUser(reqParams: any[]): void {
+    reqParams.forEach((param) => {
+        getPropKeys(param).forEach((paramItem) => {
+            if (!keysOfUserObject.includes(paramItem)) {
+                LoggerManager.error(`${paramItem} missed in UserObject`);
+                process.exit();
+            }
+        });
+    });
+}
+
+function reqParamValidation(): void {
+    const reqParamsForTask: any[] = [
+        new TaskExecutorReceiptUploadParam(true),
+        new TaskDepositImageUploadParam(true),
+    ];
+    reqParamValidationAgainstTask(reqParamsForTask);
+
+
+    const reqParamsForUser: any[] = [
+        new UserBasicInfoEditParam(true)
+    ];
+    reqParamValidationAgainstUser(reqParamsForUser);
+}
+
 /**
  * ##### Code Start from Here #####
  */
@@ -86,9 +128,16 @@ const logInitParam: LoggerManagerInitParam = {
     logFilePrefix: 'ServerApp',
 };
 LoggerManager.initialize(logInitParam);
+LoggerManager.info('starting ...');
+
+// Schema Validation
+if (ArgsParser.isDebugMode()) {
+    LoggerManager.info('Request Parameters Schema Validation in DebugMode ...');
+    reqParamValidation();
+}
 
 let httpServer: http.Server;
-LoggerManager.info('starting ...');
+
 (async () => {
     LoggerManager.info('initializing DB ...');
     await $$databaseWarmUp();

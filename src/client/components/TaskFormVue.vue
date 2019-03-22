@@ -1,17 +1,20 @@
+<!--used to create or edit task-->
 <template>
   <div>
     <el-row>
       <el-col :span=24>
         <el-form
-          label-width="160px"
+          label-width="150px"
           class="form-main"
           :model="formData"
           status-icon
           :rules="formRules"
           :ref="taskFormRefName"
-          :disabled="isSubmitted || isDetail"
         >
-          <el-form-item label="基本信息"></el-form-item>
+
+          <el-row class="row-category">
+            <el-col :span=2><b>基本信息</b></el-col>
+          </el-row>
           <el-form-item
             label="名称"
             prop="name"
@@ -102,43 +105,50 @@
               </el-col>
             </el-row>
           </el-form-item>
-          <el-form-item
-            label="雇员类别"
-            prop="executorTypes"
-          >
-            <el-select
-              v-model="formData.executorTypes"
-              multiple
-              clearable
-              placeholder="请选择"
-            >
-              <el-option
-                v-for="item in userTypeSelection"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+          <el-row>
+            <el-col :span=12>
+              <el-form-item
+                label="雇员类别"
+                prop="executorTypes"
               >
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item
-            label="雇员资质"
-            prop="minExecutorStar"
-          >
-            <el-select
-              v-model="formData.minExecutorStar"
-              clearable
-              placeholder="请选择"
-            >
-              <el-option
-                v-for="item in userStar"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+                <el-select
+                  v-model="formData.executorTypes"
+                  multiple
+                  clearable
+                  placeholder="请选择"
+                >
+                  <el-option
+                    v-for="item in userTypeSelection"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span=12>
+              <el-form-item
+                label="雇员资质"
+                prop="minExecutorStar"
               >
-              </el-option>
-            </el-select>
-          </el-form-item>
+                <el-select
+                  v-model="formData.minExecutorStar"
+                  clearable
+                  placeholder="请选择"
+                >
+                  <el-option
+                    v-for="item in userStar"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
           <el-form-item
             label="描述"
             prop="note"
@@ -151,7 +161,10 @@
             >
             </el-input>
           </el-form-item>
-          <el-form-item label="关键信息"></el-form-item>
+          <el-row class="row-category">
+            <el-col :span=2>
+              <b>关键信息</b></el-col>
+          </el-row>
           <el-form-item
             label="受访企业名称"
             prop="companyName"
@@ -204,65 +217,36 @@
         </el-form>
       </el-col>
     </el-row>
-
-    <el-row
-      class="row-align-form"
-      style="margin-bottom:30px"
-    >
-      <el-col :span="24">
-        <div
-          v-if="isTaskResultReady"
-          class="div-download-icon"
-        >
-          <span style="display:block;">点击下载模板</span>
-          <el-button
-            icon="el-icon-download"
-            circle
-            @click="onTemplateDownload"
-          ></el-button>
-        </div>
-        <div
-          v-if="isTaskResultReady"
-          class="div-download-icon"
-        >
-          <span style="display:block;">点击下载尽调结果</span>
-          <el-button
-            icon="el-icon-download"
-            circle
-            @click="onResultDownload"
-          ></el-button>
-        </div>
-      </el-col>
-    </el-row>
     <el-row
       class="row-align-form"
       style="text-align:center"
     >
       <el-col :span=24>
         <el-button
-          v-if="isCreate || isEdit"
           type="primary"
           size="small"
           plain
           @click="onSave()"
+          :disabled="!(isCreate || isDataChanged)"
         >保存</el-button>
         <el-button
-          v-if="isCreate || isEdit"
           type="primary"
           size="small"
           @click="onSubmit()"
+          :disabled="!(isCreate || isDataChanged)"
         >提交</el-button>
         <el-button
-          v-if="isCreate || isEdit"
           type="warning"
           size="small"
+          plain
           @click="onReset()"
+          :disabled="!(isCreate || isDataChanged)"
         >重置</el-button>
         <el-button
-          v-if="isEdit || isDetail"
           type="primary"
           size="small"
-          @click="onCancelled()"
+          plain
+          @click="onCancel()"
         >关闭</el-button>
       </el-col>
     </el-row>
@@ -277,6 +261,10 @@ export default class TaskFormVue extends TaskFormTS {}
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
+.row-category {
+  margin-left: 80px;
+  margin-bottom: 15px;
+}
 .div-download-icon {
   display: inline-block;
   margin-left: 10px;

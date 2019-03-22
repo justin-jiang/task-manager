@@ -48,15 +48,21 @@ export const actions = {
         return apiResult;
     },
 
-    async [StoreActionNames.userQuery]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
+    async [StoreActionNames.userQuery](
+        { commit, state }: { commit: Commit, state: IStoreState },
+        args: IStoreActionArgs) {
 
         let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
         try {
-            const response = await axios.post(
-                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Query}`, args.data || {});
-            apiResult = HttpUtils.getApiResultFromResponse(response);
-            if (apiResult.code === ApiResultCode.Success) {
-                commit(StoreMutationNames.usersUpdate, apiResult.data);
+            if (args.notUseLocalData === false && state.userObjs != null && state.userObjs.length > 0) {
+                apiResult.code = ApiResultCode.Success;
+            } else {
+                const response = await axios.post(
+                    `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Query}`, args.data || {});
+                apiResult = HttpUtils.getApiResultFromResponse(response);
+                if (apiResult.code === ApiResultCode.Success) {
+                    commit(StoreMutationNames.usersUpdate, apiResult.data);
+                }
             }
         } catch (ex) {
             apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
@@ -64,11 +70,18 @@ export const actions = {
         return apiResult;
     },
 
-    async [StoreActionNames.userCheck](
+    async [StoreActionNames.userIdCheck](
         { commit, state }: { commit: Commit, state: IStoreState },
         args: IStoreActionArgs) {
         return await commonUpdate({ commit, state },
-            `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Check}`,
+            `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Identity}/${HttpPathItem.Check}`,
+            args.data || {});
+    },
+    async [StoreActionNames.userQualificationCheck](
+        { commit, state }: { commit: Commit, state: IStoreState },
+        args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Qualification}/${HttpPathItem.Check}`,
             args.data || {});
     },
 
@@ -137,6 +150,19 @@ export const actions = {
         try {
             const response = await axios.post(
                 `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Reset}`,
+                args.data || {});
+            apiResult = HttpUtils.getApiResultFromResponse(response);
+        } catch (ex) {
+            apiResult.data = ApiErrorHandler.getTextFromAxiosResponse(ex);
+        }
+        return apiResult;
+    },
+
+    async [StoreActionNames.userPasswordRecover]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
+        let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
+        try {
+            const response = await axios.post(
+                `${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Recover}`,
                 args.data || {});
             apiResult = HttpUtils.getApiResultFromResponse(response);
         } catch (ex) {

@@ -7,7 +7,6 @@ import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
-import { FileType } from 'common/FileType';
 import { locations } from 'common/Locations';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
@@ -17,20 +16,30 @@ import { UserView } from 'common/responseResults/UserView';
 import { UserType } from 'common/UserTypes';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { ComponentUtils } from './ComponentUtils';
 import { ISingleImageUploaderTS } from './SingleImageUploaderTS';
+/**
+ * data structure for Form
+ */
 interface IFormData {
-    // individual real name or corp name
-    realName?: string;
+    // user location
+    address: string;
+    bankAccountName: string;
+    bankAccountNumber: string;
+    bankName: string;
+    city: string;
+    district: string;
+    // the indivial id number or corp crdential number
+    identityNumber: string;
+
+    linkBankAccountNumber?: string;
+
     // the principal name of corp
     principalName?: string;
+    province: string;
+    // individual real name or corp name
+    realName: string;
     sex?: number;
-    // the indivial id number or corp crdential number
-    identityNumber?: string;
-    address?: string;
-    province?: string;
-    city?: string;
-    district?: string;
+
     // the following props are only used to do validation
     area?: boolean;
     backIdUploader?: string;
@@ -54,7 +63,7 @@ export class UserIdentityInfoUploadTS extends Vue {
     // #region -- props of this component
     // #endregion
 
-    // #region -- referred props and methods by Vue Page
+    // #region -- referrence by template
     private readonly formRefName: string = 'uploadForm';
 
     private readonly frontUploaderRefName: string = 'frontUploader';
@@ -69,18 +78,27 @@ export class UserIdentityInfoUploadTS extends Vue {
     private readonly licenseWithPersonUploaderItemRefName: string = 'licenseWithPersonloaderItem';
 
     private readonly logoUploaderRefName: string = 'logoUploader';
+    private readonly logoUploaderItemRefName: string = 'logoUploaderItem';
     private readonly authLetterUploaderRefName: string = 'authLetterloader';
+    private readonly authLetterUploaderItemRefName: string = 'authLetterUploaderItem';
 
-    private readonly formDatas: IFormData = {
-        realName: '',
-        sex: 0,
-        identityNumber: '',
+    private readonly formData: IFormData = {
+        // the following props map to props in UserView
         address: '',
-        province: '',
+        bankAccountName: '',
+        bankAccountNumber: '',
+        bankName: '',
         city: '',
         district: '',
-        area: false,
+        identityNumber: '',
+        linkBankAccountNumber: '',
         principalName: '',
+        province: '',
+        realName: '',
+        sex: 0,
+
+        // the following props are only for formRule
+        area: false,
         backIdUploader: 'backIdUploader',
         frontIdUploader: 'frontIdUploader',
         licenseUploader: 'licenseUploader',
@@ -88,24 +106,24 @@ export class UserIdentityInfoUploadTS extends Vue {
         authLetterUploader: 'authLetterUploader',
     };
     private readonly logoUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateUserLogo,
+        scenario: FileAPIScenario.UploadUserLogo,
     } as FileUploadParam;
 
     private readonly frontUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateUserFrontId,
+        scenario: FileAPIScenario.UploadUserFrontId,
     } as FileUploadParam;
 
     private readonly backUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateUserBackId,
+        scenario: FileAPIScenario.UploadUserBackId,
     } as FileUploadParam;
     private readonly licenseUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateLicense,
+        scenario: FileAPIScenario.UploadLicense,
     } as FileUploadParam;
     private readonly licenseWithPersonUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateLicenseWithPersion,
+        scenario: FileAPIScenario.UploadLicenseWithPerson,
     } as FileUploadParam;
     private readonly authLetterUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateAuthLetter,
+        scenario: FileAPIScenario.UploadAuthLetter,
     } as FileUploadParam;
 
     private isCorpUser: boolean = false;
@@ -162,33 +180,44 @@ export class UserIdentityInfoUploadTS extends Vue {
         return Object.keys(updatedProps).length > 0;
     }
     private readonly formRules: any = {
-        realName: [
-            { required: true, message: '请输入名称', trigger: 'blur' },
-            { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
+        address: [
+            { required: true, message: '此处不能为空', trigger: 'blur' },
+        ],
+        bankName: [
+            { required: true, message: '此处不能为空', trigger: 'blur' },
+        ],
+        bankAccountName: [
+            { required: true, message: '此处不能为空', trigger: 'blur' },
+        ],
+        bankAccountNumber: [
+            { required: true, message: '此处不能为空', trigger: 'blur' },
+        ],
+
+        identityNumber: [
+            { required: true, message: '此处不能为空', trigger: 'blur' },
         ],
         principalName: [
             { required: true, message: '请输入负责人名称', trigger: 'blur' },
             { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
         ],
-        identityNumber: [
-            { required: true, message: '此处不能为空', trigger: 'blur' },
-        ],
-        address: [
-            { required: true, message: '请输入地址', trigger: 'blur' },
-
+        realName: [
+            { required: true, message: '请输入名称', trigger: 'blur' },
+            { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
         ],
         sex: [{ required: true }],
+
+        // rules for combined props
         area: [{ required: true }, {
             validator: (rule: any, value: string, callback: any) => {
-                if (CommonUtils.isNullOrEmpty(this.formDatas.province)) {
+                if (CommonUtils.isNullOrEmpty(this.formData.province)) {
                     callback('省份不能为空');
                     return;
                 }
-                if (CommonUtils.isNullOrEmpty(this.formDatas.city)) {
+                if (CommonUtils.isNullOrEmpty(this.formData.city)) {
                     callback('市不能为空');
                     return;
                 }
-                if (CommonUtils.isNullOrEmpty(this.formDatas.district)) {
+                if (CommonUtils.isNullOrEmpty(this.formData.district)) {
                     callback('区不能为空');
                     return;
                 }
@@ -220,7 +249,7 @@ export class UserIdentityInfoUploadTS extends Vue {
     private get cities(): string[] {
         const cities: string[] = [];
         for (const pItem of locations) {
-            if (this.formDatas.province === pItem.name) {
+            if (this.formData.province === pItem.name) {
                 for (const cItem of pItem.cities) {
                     cities.push(cItem.name);
                 }
@@ -233,9 +262,9 @@ export class UserIdentityInfoUploadTS extends Vue {
     private get districts(): string[] {
         const districts: string[] = [];
         for (const pItem of locations) {
-            if (this.formDatas.province === pItem.name) {
+            if (this.formData.province === pItem.name) {
                 for (const cItem of pItem.cities) {
-                    if (cItem.name === this.formDatas.city) {
+                    if (cItem.name === this.formData.city) {
                         for (const dItem of cItem.districts) {
                             districts.push(dItem.name);
                         }
@@ -246,6 +275,13 @@ export class UserIdentityInfoUploadTS extends Vue {
             }
         }
         return districts;
+    }
+
+    private onProvinceChanged(): void {
+        this.formData.city = this.cities[0];
+    }
+    private onCityChanged(): void {
+        this.formData.district = this.districts[0];
     }
 
     private isReadyToSubmit(): boolean {
@@ -333,9 +369,9 @@ export class UserIdentityInfoUploadTS extends Vue {
             });
         confirm.then(() => {
             (this.$refs[this.formRefName] as any).resetFields();
-            this.formDatas.province = '';
-            this.formDatas.city = '';
-            this.formDatas.district = '';
+            this.formData.province = '';
+            this.formData.city = '';
+            this.formData.district = '';
             let uploaderRef: ISingleImageUploaderTS =
                 this.$refs[this.frontUploaderRefName] as any as ISingleImageUploaderTS;
             if (uploaderRef != null) {
@@ -377,13 +413,15 @@ export class UserIdentityInfoUploadTS extends Vue {
 
     }
     private onLogoImageChanged(): void {
-        this.isLogoImageChanged = true;
+        const uploader: ISingleImageUploaderTS = (this.$refs[this.logoUploaderRefName] as any);
+        this.isLogoImageChanged = uploader.isChanged();
+        (this.$refs[this.logoUploaderItemRefName] as any).clearValidate();
     }
     private onLogoImageReset(): void {
         this.isLogoImageChanged = false;
     }
     private onLogoUploadSuccess(apiResult: ApiResult) {
-        this.handleImageUploadSucess(FileType.UserLogo, apiResult);
+        // do nothing
     }
     private onLogoUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -391,7 +429,8 @@ export class UserIdentityInfoUploadTS extends Vue {
         this.$message.error(`Logo上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onFrontIdImageChanged(): void {
-        this.isFrontIdImageChanged = true;
+        const uploader: ISingleImageUploaderTS = (this.$refs[this.frontUploaderRefName] as any);
+        this.isFrontIdImageChanged = uploader.isChanged();
         (this.$refs[this.frontUploaderItemRefName] as any).clearValidate();
     }
     private onFrontIdImageReset(): void {
@@ -399,7 +438,7 @@ export class UserIdentityInfoUploadTS extends Vue {
         (this.$refs[this.frontUploaderItemRefName] as any).clearValidate();
     }
     private onFrontIdUploadSuccess(apiResult: ApiResult) {
-        this.handleImageUploadSucess(FileType.FrontId, apiResult);
+        // do nothing
     }
     private onFrontIdUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -407,7 +446,8 @@ export class UserIdentityInfoUploadTS extends Vue {
         this.$message.error(`身份证正面上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onBackIdImageChanged(): void {
-        this.isBackIdImageChanged = true;
+        const uploader: ISingleImageUploaderTS = this.$refs[this.backUploaderRefName] as any;
+        this.isBackIdImageChanged = uploader.isChanged();
         (this.$refs[this.backUploaderItemRefName] as any).clearValidate();
     }
     private onBackIdImageReset(): void {
@@ -415,7 +455,7 @@ export class UserIdentityInfoUploadTS extends Vue {
         (this.$refs[this.backUploaderItemRefName] as any).clearValidate();
     }
     private onBackIdUploadSuccess(apiResult: ApiResult) {
-        this.handleImageUploadSucess(FileType.BackId, apiResult);
+        // do nothing
     }
     private onBackIdUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -423,7 +463,8 @@ export class UserIdentityInfoUploadTS extends Vue {
         this.$message.error(`身份证背面上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onLicenseImageChanged(): void {
-        this.isLicenseImageChanged = true;
+        const uploader: ISingleImageUploaderTS = this.$refs[this.licenseUploaderRefName] as any;
+        this.isLicenseImageChanged = uploader.isChanged();
         (this.$refs[this.licenseUploaderItemRefName] as any).clearValidate();
     }
     private onLicenseImageReset(): void {
@@ -431,7 +472,7 @@ export class UserIdentityInfoUploadTS extends Vue {
         (this.$refs[this.licenseUploaderItemRefName] as any).clearValidate();
     }
     private onLicenseUploadSuccess(apiResult: ApiResult) {
-        this.handleImageUploadSucess(FileType.License, apiResult);
+        // do nothing
     }
     private onLicenseUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -439,15 +480,16 @@ export class UserIdentityInfoUploadTS extends Vue {
         this.$message.error(`营业执照上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onLicenseWithPersonImageChanged(): void {
-        this.isLicenseWithPersonImageChanged = true;
-        (this.$refs[this.licenseWithPersonUploaderItemRefName] as any).clearValidate();
+        const uploader: ISingleImageUploaderTS = this.$refs[this.licenseWithPersonUploaderRefName] as any;
+        this.isLicenseWithPersonImageChanged = uploader.isChanged();
+        (this.$refs[this.licenseWithPersonUploaderItemRefName] as any as any).clearValidate();
     }
     private onLicenseWithPersonImageReset(): void {
         this.isLicenseWithPersonImageChanged = false;
         (this.$refs[this.licenseWithPersonUploaderItemRefName] as any).clearValidate();
     }
     private onLicenseWithPersonUploadSuccess(apiResult: ApiResult) {
-        this.handleImageUploadSucess(FileType.LicenseWithPerson, apiResult);
+        // do nothing
     }
     private onLicenseWithPersonUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -455,13 +497,15 @@ export class UserIdentityInfoUploadTS extends Vue {
         this.$message.error(`负责人手持营业执照上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onAuthLetterImageChanged(): void {
-        this.isAuthLetterImageChanged = true;
+        const uploader: ISingleImageUploaderTS = this.$refs[this.authLetterUploaderRefName] as any;
+        this.isAuthLetterImageChanged = uploader.isChanged();
+        (this.$refs[this.authLetterUploaderItemRefName] as any).clearValidate();
     }
     private onAuthLetterImageReset(): void {
         this.isAuthLetterImageChanged = false;
     }
     private onAuthLetterUploadSuccess(apiResult: ApiResult) {
-        this.handleImageUploadSucess(FileType.AuthLetter, apiResult);
+        // do nothing
     }
     private onAuthLetterUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -484,6 +528,10 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
         this.initialize();
     }
+    @Watch('formData.city', { immediate: true })
+    private onCityValueChanged(currentValue: string, previousValue: string) {
+        this.formData.district = this.districts[0];
+    }
     private initialize(): void {
         const sessionInfo = this.storeState.sessionInfo;
         if (sessionInfo.roles != null) {
@@ -492,9 +540,9 @@ export class UserIdentityInfoUploadTS extends Vue {
             } else {
                 this.isCorpUser = false;
             }
-            Object.keys(this.formDatas).forEach((item) => {
+            Object.keys(this.formData).forEach((item) => {
                 if (sessionInfo[item] != null) {
-                    (this.formDatas as any)[item] = sessionInfo[item];
+                    (this.formData as any)[item] = sessionInfo[item];
                 }
             });
         }
@@ -502,13 +550,13 @@ export class UserIdentityInfoUploadTS extends Vue {
     private getUpdatedIdInfoProps(): UserBasicInfoEditParam {
         const updatedProps: UserBasicInfoEditParam = {};
         const userViewKeys = Object.keys(new UserView(true));
-        Object.keys(this.formDatas).forEach((item) => {
+        Object.keys(this.formData).forEach((item) => {
             if (userViewKeys.includes(item)) {
-                if ((this.formDatas as any)[item] !== this.storeState.sessionInfo[item]) {
-                    (updatedProps as any)[item] = (this.formDatas as any)[item];
+                if ((this.formData as any)[item] !== this.storeState.sessionInfo[item]) {
+                    (updatedProps as any)[item] = (this.formData as any)[item];
                 }
             } else {
-                LoggerManager.debug(`Unknown Form Prop:${item} which is not in UserView`);
+                LoggerManager.warn(`Unknown Form Prop:${item} which is not in UserView`);
             }
         });
 
@@ -531,65 +579,6 @@ export class UserIdentityInfoUploadTS extends Vue {
                 this.$emit(EventNames.UploadSuccess);
             }
         }
-    }
-    private handleImageUploadSucess(fileType: FileType, apiResult: ApiResult) {
-        (async () => {
-            const userView: UserView = apiResult.data;
-            let imageUid: string;
-            let scenario: FileAPIScenario;
-            const updatedProps: UserView = {};
-            updatedProps.idState = userView.idState;
-            switch (fileType) {
-                case FileType.AuthLetter:
-                    imageUid = userView.authLetterUid as string;
-                    scenario = FileAPIScenario.DownloadAuthLetter;
-                    updatedProps.authLetterUrl = await ComponentUtils.$$getImageUrl(
-                        this, imageUid, scenario);
-                    this.isAuthLetterImageChanged = false;
-                    break;
-                case FileType.BackId:
-                    imageUid = userView.backIdUid as string;
-                    scenario = FileAPIScenario.DownloadBackId;
-                    updatedProps.backIdUrl = await ComponentUtils.$$getImageUrl(
-                        this, imageUid, scenario);
-                    this.isBackIdImageChanged = false;
-                    break;
-                case FileType.FrontId:
-                    imageUid = userView.frontIdUid as string;
-                    scenario = FileAPIScenario.DownloadFrontId;
-                    updatedProps.frondIdUrl = await ComponentUtils.$$getImageUrl(
-                        this, imageUid, scenario);
-                    this.isFrontIdImageChanged = false;
-                    break;
-                case FileType.License:
-                    imageUid = userView.licenseUid as string;
-                    scenario = FileAPIScenario.DownloadLicense;
-                    updatedProps.licenseUrl = await ComponentUtils.$$getImageUrl(
-                        this, imageUid, scenario);
-                    this.isLicenseImageChanged = false;
-                    break;
-                case FileType.LicenseWithPerson:
-                    imageUid = userView.licenseWithPersonUid as string;
-                    scenario = FileAPIScenario.DownloadLinceWithPerson;
-                    updatedProps.licenseWithPersonUrl = await ComponentUtils.$$getImageUrl(
-                        this, imageUid, scenario);
-                    this.isLicenseWithPersonImageChanged = false;
-                    break;
-                case FileType.UserLogo:
-                    imageUid = userView.logoUid as string;
-                    scenario = FileAPIScenario.DownloadUserLogo;
-                    updatedProps.logoUrl = await ComponentUtils.$$getImageUrl(
-                        this, imageUid, scenario);
-                    this.isLogoImageChanged = false;
-                    break;
-                default:
-                    LoggerManager.error(`unsupported filetype:${fileType}`);
-                    return;
-            }
-            Object.assign(userView, updatedProps);
-            this.store.commit(StoreMutationNames.sessionInfoPropUpdate, userView);
-            this.checkUploadState();
-        })();
     }
 
     private backIdValidation(rule: any, value: string, callback: any): void {

@@ -1,20 +1,16 @@
+import { EventNames } from 'client/common/EventNames';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
-import { UserCheckParam } from 'common/requestParams/UserCheckParam';
+import { UserIdCheckParam } from 'common/requestParams/UserIdCheckParam';
 import { UserView } from 'common/responseResults/UserView';
 import { UserType } from 'common/UserTypes';
+import Viewer from 'viewerjs';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
-
-enum EventNames {
-    submitted = 'submitted',
-    cancelled = 'cancelled',
-
-}
 
 
 const compToBeRegistered: any = {
@@ -31,15 +27,16 @@ export class IdentityCheckDialogTS extends Vue {
     @Prop() public userUidProp!: string;
     // #endregion
 
-    // #region -- referred props and methods of the page template
+    // #region -- references by the page
     private readonly idSwitchActiveValue: CheckState = CheckState.Checked;
     private readonly idSwitchInactiveValue: CheckState = CheckState.FailedToCheck;
+    private readonly carouselRefName: string = 'carousel';
 
     private targetUser: UserView = {};
     private previewedImageUrl: string = '';
-    private previewDialogVisible: boolean = false;
+    private imagePreviewer: Viewer | null = null;
 
-    private idCheckParam: UserCheckParam = {
+    private idCheckParam: UserIdCheckParam = {
         uid: this.userUidProp,
         idState: CheckState.Missed,
         idCheckNote: '',
@@ -90,7 +87,7 @@ export class IdentityCheckDialogTS extends Vue {
         return this.targetUser.logoUrl || '';
     }
     private get frontImageUrl(): string {
-        return this.targetUser.frondIdUrl || '';
+        return this.targetUser.frontIdUrl || '';
     }
     private get backImageUrl(): string {
         return this.targetUser.backIdUrl || '';
@@ -119,15 +116,53 @@ export class IdentityCheckDialogTS extends Vue {
         return true;
     }
     private onCheckSubmit(): void {
-        this.$emit(EventNames.submitted, this.idCheckParam);
+        if (this.imagePreviewer != null) {
+            this.imagePreviewer.destroy();
+            this.imagePreviewer = null;
+        }
+        (this.$refs[this.carouselRefName] as any).setActiveItem(0);
+        this.$emit(EventNames.Submit, this.idCheckParam);
     }
-    private onCheckCancelled(): void {
-        this.$emit(EventNames.cancelled);
+    private onCheckCancel(): void {
+        if (this.imagePreviewer != null) {
+            this.imagePreviewer.destroy();
+            this.imagePreviewer = null;
+        }
+        (this.$refs[this.carouselRefName] as any).setActiveItem(0);
+        this.$emit(EventNames.Cancel);
     }
 
     private onPreview(imageUrl: string): void {
+        if (this.imagePreviewer != null) {
+            this.imagePreviewer.destroy();
+            this.imagePreviewer = null;
+        }
+
         this.previewedImageUrl = imageUrl as string;
-        this.previewDialogVisible = true;
+        const image = new Image();
+        image.src = this.previewedImageUrl;
+
+        this.imagePreviewer = new Viewer(image, {
+            inline: false,
+            movable: true,
+            zoomable: true,
+            scalable: false,
+            zoomRatio: 0,
+            minZoomRatio: 0.2,
+            maxZoomRatio: 1,
+            keyboard: false,
+            zIndex: 10000,
+            toolbar: {
+                next: false,
+                prev: false,
+                play: false,
+                rotateLeft: true,
+                rotateRight: true,
+                reset: true,
+            },
+
+        });
+        this.imagePreviewer.show();
     }
     // #endregion
 
@@ -180,14 +215,14 @@ export class IdentityCheckDialogTS extends Vue {
     }
     private getFrontImageUrl(user: UserView): void {
         if (!CommonUtils.isNullOrEmpty(user.frontIdUid) &&
-            CommonUtils.isNullOrEmpty(user.frondIdUrl)) {
+            CommonUtils.isNullOrEmpty(user.frontIdUrl)) {
             (async () => {
-                user.frondIdUrl = await ComponentUtils.$$getImageUrl(
+                user.frontIdUrl = await ComponentUtils.$$getImageUrl(
                     this, user.frontIdUid as string, FileAPIScenario.DownloadFrontId);
-                if (!CommonUtils.isNullOrEmpty(user.frondIdUrl)) {
+                if (!CommonUtils.isNullOrEmpty(user.frontIdUrl)) {
                     this.store.commit(StoreMutationNames.userItemUpdate, {
                         uid: user.uid,
-                        frondIdUrl: user.frondIdUrl,
+                        frontIdUrl: user.frontIdUrl,
                     } as UserView);
                     this.targetUser = Object.assign({}, user);
                 } else {

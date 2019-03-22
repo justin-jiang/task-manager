@@ -1,11 +1,14 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
-import { RouterUtils } from 'client/common/RouterUtils';
 import { StoreUtils } from 'client/common/StoreUtils';
 import { ViewTextUtils } from 'client/common/ViewTextUtils';
 import AuditDialogVue from 'client/components/AuditDialogVue.vue';
 import AvatarWithNameVue from 'client/components/AvatarWithNameVue.vue';
 import { ComponentUtils } from 'client/components/ComponentUtils';
 import FileCheckDialogVue from 'client/components/FileCheckDialogVue.vue';
+import PayToExecutorDialogVue from 'client/components/PayToExecutorDialogVue.vue';
+import PublisherVisitDialogVue from 'client/components/PublisherVisitDialogVue.vue';
+import ReceiptUploadDialogVue from 'client/components/ReceiptUploadDialogVue.vue';
+import TaskApplyCheckDialogVue from 'client/components/TaskApplyCheckDialogVue.vue';
 import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import TaskFormVue from 'client/components/TaskFormVue.vue';
 import TaskProgressDialogVue from 'client/components/TaskProgressDialogVue.vue';
@@ -28,79 +31,39 @@ import { TaskState } from 'common/TaskState';
 import Viewer from 'viewerjs';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { TaskPublisherVisitParam } from 'common/requestParams/TaskPublisherVisitParam';
+import { RefundScenario } from 'common/RefundScenario';
+import RefundDialogVue from 'client/components/RefundDialogVue.vue';
 const compToBeRegistered: any = {
-    TaskProgressDialogVue,
-    TaskFormVue,
+
     AvatarWithNameVue,
     AuditDialogVue,
+
     FileCheckDialogVue,
+
+    PayToExecutorDialogVue,
+    ReceiptUploadDialogVue,
+    PublisherVisitDialogVue,
+
+    RefundDialogVue,
+
+    TaskApplyCheckDialogVue,
     TaskDetailInTableVue,
+    TaskProgressDialogVue,
+    TaskFormVue,
+
 };
 
 @Component({
     components: compToBeRegistered,
 })
 export class AdminTaskTS extends Vue {
-    // #region -- props and methods for Whole Page
+    // #region -- reference by Template
     private readonly taskTableName: string = 'taskTable';
     private readonly switchActiveValue: CheckState = CheckState.Checked;
     private readonly switchInactiveValue: CheckState = CheckState.FailedToCheck;
     private isInitialized: boolean = false;
-    private search: string = '';
     private selectedTask: TaskView = {};
-
-    private isSearchReady(): boolean {
-        return true;
-    }
-    private get filtredTaskObjs(): TaskView[] {
-        let result: TaskView[];
-        switch (this.taskStateRadio) {
-            case TaskState.Submitted:
-                result = this.toBeAuditInfos;
-                break;
-            case TaskState.Deposited:
-                result = this.toBeAuditDeposits;
-                break;
-
-            case TaskState.ReadyToAuditApply:
-                result = this.toBeAuditApplies;
-                break;
-
-            case TaskState.ResultUploaded:
-                result = this.toBeAuditResults;
-                break;
-
-            case TaskState.ResultChecked:
-                result = this.toBePublisherVists;
-                break;
-            case TaskState.PublisherVisited:
-                result = this.toBePaiedTasks;
-                break;
-            case TaskState.ExecutorPaid:
-                result = this.completedTasks;
-                break;
-            default:
-                result = this.storeState.taskObjs;
-        }
-        return result.filter(
-            (data: TaskView) => !this.search ||
-                (data.name as string).toLowerCase().includes(this.search.toLowerCase()));
-    }
-    private taskStateToText(state: TaskState): string {
-        return ViewTextUtils.getTaskStateText(state);
-    }
-    private timestampToText(timestamp: number): string {
-        return CommonUtils.convertTimeStampToText(timestamp);
-    }
-    /**
-     * used to determine whether show the edit, submit and progressquery buttons
-     * @param index 
-     * @param task 
-     */
-    private isNotSubmitted(index: number, task: TaskView): boolean {
-        return task.state === TaskState.None || task.state === TaskState.Created;
-    }
+    private imageViewer: Viewer | null = null;
     // #endregion
 
     // #region -- reference by task state radio button group
@@ -108,8 +71,8 @@ export class AdminTaskTS extends Vue {
     private readonly allTasksLab: TaskState = TaskState.None;
 
     private readonly toBeAuditInfoLab: TaskState = TaskState.Submitted;
-    private readonly toBeAuditDepositLab: TaskState = TaskState.Deposited;
-    private readonly toBeAuditApplyLab: TaskState = TaskState.ReadyToAuditApply;
+    private readonly toBeAuditDepositLab: TaskState = TaskState.DepositUploaded;
+    private readonly toBeAuditApplyLab: TaskState = TaskState.Applying;
     private readonly toBeAuditResultLab: TaskState = TaskState.ResultUploaded;
 
     private readonly toBePublisherVistLab: TaskState = TaskState.ResultChecked;
@@ -125,18 +88,10 @@ export class AdminTaskTS extends Vue {
         return this.allTasks.length;
     }
 
-    private get toBeAuditInfos(): TaskView[] {
-        return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.Submitted;
-        });
-    }
-    private get toBeAuditInfoCount(): number {
-        return this.toBeAuditInfos.length;
-    }
 
     private get toBeAuditDeposits(): TaskView[] {
         return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.Deposited;
+            return item.state === TaskState.DepositUploaded;
         });
     }
     private get toBeAuditDepositsCount(): number {
@@ -146,7 +101,7 @@ export class AdminTaskTS extends Vue {
 
     private get toBeAuditApplies(): TaskView[] {
         return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.ReadyToAuditApply;
+            return item.state === TaskState.Applying || item.state === TaskState.MarginUploaded;
         });
     }
     private get toBeAuditApplyCount(): number {
@@ -185,7 +140,7 @@ export class AdminTaskTS extends Vue {
 
     private get completedTasks(): TaskView[] {
         return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.ExecutorPaid;
+            return item.state === this.completedLab;
         });
     }
     private get completedTasksCount(): number {
@@ -193,69 +148,69 @@ export class AdminTaskTS extends Vue {
     }
     // #endregion
 
-    // #region -- props and methods for new task apply tab
-    private readonly newApplyToBeCheckTabName: string = 'newTaskApplyTab';
-    private newTaskApplySearch: string = '';
+    // #region -- references by task tables
+    private search: string = '';
+    private isSearchReady(): boolean {
+        return true;
+    }
+    /**
+     * the data used by task table
+     */
+    private get filteredTaskObjs(): TaskView[] {
+        let result: TaskView[] = [];
+        switch (this.taskStateRadio) {
+            case TaskState.None:
+                result = this.allTasks;
+                break;
+            case TaskState.DepositUploaded:
+                result = this.toBeAuditDeposits;
+                break;
 
-    private get newTaskApplyObjs(): TaskView[] {
-        return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.Applying;
-        });
+            case TaskState.Applying:
+            case TaskState.MarginUploaded:
+                result = this.toBeAuditApplies;
+                break;
+
+            case TaskState.ResultUploaded:
+                result = this.toBeAuditResults;
+                break;
+
+            case TaskState.ResultChecked:
+                result = this.toBePublisherVists;
+                break;
+            case TaskState.PublisherVisited:
+                result = this.toBePaiedTasks;
+                break;
+            case TaskState.ExecutorPaid:
+            case TaskState.ReceiptUploaded:
+                result = this.completedTasks;
+                break;
+            default:
+                this.$message.error(`任务状态（${this.taskStateRadio}）未支持`);
+                break;
+
+        }
+        return result.filter(
+            (data: TaskView) => !this.search ||
+                (data.name as string).toLowerCase().includes(this.search.toLowerCase()));
     }
-    private onTaskApplyAditAccepted(index: number, task: TaskView): void {
-        const confirm = this.$confirm(
-            `确认批准此用户的申请吗？`,
-            '提示', {
-                confirmButtonText: '确定',
-                type: 'warning',
-                center: true,
-                closeOnClickModal: false,
-            });
-        confirm.then(() => {
-            this.taskApplyAudit({
-                uid: task.uid,
-                state: TaskState.ReadyToAuditApply,
-            } as TaskAuditParam);
-        }).catch(() => {
-            // do nothing for cancel
-        });
+    private taskStateToText(state: TaskState): string {
+        return ViewTextUtils.getTaskStateText(state);
     }
-    private onTaskApplyAditDenied(index: number, task: TaskView): void {
-        const confirm = this.$prompt(
-            '确认拒绝此任务申请吗？',
-            '提示', {
-                confirmButtonText: '确定',
-                type: 'warning',
-                center: true,
-                closeOnClickModal: false,
-                inputType: 'textarea',
-                inputPlaceholder: '请输入理由',
-            });
-        confirm.then(({ value }) => {
-            this.taskApplyAudit({
-                uid: task.uid,
-                state: TaskState.ApplyAuditDenied,
-                note: value,
-            } as TaskAuditParam);
-        }).catch(() => {
-            // do nothing for cancel
-        });
+    private timestampToText(timestamp: number): string {
+        return ViewTextUtils.convertTimeStampToDatetime(timestamp);
+    }
+    /**
+     * used to determine whether show the edit, submit and progressquery buttons
+     * @param index 
+     * @param task 
+     */
+    private isNotSubmitted(index: number, task: TaskView): boolean {
+        return task.state === TaskState.None || task.state === TaskState.Created;
     }
 
-    private taskApplyAudit(reqParam: TaskAuditParam): void {
-        (async () => {
-            const store = (this.$store as Store<IStoreState>);
-            const apiResult: ApiResult = await store.dispatch(
-                StoreActionNames.taskApplyAudit,
-                {
-                    data: reqParam,
-                } as IStoreActionArgs);
-            if (apiResult.code === ApiResultCode.Success) {
-                this.$message.success(`提交成功`);
-            } else {
-                this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-            }
-        })();
+    private onRowClick(task: TaskView, column: any): void {
+        (this.$refs[this.taskTableName] as any).toggleRowExpansion(task);
     }
     // #endregion
 
@@ -272,87 +227,24 @@ export class AdminTaskTS extends Vue {
     // #endregion
 
     // #region -- references by task detail component
-    private taskDetailDialogVisible: boolean = false;
     private onTaskDetailCheck(index: number, task: TaskView): void {
         (this.$refs[this.taskTableName] as any).toggleRowExpansion(task);
     }
-    private onTaskDetailDialogClosed(): void {
-        this.selectedTask = {};
-        this.taskDetailDialogVisible = false;
-    }
     // #endregion
 
-    // #region -- references by task info and fund(deposit and margin) audit dialog
-
-    private fundPageImageViewer: Viewer | null = null;
-    private infoAuditState: CheckState = CheckState.Checked;
-    private fundAuditState: CheckState = CheckState.Checked;
-    private infoAuditNote: string = '';
-    private fundAuditNote: string = '';
+    //#region -- reference by task info audit
     private infoAuditDialogVisible: boolean = false;
-    private fundAuditDialogVisible: boolean = false;
 
-    private get fundAuditDialogTitle(): string {
-        if (this.selectedTask.state === TaskState.Submitted) {
-            return '托管资金审核';
-        } else if (this.selectedTask.state === TaskState.ReadyToAuditApply) {
-            return '保证金审核';
-        } else {
-            return '';
-        }
-    }
-
-    private get fundImageUrl(): string {
-        if (this.selectedTask.state === TaskState.Deposited) {
-            return this.selectedTask.depositImageUrl || '';
-        } else if (this.selectedTask.state === TaskState.ReadyToAuditApply) {
-            return this.selectedTask.marginImageUrl || '';
-        } else {
-            return '';
-        }
-
-    }
-
-    private get isInfoAuditReadySubmit(): boolean {
-        return this.infoAuditState === CheckState.Checked ||
-            (this.infoAuditState === CheckState.FailedToCheck && !CommonUtils.isNullOrEmpty(this.infoAuditNote));
-    }
-    private get isDepositAuditReadySubmit(): boolean {
-        return this.fundAuditState === CheckState.Checked ||
-            (this.fundAuditState === CheckState.FailedToCheck && !CommonUtils.isNullOrEmpty(this.fundAuditNote));
-    }
-    private get isInfoAuditDenied(): boolean {
-        return this.infoAuditState === CheckState.FailedToCheck;
-    }
-    private get isDepositAuditDenied(): boolean {
-        return this.fundAuditState === CheckState.FailedToCheck;
-    }
     private isInfoReadyToBeAudited(index: number, task: TaskView): boolean {
-        return task.state === TaskState.Submitted;
+        return task.state === TaskState.DepositUploaded &&
+            (task.infoAuditState == null || task.infoAuditState !== CheckState.Checked);
     }
-    private isDepositReadyToBeAudited(index: number, task: TaskView): boolean {
-        return task.state === TaskState.Deposited;
-    }
-    private isMarginReadyToBeAudited(index: number, task: TaskView): boolean {
-        return task.state === TaskState.ReadyToAuditApply;
-    }
-
     private onInfoAudit(index: number, task: TaskView): void {
         this.selectedTask = task;
         (this.$refs[this.taskTableName] as any).toggleRowExpansion(task, true);
         this.infoAuditDialogVisible = true;
     }
-    private onDepositAudit(index: number, task: TaskView): void {
-        this.selectedTask = task;
-        this.getDepositImageUrl();
-        this.fundAuditDialogVisible = true;
-    }
-    private onMarginAudit(index: number, task: TaskView): void {
-        this.selectedTask = task;
-        this.getMarginImageUrl();
-        this.fundAuditDialogVisible = true;
-    }
-    private onInfoAuditSubmitted(auditResult: GeneralAuditParam): void {
+    private onInfoAuditSubmit(auditResult: GeneralAuditParam): void {
         (async () => {
             const store = (this.$store as Store<IStoreState>);
             const apiResult: ApiResult = await store.dispatch(
@@ -373,14 +265,71 @@ export class AdminTaskTS extends Vue {
             this.infoAuditDialogVisible = false;
         });
     }
-    private onInfoAuditCancelled(index: number, task: TaskView): void {
+    private onInfoAuditCancel(index: number, task: TaskView): void {
         this.selectedTask = {};
         this.infoAuditDialogVisible = false;
     }
-    private onDepositAuditSubmitted(auditResult: GeneralAuditParam): void {
+    //#endregion
+
+    // #region -- references by fund(deposit and margin) audit dialog
+
+    private fundAuditState: CheckState = CheckState.Checked;
+
+    private fundAuditNote: string = '';
+
+    private fundAuditDialogVisible: boolean = false;
+
+    private get fundAuditDialogTitle(): string {
+        if (this.selectedTask.state === TaskState.DepositUploaded) {
+            return '托管资金审核';
+        } else if (this.selectedTask.state === TaskState.MarginUploaded) {
+            return '保证金审核';
+        } else {
+            return `未知状态（${this.selectedTask.state}）`;
+        }
+    }
+
+    private get fundImageUrl(): string {
+        if (this.selectedTask.state === TaskState.DepositUploaded) {
+            return this.selectedTask.depositImageUrl || '';
+        } else if (this.selectedTask.state === TaskState.MarginUploaded) {
+            return this.selectedTask.marginImageUrl || '';
+        } else {
+            return '';
+        }
+    }
+
+    /**
+     * control the DepositAudit button visibility
+     * @param index 
+     * @param task 
+     */
+    private isDepositReadyToBeAudited(index: number, task: TaskView): boolean {
+        return task.state === TaskState.DepositUploaded && task.depositAuditState !== CheckState.Checked;
+    }
+    /**
+     * control the MarginAudit button visibility
+     * @param index 
+     * @param task 
+     */
+    private isMarginReadyToBeAudited(index: number, task: TaskView): boolean {
+        return task.state === TaskState.MarginUploaded && task.marginAditState !== CheckState.Checked;
+    }
+
+    private onDepositAudit(index: number, task: TaskView): void {
+        this.selectedTask = task;
+        this.getDepositImageUrl();
+        this.fundAuditDialogVisible = true;
+    }
+    private onMarginAudit(index: number, task: TaskView): void {
+        this.selectedTask = task;
+        this.getMarginImageUrl();
+        this.fundAuditDialogVisible = true;
+    }
+    private onFundAuditSubmit(auditResult: GeneralAuditParam): void {
         (async () => {
             const actionName = this.selectedTask.state ===
-                TaskState.Submitted ? StoreActionNames.taskDepositAudit : StoreActionNames.taskApplyAudit;
+                TaskState.DepositUploaded ? StoreActionNames.taskDepositAudit : StoreActionNames.taskMarginAudit;
             const store = (this.$store as Store<IStoreState>);
             const apiResult: ApiResult = await store.dispatch(
                 actionName,
@@ -400,22 +349,24 @@ export class AdminTaskTS extends Vue {
             this.fundAuditDialogVisible = false;
         });
     }
-    private onDepositAuditCancelled(index: number, task: TaskView): void {
+
+
+    private onFundAuditCancel(index: number, task: TaskView): void {
         this.selectedTask = {};
         this.fundAuditDialogVisible = false;
-        if (this.fundPageImageViewer != null) {
-            this.fundPageImageViewer.destroy();
-            this.fundPageImageViewer = null;
+        if (this.imageViewer != null) {
+            this.imageViewer.destroy();
+            this.imageViewer = null;
         }
     }
-    private onDepositPreview(): void {
-        if (this.fundPageImageViewer != null) {
-            this.fundPageImageViewer.destroy();
+    private onFundPreview(): void {
+        if (this.imageViewer != null) {
+            this.imageViewer.destroy();
         }
         const image = new Image();
         image.src = this.fundImageUrl as string;
 
-        this.fundPageImageViewer = new Viewer(image, {
+        this.imageViewer = new Viewer(image, {
             inline: false,
             movable: true,
             zoomable: true,
@@ -435,9 +386,98 @@ export class AdminTaskTS extends Vue {
             },
 
         });
-        this.fundPageImageViewer.show();
+        this.imageViewer.show();
+    }
+    private onRefund(): void {
+        (async () => {
+            if (this.selectedTask.state === TaskState.DepositUploaded) {
+                this.refundScenario = RefundScenario.DepositRefund;
+                this.refundUser = await StoreUtils.$$getUserById(
+                    this.store, this.selectedTask.publisherUid || '') || {};
+                if (CommonUtils.isNullOrEmpty(this.refundUser.uid)) {
+                    this.$message.error(`此任务指定的雇主不存在`);
+                    return;
+                }
+            } else {
+                this.refundScenario = RefundScenario.MarginRefund;
+                this.refundUser = await StoreUtils.$$getUserById(
+                    this.store, this.selectedTask.executorUid || '') || {};
+                if (CommonUtils.isNullOrEmpty(this.refundUser.uid)) {
+                    this.$message.error(`此任务指定的雇员不存在`);
+                    return;
+                }
+            }
+            this.fundAuditDialogVisible = false;
+            this.refundAuditDialogVisible = true;
+        })();
     }
     // #endregion
+
+    //#region -- reference by refund dialog
+    private refundAuditDialogVisible: boolean = false;
+    private refundScenario: RefundScenario = RefundScenario.None;
+    private refundUser: UserView = {};
+    private onRefundSuccess(): void {
+        this.$message.success('提交成功');
+        this.refundAuditDialogVisible = false;
+    }
+    private onRefundCancel(): void {
+        this.refundAuditDialogVisible = false;
+    }
+    //#endregion
+
+    //#region -- reference by executor qualification audit
+    private executorAuditDialogVisible: boolean = false;
+    private executorOfSelectedTask: UserView = {};
+    private get executorName(): string {
+        return this.executorOfSelectedTask.name || '';
+    }
+    private get executorLogoUrl(): string {
+        return this.executorOfSelectedTask.logoUrl || '';
+    }
+    private get executorQualificationStar(): number {
+        return this.executorOfSelectedTask.qualificationStar || 0;
+    }
+    private get executorQualificationScore(): number {
+        return this.executorOfSelectedTask.qualificationScore || 0;
+    }
+
+    private isExecutorReadyToBeAudited(index: number, task: TaskView): boolean {
+        return (task.state === TaskState.MarginUploaded) &&
+            (task.executorAuditState == null || task.executorAuditState !== CheckState.Checked);
+    }
+
+    private onExecutorAudit(index: number, task: TaskView): void {
+        this.selectedTask = task;
+        this.getExecutorQualification();
+        this.executorAuditDialogVisible = true;
+    }
+    private onExecutorAuditSubmit(auditResult: GeneralAuditParam): void {
+        (async () => {
+            const store = (this.$store as Store<IStoreState>);
+            const apiResult: ApiResult = await store.dispatch(
+                StoreActionNames.taskExecutorAudit,
+                {
+                    data: {
+                        uid: this.selectedTask.uid,
+                        auditState: auditResult.state,
+                        note: auditResult.note,
+                    } as TaskAuditParam,
+                } as IStoreActionArgs);
+            if (apiResult.code === ApiResultCode.Success) {
+                this.$message.success('提交成功');
+            } else {
+                this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+            }
+        })().finally(() => {
+            this.executorAuditDialogVisible = false;
+        });
+    }
+    private onExecutorAuditCancel(index: number, task: TaskView): void {
+        this.selectedTask = {};
+        this.executorAuditDialogVisible = false;
+    }
+    //#endregion
 
     // #region -- references by task result audit
     private resultAuditDialogVisible: boolean = false;
@@ -492,41 +532,6 @@ export class AdminTaskTS extends Vue {
     }
     // #endregion
 
-    // #region -- references by executor qualification audit
-    private executorAuditDialogVisible: boolean = false;
-    private executorAuditState: CheckState = CheckState.Checked;
-    private executorAuditNote: string = '';
-    private executorLogoUrl: string = '';
-    private executorName: string = '';
-    private executorQualificationStar: number = 0;
-    private executorQualificationScore: number = 0;
-    private get isExecutorAuditDenied(): boolean {
-        return this.executorAuditState === CheckState.FailedToCheck;
-    }
-    private get isExecutorAuditReadySubmit(): boolean {
-        return this.executorAuditState === CheckState.Checked ||
-            (this.executorAuditState === CheckState.FailedToCheck &&
-                !CommonUtils.isNullOrEmpty(this.executorAuditNote));
-    }
-    private isExecutorReadyToBeAudited(index: number, task: TaskView): boolean {
-        return task.state === TaskState.ReadyToAuditApply;
-    }
-    private onExecutorAudit(index: number, task: TaskView): void {
-        this.selectedTask = task;
-        this.getExecutorQualification();
-        this.executorAuditDialogVisible = true;
-    }
-
-    private onExecutorAuditSubmitted(): void {
-        this.executorAuditDialogVisible = false;
-    }
-
-    private onExecutorAuditCancelled(): void {
-        this.selectedTask = {};
-        this.executorAuditDialogVisible = false;
-    }
-    // #endregion
-
     // #region -- references by publisher visit dialog
     private publisherVisitDialogVisible: boolean = false;
     private publisherOfSelectedTask: UserView = {};
@@ -539,50 +544,77 @@ export class AdminTaskTS extends Vue {
     private onPublisherVisit(index: number, task: TaskView): void {
         (async () => {
             this.selectedTask = task;
-            let apiResult: ApiResult = { code: ApiResultCode.NONE };
-            // get Template Objs
-            apiResult = await this.store.dispatch(StoreActionNames.userQuery,
-                {
-                    notUseLocalData: false,
-                } as IStoreActionArgs);
-            if (apiResult.code !== ApiResultCode.Success) {
-                this.$message.error(`获取用户列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                return;
-            }
-            this.publisherOfSelectedTask = (apiResult.data as UserView[]).find((item) => {
-                return item.uid === this.selectedTask.publisherUid;
-            }) || {};
+            this.publisherOfSelectedTask = await StoreUtils.$$getUserById(
+                this.store, this.selectedTask.publisherUid as string) || {};
             if (CommonUtils.isNullOrEmpty(this.publisherOfSelectedTask.uid)) {
-                this.$message.error(`任务雇主不存在`);
+                this.$message.error(`此任务雇主不存在`);
                 return;
             }
             this.publisherVisitDialogVisible = true;
         })();
     }
 
-    private onPublisherVisitSubmitted(): void {
-        (async () => {
-            const store = (this.$store as Store<IStoreState>);
-            const apiResult: ApiResult = await store.dispatch(
-                StoreActionNames.taskPublisherVisit,
-                {
-                    data: {
-                        uid: this.selectedTask.uid,
-                        publisherVisitStar: this.publisherRateStar,
-                        publisherVisitNote: this.publisherVisitNote,
-                    } as TaskPublisherVisitParam,
-                } as IStoreActionArgs);
-            if (apiResult.code === ApiResultCode.Success) {
-                this.$message.success(`提交成功`);
-            } else {
-                this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-            }
-        })().finally(() => {
-            this.publisherVisitDialogVisible = false;
-        });
-    }
-    private onPublisherVisitCancelled(): void {
+    private onPublisherVisitSuccess(apiResult: ApiResult): void {
+        this.store.commit(StoreMutationNames.taskItemReplace, apiResult.data);
         this.publisherVisitDialogVisible = false;
+        this.$message.success(`提交成功`);
+    }
+    private onPublisherVisitCancel(): void {
+        this.publisherVisitDialogVisible = false;
+    }
+    private onPublisherVisitFailure(apiResult: ApiResult): void {
+        this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+        this.publisherVisitDialogVisible = false;
+    }
+    // #endregion
+
+    // #region -- references by pay_to_executor dialog
+    private payToExecutorDialogVisible: boolean = false;
+
+    private isReadyToPayToExecutor(index: number, task: TaskView): boolean {
+        return task.state === TaskState.PublisherVisited;
+    }
+    private onPayToExecutor(index: number, task: TaskView): void {
+        (async () => {
+            this.selectedTask = task;
+            this.executorOfSelectedTask = await StoreUtils.$$getUserById(this.store, task.executorUid || '') || {};
+            if (CommonUtils.isNullOrEmpty(this.executorOfSelectedTask.uid)) {
+                this.$message.error(`此任务指定的雇员不存在`);
+                return;
+            }
+            this.payToExecutorDialogVisible = true;
+        })();
+    }
+
+    private onPayToExecutorSuccess(apiResult: ApiResult): void {
+        this.$message.success(`提交成功`);
+        this.store.commit(StoreMutationNames.taskItemReplace, apiResult.data);
+        this.payToExecutorDialogVisible = false;
+    }
+    private onPayToExecutorCancel(): void {
+        this.payToExecutorDialogVisible = false;
+    }
+    // #endregion
+
+    // #region -- references by receipt upload dialog
+    private receiptDialogVisible: boolean = false;
+
+    private isReadyToReceiptUpload(index: number, task: TaskView): boolean {
+        return task.state === TaskState.PublisherVisited &&
+            task.executorReceiptRequired == null;
+    }
+    private onReceiptUpload(index: number, task: TaskView): void {
+        this.selectedTask = task;
+        this.receiptDialogVisible = true;
+    }
+
+    private onReceiptUploadSuccess(apiResult: ApiResult): void {
+        this.$message.success(`提交成功`);
+        this.store.commit(StoreMutationNames.taskItemReplace, apiResult.data);
+        this.receiptDialogVisible = false;
+    }
+    private onReceiptUploadCancel(): void {
+        this.receiptDialogVisible = false;
     }
     // #endregion
 
@@ -613,20 +645,21 @@ export class AdminTaskTS extends Vue {
                         notUseLocalData: true,
                     } as IStoreActionArgs);
                 if (apiResult.code !== ApiResultCode.Success) {
-                    RouterUtils.goToErrorView(this.$router,
-                        this.storeState,
-                        `获取模板列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                    return;
+                    this.$message.error(`获取模板列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                 }
                 apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
                     {
                         notUseLocalData: true,
                     } as IStoreActionArgs);
                 if (apiResult.code !== ApiResultCode.Success) {
-                    RouterUtils.goToErrorView(this.$router,
-                        this.storeState,
-                        `获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                    return;
+                    this.$message.error(`获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+                }
+                apiResult = await this.store.dispatch(StoreActionNames.userQuery,
+                    {
+                        notUseLocalData: false,
+                    } as IStoreActionArgs);
+                if (apiResult.code !== ApiResultCode.Success) {
+                    this.$message.error(`获取用户列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                 }
                 this.isInitialized = true;
             })();
@@ -663,24 +696,24 @@ export class AdminTaskTS extends Vue {
     }
     private getExecutorQualification(): void {
         if (!CommonUtils.isNullOrEmpty(this.selectedTask.applicantUid)) {
-            const executor = StoreUtils.getUserById(this.storeState, this.selectedTask.applicantUid as string);
-            if (executor != null) {
-                if (executor.logoUrl == null) {
+            this.executorOfSelectedTask = StoreUtils.getUserById(
+                this.storeState, this.selectedTask.applicantUid as string) || {};
+            if (this.executorOfSelectedTask != null) {
+                if (this.executorOfSelectedTask.logoUrl == null &&
+                    !CommonUtils.isNullOrEmpty(this.executorOfSelectedTask.logoUid)) {
                     (async () => {
-                        this.executorLogoUrl = await ComponentUtils.$$getImageUrl(
-                            this, executor.logoUid as string, FileAPIScenario.DownloadUserLogo) || '';
-                        if (!CommonUtils.isNullOrEmpty(this.executorLogoUrl)) {
+                        this.executorOfSelectedTask.executorLogoUrl = await ComponentUtils.$$getImageUrl(
+                            this,
+                            this.executorOfSelectedTask.logoUid as string,
+                            FileAPIScenario.DownloadUserLogo) || '';
+                        if (!CommonUtils.isNullOrEmpty(this.executorOfSelectedTask.executorLogoUrl)) {
                             this.store.commit(StoreMutationNames.userItemUpdate, {
-                                uid: executor.uid,
-                                logoUrl: this.executorLogoUrl,
+                                uid: this.executorOfSelectedTask.uid,
+                                logoUrl: this.executorOfSelectedTask.executorLogoUrl,
                             } as UserView);
                         }
                     })();
-                } else {
-                    this.executorLogoUrl = executor.logoUrl;
                 }
-                this.executorQualificationScore = executor.qualificationScore || 0;
-                this.executorQualificationStar = executor.qualificationStar || 0;
             }
         }
     }

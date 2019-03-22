@@ -95,11 +95,11 @@ export class BasicUserRegisterTS extends Vue {
             let result: boolean = true;
             if (valid) {
                 let finalUserRole: UserRole = UserRole.CorpExecutor;
-                if (CommonUtils.isAdmin([this.roleProp])) {
+                if (this.roleProp === UserRole.Admin) {
                     finalUserRole = UserRole.Admin;
-                } else if (CommonUtils.isPublisher([this.roleProp])) {
+                } else if (CommonUtils.isPublisherRole([this.roleProp])) {
                     finalUserRole = this.roleProp;
-                } else if (CommonUtils.isExecutor([this.roleProp])) {
+                } else if (CommonUtils.isExecutorRole([this.roleProp])) {
                     finalUserRole = this.roleProp;
                 }
 

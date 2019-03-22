@@ -58,7 +58,7 @@ export const blankStoreState: IStoreState = {
   userObjs: [],
   notificationObjs: [],
   errorMessage: '',
-}
+};
 
 /**
  * the data structure in Vuex(local memory)

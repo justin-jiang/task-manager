@@ -27,19 +27,23 @@
           </el-col>
         </el-row>
       </el-col>
-      <el-col :span="4">
+      <el-col
+        :span="4"
+        class="col-avatar"
+      >
         <avatar
           v-if='isLogoUidReady'
           :image="logoUrlProp"
         ></avatar>
         <img
-          class="img-item"
+          class="img-avatar"
           v-else
           src="../assets/logo.png"
         />
       </el-col>
       <el-col
         :span="8"
+        class="col-name"
         style="margin-top:18px;padding-left:8px"
       >
         <span>{{nameProp}}</span>
@@ -56,11 +60,16 @@ export default class AvatarWithNameVue extends AvatarWithNameTS {}
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
-.img-item {
+.img-avatar {
   width: 45px;
   height: 45px;
   border-radius: 50%;
   font-size: 24px;
   background-color: rgba(34, 51, 0, 0);
+}
+.col-name {
+  margin-top: 18px;
+  padding-left: 8px;
+  text-align: left;
 }
 </style>

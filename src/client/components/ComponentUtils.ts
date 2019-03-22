@@ -17,6 +17,7 @@ import { UserState } from 'common/UserState';
 import { UserType } from 'common/UserTypes';
 import { Vue } from 'vue-property-decorator';
 export class ComponentUtils {
+    //#region -- actions to get data from server or store
     public static async $$getImageUrl(
         vue: Vue, imageUid: string, scenario: FileAPIScenario): Promise<string | undefined> {
         let logoUrl: string | undefined;
@@ -105,6 +106,26 @@ export class ComponentUtils {
             })();
         }
     }
+    public static pullTemplates(vue: Vue, isBackground?: boolean): void {
+        const store = vue.$store;
+        const storeState = store.state as IStoreState;
+        if (!CommonUtils.isNullOrEmpty(storeState.sessionInfo.uid)) {
+            (async () => {
+                const apiResult: ApiResult = await store.dispatch(
+                    StoreActionNames.templateQuery, { notUseLocalData: true } as IStoreActionArgs);
+                if (apiResult.code !== ApiResultCode.Success) {
+                    const errorMessage = `获取模板信息失败：${ApiErrorHandler.getTextByCode(apiResult)}`;
+                    if (isBackground) {
+                        LoggerManager.error(errorMessage);
+                    } else {
+                        vue.$message.error(errorMessage);
+                    }
+                }
+            })();
+        }
+    }
+    //#endregion
+
     public static getUserStateText(userView: UserView): string {
         if (!this.isAllRequiredIdsUploaded(userView) || userView.qualificationState === CheckState.Missed) {
             return '信息缺失';

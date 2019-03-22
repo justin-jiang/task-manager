@@ -16,14 +16,7 @@ import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
 import { LoggerManager } from 'client/LoggerManager';
-
-enum EventNames {
-    ImageChanged = 'imageChanged',
-    ImageReset = 'imageReset',
-    UploadSuccess = 'success',
-    UploadFailure = 'failure',
-
-}
+import { EventNames } from 'client/common/EventNames';
 
 
 const compToBeRegistered: any = {
@@ -33,6 +26,7 @@ const compToBeRegistered: any = {
 export interface ISingleImageUploaderTS {
     reset(): void;
     submit(): void;
+    isChanged(): boolean;
 }
 
 @Component({
@@ -53,7 +47,8 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
             (this.$refs[this.cropperRefName] as any).replace(this.imageUrlForCropper);
             (this.$refs[this.cropperRefName] as any).reset();
         }
-        this.$emit(EventNames.ImageReset);
+        this.fileList = [];
+        this.$emit(EventNames.Reset);
     }
 
     public submit() {
@@ -68,7 +63,9 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
         }
         (this.$refs[this.uploaderRefName] as any).submit();
     }
-
+    public isChanged(): boolean {
+        return this.fileList.length !== 0;
+    }
     // #endregion
 
     // #region -- referred props and methods for uploader
@@ -77,7 +74,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     private readonly uploadAPIURL = `${HttpPathItem.Api}/${HttpPathItem.File}`;
     private fileTypes: string[] = ['image/jpeg', 'image/png'];
     private fileSizeM: number = LIMIT_LOGO_SIZE_M;
-
+    private fileList: Array<{ raw: File }> = [];
     private isSubmitting: boolean = false;
 
     // used by el-uploader to upload the data with file together
@@ -118,6 +115,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
     }
 
     private onFileChange(file: { raw: File }, fileList: Array<{ raw: File }>): void {
+        this.fileList = fileList;
         if (fileList.length > 0) {
             fileList.splice(0, fileList.length, file);
             if ((this.$refs[this.cropperRefName] as any) != null) {
@@ -131,13 +129,14 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
                 this.imageUrlForUploader = URL.createObjectURL(file.raw);
             }
             this.imageType = file.raw.type;
-            this.$emit(EventNames.ImageChanged);
+            this.$emit(EventNames.Change);
         }
     }
 
     private onFileRemove(file: { raw: File }, fileList: Array<{ raw: File }>): void {
+        this.fileList = fileList;
         this.getImageUrlByUid(this.imageUidProp);
-        this.$emit(EventNames.ImageReset);
+        this.$emit(EventNames.Change);
     }
 
     /**
@@ -150,9 +149,10 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
                 {
                     data: this.uploadData,
                 } as IStoreActionArgs);
-
+            if ((this.$refs[this.uploaderRefName] as any) != null) {
+                (this.$refs[this.uploaderRefName] as any).clearFiles();
+            }
             this.onFileUploadDone(apiResult);
-            (this.$refs[this.uploaderRefName] as any).clearFiles();
         })();
     }
     private onFileCountExceed(files: { raw: File }, fileList: Array<{ raw: File }>) {
@@ -167,7 +167,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
             if (blob != null) {
                 this.uploadData.blob = blob;
                 this.imageUrlForUploader = newImageURL;
-                this.$emit(EventNames.ImageChanged);
+                this.$emit(EventNames.Change);
             } else {
                 this.$message.error('获取切图区域失败，请重试');
             }
@@ -180,11 +180,10 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
         this.reset();
     }
     private onFileUploadDone(apiResult: ApiResult) {
-
         if (apiResult.code === ApiResultCode.Success) {
-            this.$emit(EventNames.UploadSuccess, apiResult);
+            this.$emit(EventNames.Success, apiResult);
         } else {
-            this.$emit(EventNames.UploadFailure, apiResult);
+            this.$emit(EventNames.Failure, apiResult);
         }
         this.isSubmitting = false;
     }
@@ -210,22 +209,22 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
             (async () => {
                 let scenario: FileAPIScenario = FileAPIScenario.None;
                 switch (this.filePostParamProp.scenario) {
-                    case FileAPIScenario.UpdateUserBackId:
+                    case FileAPIScenario.UploadUserBackId:
                         scenario = FileAPIScenario.DownloadBackId;
                         break;
-                    case FileAPIScenario.UpdateUserFrontId:
+                    case FileAPIScenario.UploadUserFrontId:
                         scenario = FileAPIScenario.DownloadFrontId;
                         break;
-                    case FileAPIScenario.UpdateAuthLetter:
+                    case FileAPIScenario.UploadAuthLetter:
                         scenario = FileAPIScenario.DownloadAuthLetter;
                         break;
-                    case FileAPIScenario.UpdateLicense:
+                    case FileAPIScenario.UploadLicense:
                         scenario = FileAPIScenario.DownloadLicense;
                         break;
-                    case FileAPIScenario.UpdateLicenseWithPersion:
+                    case FileAPIScenario.UploadLicenseWithPerson:
                         scenario = FileAPIScenario.DownloadLinceWithPerson;
                         break;
-                    case FileAPIScenario.UpdateUserLogo:
+                    case FileAPIScenario.UploadUserLogo:
                         scenario = FileAPIScenario.DownloadUserLogo;
                         break;
                     default:

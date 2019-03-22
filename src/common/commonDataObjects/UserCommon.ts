@@ -6,49 +6,62 @@ import { CommonObject } from './CommonObject';
 
 
 export class UserCommon extends CommonObject {
-    public name?: string;
-    public nickName?: string;
-    public email?: string;
-    public logoUid?: string;
-    public logoState?: CheckState;
-    public frontIdUid?: string;
-    public frontIdState?: CheckState;
+    public address?: string;
+    public authLetterUid?: string;
+    public authLetterState?: CheckState;
     public backIdUid?: string;
     public backIdState?: CheckState;
+
+    public bankAccountName?: string;
+    public bankAccountNumber?: string;
+    public bankName?: string;
+    public city?: string;
+    public description?: string;
+    public district?: string;
+    public email?: string;
+    public executedTaskCount?: number;
+    public executorStar?: number;
+    public frontIdUid?: string;
+    public frontIdState?: CheckState;
+    public identityNumber?: string;
+    public idState?: CheckState;
+    public idCheckNote?: string;
+
     public licenseUid?: string;
     public licenseState?: CheckState;
     public licenseWithPersonUid?: string;
     public licenseWidthPersonState?: CheckState;
-    public authLetterUid?: string;
-    public authLetterState?: CheckState;
-    public telephone?: string;
-    public roles?: UserRole[];
-    public type?: UserType;
-    public state?: UserState;
+    public linkBankAccountNumber?: string;
+    public logoUid?: string;
+    public logoState?: CheckState;
+
+    public name?: string;
+    public nickName?: string;
+
+    public principalName?: string;
+    public principalIDNumber?: string;
+    public province?: string;
+    public publisherStar?: number;
+    public publishedTaskCount?: number;
+
+    public qualificationCheckNote?: string;
     public qualificationUid?: string;
     public qualificationVersion?: number;
     public qualificationState?: CheckState;
-    public realName?: string;
-    public sex?: number;
-    public address?: string;
-    public description?: string;
-    public identityNumber?: string;
-
-    public province?: string;
-    public city?: string;
-    public district?: string;
-    public idState?: CheckState;
-    public idCheckNote?: string;
-    public qualificationCheckNote?: string;
-    public principalName?: string;
-    public principalIDNumber?: string;
-
-    public publishedTaskCount?: number;
-    public executedTaskCount?: number;
-    public executorStar?: number;
-    public publisherStar?: number;
     public qualificationStar?: number;
     public qualificationScore?: number;
+
+    public realName?: string;
+    public registerProtocolUid?: string;
+    public registerProtocolVersion?: number;
+    public roles?: UserRole[];
+
+    public sex?: number;
+    public state?: UserState;
+
+    public telephone?: string;
+    public type?: UserType;
+
     constructor(withFullProps?: boolean) {
         super(withFullProps);
         if (withFullProps === true) {
@@ -57,6 +70,9 @@ export class UserCommon extends CommonObject {
             this.authLetterUid = '';
             this.backIdState = CheckState.Missed;
             this.backIdUid = '';
+            this.bankAccountName = '';
+            this.bankAccountNumber = '';
+            this.bankName = '';
             this.city = '';
             this.description = '';
             this.district = '';
@@ -72,6 +88,7 @@ export class UserCommon extends CommonObject {
             this.licenseUid = '';
             this.licenseWithPersonUid = '';
             this.licenseWidthPersonState = CheckState.Missed;
+            this.linkBankAccountNumber = '';
             this.logoUid = '';
             this.logoState = CheckState.Missed;
             this.name = '';
@@ -87,6 +104,8 @@ export class UserCommon extends CommonObject {
             this.qualificationCheckNote = '';
             this.qualificationStar = 0;
             this.qualificationScore = 0;
+            this.registerProtocolUid = '';
+            this.registerProtocolVersion = 0;
             this.realName = '';
             this.roles = [];
             this.sex = -1;

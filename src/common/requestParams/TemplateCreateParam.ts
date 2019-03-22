@@ -1,6 +1,11 @@
-import { IRequestParam } from 'common/requestParams/IRequestParam';
 
-export class TemplateCreateParam implements IRequestParam {
+export class TemplateCreateParam {
     public name?: string;
     public note?: string;
+    constructor(withAllProps?: boolean) {
+        if (withAllProps) {
+            this.name = '';
+            this.note = '';
+        }
+    }
 }

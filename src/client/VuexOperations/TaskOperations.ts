@@ -133,6 +133,12 @@ export const actions = {
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Audit}`,
             args.data || {});
     },
+    async [StoreActionNames.taskExecutorAudit](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Executor}/${HttpPathItem.Audit}`,
+            args.data || {});
+    },
     async [StoreActionNames.taskPublisherVisit](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
         return await commonUpdate({ commit, state },
@@ -155,10 +161,10 @@ export const actions = {
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}`,
             args.data || {});
     },
-    async [StoreActionNames.taskApplyAudit](
+    async [StoreActionNames.taskMarginAudit](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
         return await commonUpdate({ commit, state },
-            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Audit}`,
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Margin}/${HttpPathItem.Audit}`,
             args.data || {});
     },
     async [StoreActionNames.taskApplyRemove](
@@ -191,6 +197,21 @@ export const actions = {
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
         return await commonUpdate({ commit, state },
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Deposit}/${HttpPathItem.Audit}`,
+            args.data || {});
+    },
+    // #endregion
+
+    // #region [Black] -- -- task receipt
+    /**
+     * this api is for no-receipt scenario
+     * for receipt scenario, please refer to FileAPIScenario.UpdateTaskReceipt
+     * @param param0 
+     * @param args 
+     */
+    async [StoreActionNames.taskReceiptDeny](
+        { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
+        return await commonUpdate({ commit, state },
+            `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Receipt}/${HttpPathItem.Deny}`,
             args.data || {});
     },
     // #endregion

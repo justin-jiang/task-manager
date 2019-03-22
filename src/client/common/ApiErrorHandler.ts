@@ -24,6 +24,10 @@ export class ApiErrorHandler {
                 return '服务器异常';
             case ApiResultCode.InputImageTooLarge:
                 return '图片大小超过限制';
+            case ApiResultCode.DbNotFound:
+                return '数据库中不存在';
+            case ApiResultCode.DbNotFound_User:
+                return '此用户不存在';
             default:
                 return ApiResultCode[apiResult.code];
         }

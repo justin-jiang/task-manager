@@ -37,11 +37,11 @@ export class AppTS extends Vue {
     private get logoUrl(): string {
         return this.storeState.sessionInfo.logoUrl as string;
     }
-    private get qualificationStar(): number | null {
-        return this.storeState.sessionInfo.qualificationStar || null;
+    private get qualificationStar(): number | undefined {
+        return this.storeState.sessionInfo.qualificationStar;
     }
-    private get qualificationScore(): number | null {
-        return this.storeState.sessionInfo.qualificationScore || null;
+    private get qualificationScore(): number | undefined {
+        return this.storeState.sessionInfo.qualificationScore;
     }
 
     private get isLogon(): boolean {
@@ -81,14 +81,7 @@ export class AppTS extends Vue {
                 ComponentUtils.pullNotification(this, true);
             }, NOTIFICATION_PULL_INTERVAL) as any as number;
             if (apiResult.code === ApiResultCode.Success) {
-                if (!CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.logoUid)) {
-                    const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(
-                        this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
-                    if (logoUrl != null) {
-                        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView)
-                    }
-                }
-
+                await this.$$getLogoUrl();
                 if (!CommonUtils.isUserReady(this.storeState.sessionInfo)) {
                     RouterUtils.goToUserRegisterView(
                         this.$router, (this.storeState.sessionInfo.roles as UserRole[])[0]);
@@ -152,6 +145,26 @@ export class AppTS extends Vue {
             RouterUtils.goToUserHomePage(this.$router, this.storeState.sessionInfo);
         } else if (RouterUtils.isPublishRoot()) {
             RouterUtils.goToPublisherDefaultView(this.$router);
+        }
+    }
+
+    @Watch('$store.state.sessionInfo', { immediate: true })
+    private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
+        const sessionInfo = currentValue;
+        (async () => {
+            await this.$$getLogoUrl();
+        })();
+    }
+
+    private async $$getLogoUrl(): Promise<void> {
+        const sessionInfo = this.storeState.sessionInfo;
+        if (!CommonUtils.isNullOrEmpty(sessionInfo.logoUid) &&
+            CommonUtils.isNullOrEmpty(sessionInfo.logoUrl)) {
+            const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(
+                this, sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
+            if (logoUrl != null) {
+                this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView);
+            }
         }
     }
     // #endregion

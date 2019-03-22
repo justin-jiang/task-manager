@@ -18,7 +18,7 @@ export class TaskBasicCommon extends CommonObject {
         super(withFullProps);
         if (withFullProps === true) {
             this.city = '';
-            this.deadline = 0;
+            this.deadline = Date.now() + 7 * 24 * 3600 * 1000;
             this.district = '';
             this.executorTypes = [];
             this.minExecutorStar = 0;

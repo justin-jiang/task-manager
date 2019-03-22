@@ -1,6 +1,9 @@
 import { CommonObject } from 'common/commonDataObjects/CommonObject';
 import { UserView } from 'common/responseResults/UserView';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { Store } from 'vuex';
+import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
+import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 
 export class StoreUtils {
     public static replaceFromArray(objArray: CommonObject[], substitute: CommonObject) {
@@ -50,15 +53,29 @@ export class StoreUtils {
         }
     }
 
-    public static getUserById(storeState: IStoreState, uid: string): UserView | null {
-        let targetUser: UserView | null = null;
-        const executorIndex = storeState.userObjs.findIndex((item) => {
+    /**
+     * get use by uid from cache
+     * @param storeState 
+     * @param uid 
+     */
+    public static getUserById(storeState: IStoreState, uid: string): UserView | undefined {
+        return storeState.userObjs.find((item) => {
             return item.uid === uid;
         });
-        if (executorIndex >= 0) {
-            targetUser = storeState.userObjs[executorIndex];
+    }
 
-        }
-        return targetUser;
+    /**
+     * get use by uid with cache check
+     * @param store 
+     * @param uid 
+     */
+    public static async $$getUserById(store: Store<IStoreState>, uid: string): Promise<UserView | undefined> {
+        await store.dispatch(StoreActionNames.userQuery,
+            {
+                notUseLocalData: false,
+            } as IStoreActionArgs);
+        const storeState = (store.state as IStoreState);
+
+        return this.getUserById(storeState, uid);
     }
 }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-row>
+    <el-row :class="rowItemClass">
       <el-col :span="2">
         <b>名称:</b>
       </el-col>
@@ -14,7 +14,7 @@
         {{userType}}
       </el-col>
     </el-row>
-    <el-row>
+    <el-row :class="rowItemClass">
       <el-col :span="2">
         <b>{{idTitle}}</b>
       </el-col>
@@ -22,7 +22,10 @@
         {{ dataProp.identityNumber }}
       </el-col>
     </el-row>
-    <el-row v-if="isCorp">
+    <el-row
+      v-if="isCorp"
+      :class="rowItemClass"
+    >
       <el-col :span="2">
         <b>负责人姓名:</b>
       </el-col>
@@ -36,7 +39,7 @@
         {{ dataProp.principalIDNumber }}
       </el-col>
     </el-row>
-    <el-row>
+    <el-row :class="rowItemClass">
       <el-col :span="2">
         <b>联系电话:</b>
       </el-col>
@@ -50,7 +53,7 @@
         {{ dataProp.email }}
       </el-col>
     </el-row>
-    <el-row>
+    <el-row :class="rowItemClass">
       <el-col :span="2">
         <b>区域:</b>
       </el-col>
@@ -58,7 +61,7 @@
         {{ area }}
       </el-col>
     </el-row>
-    <el-row>
+    <el-row :class="rowItemClass">
       <el-col :span="2">
         <b>详细地址:</b>
       </el-col>
@@ -66,7 +69,7 @@
         {{ dataProp.address }}
       </el-col>
     </el-row>
-    <el-row>
+    <el-row :class="rowItemClass">
       <el-col :span="2">
         <b>注册时间:</b>
       </el-col>
@@ -93,12 +96,12 @@
 
 <script lang="ts">
 import { UserDetailInTableTS } from "./UserDetailInTableTS";
-export default class TaskDetailInTableVue extends UserDetailInTableTS {}
+export default class UserDetailInTableVue extends UserDetailInTableTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
-.el-row {
+.row-item-border {
   padding: 10px;
   border-bottom: 1px solid cadetblue;
   &:nth-child(odd) {
@@ -106,6 +109,12 @@ export default class TaskDetailInTableVue extends UserDetailInTableTS {}
   }
   &:first-child {
     border-top: 1px solid cadetblue;
+  }
+}
+.row-item-dot-border {
+  padding: 10px;
+  &:not(:last-child) {
+    border-bottom: 1px dotted rgb(202, 235, 15);
   }
 }
 </style>

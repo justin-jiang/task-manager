@@ -1,6 +1,5 @@
-import { IRequestParam } from 'common/requestParams/IRequestParam';
 
-export class TemplateEditParam implements IRequestParam {
+export class TemplateEditParam {
     public uid?: string;
     public name?: string;
     public note?: string;

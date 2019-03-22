@@ -18,14 +18,16 @@ export class TaskModelWrapper extends BaseModelWrapper {
         await model.collection.createIndex({ name: 1 },
             { unique: true, collation: this.caseInsensitiveCollation, name: 'name_1_collation' } as any);
     }
-    public static async $$addHistoryItem(uid: string, state: TaskState, description?: string): Promise<void> {
+    public static async $$addHistoryItem(
+        uid: string, state: TaskState, title: string, description?: string): Promise<void> {
         await TaskModelWrapper.$$updateOne({ uid } as TaskObject, {
             $push: {
                 histories: {
-                    uid: CommonUtils.getUUIDForMongoDB(),
                     createTime: Date.now(),
-                    state,
                     description: description || '',
+                    state,
+                    title,
+                    uid: CommonUtils.getUUIDForMongoDB(),
                 } as TaskHistoryItem,
             },
         });

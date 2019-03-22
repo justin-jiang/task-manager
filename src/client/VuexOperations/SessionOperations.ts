@@ -103,7 +103,7 @@ export const mutations = {
 
     [StoreMutationNames.sessionReset](stateInst: IStoreState) {
         Object.assign(stateInst, blankStoreState);
-    }
+    },
 
 };
 

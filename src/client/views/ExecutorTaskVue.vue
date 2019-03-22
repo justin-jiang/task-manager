@@ -5,6 +5,7 @@
     v-model="activeTabName"
     v-loading="!isInitialized"
   >
+    <!-- Task Hall -->
     <el-tab-pane
       label="任务大厅"
       :name="readyToApplyTaskTabName"
@@ -19,8 +20,10 @@
         <el-col :span="4">
           <el-select
             clearable
+            multiple
+            filterable
             v-model="provinceFilter"
-            placeholder="省份默认为全部"
+            placeholder="省份（默认为全部）"
           >
             <el-option
               v-for="item in provinces"
@@ -35,7 +38,7 @@
           <el-select
             clearable
             v-model="publishTimeFilter"
-            placeholder="发布时间默认为全部"
+            placeholder="发布时间（默认为全部）"
           >
             <el-option
               v-for="item in publishTimes"
@@ -50,7 +53,7 @@
           <el-select
             clearable
             v-model="rewardFilter"
-            placeholder="金额默认为全部"
+            placeholder="金额（默认为全部）"
             @change="onRewardChanged"
             @clear="onRewardCleared"
           >
@@ -93,14 +96,7 @@
             </div>
           </el-radio-group>
         </el-col>
-        <el-col :span="4">
-          <el-button
-            type="primary"
-            plain
-            icon="el-icon-search"
-            @click="onSelectTaskResultUpload(scope.$index, scope.row)"
-          >提交</el-button>
-        </el-col>
+
       </el-row>
       <div v-if="readyToApplyTaskObjs.length>0">
         <el-row
@@ -146,7 +142,7 @@
             >截止时间：</el-col>
             <el-col
               :span="2"
-              class="col-task-vertical-align"
+              class="col-task-vertical-align col-task-vertical-align-datetime"
             >{{deadlineToText(item.deadline)}}</el-col>
             <el-col
               :span="2"
@@ -229,6 +225,7 @@
             :ref="appliedTaskTableName"
             :data="filteredappliedTaskObjs"
             style="width: 100%"
+            @row-click="onRowClick"
           >
             <el-table-column type="expand">
               <template slot-scope="props">
@@ -272,7 +269,7 @@
                   v-if="isSearchReady(scope.row)"
                   v-model="appliedTaskSearch"
                   size="mini"
-                  placeholder="输入关键字搜索"
+                  placeholder="名称搜索"
                 />
               </template>
               <template slot-scope="scope">
@@ -281,33 +278,33 @@
                   plain
                   size="mini"
                   v-if="isTaskApplying(scope.$index, scope.row)"
-                  @click="onApplyingReleased(scope.$index, scope.row)"
+                  @click.stop="onApplyingReleased(scope.$index, scope.row)"
                 >释放任务</el-button>
                 <el-button
                   type="primary"
                   plain
                   size="mini"
                   v-if="isTaskApplying(scope.$index, scope.row)"
-                  @click="onMarginUpload(scope.$index, scope.row)"
+                  @click.stop="onMarginUpload(scope.$index, scope.row)"
                 >保证金托管</el-button>
                 <el-button
                   type="primary"
                   plain
                   size="mini"
                   v-if="isTaskAssigned(scope.$index, scope.row)"
-                  @click="onSelectTaskResultUpload(scope.$index, scope.row)"
+                  @click.stop="onSelectTaskResultUpload(scope.$index, scope.row)"
                 >提交任务结果</el-button>
                 <el-button
                   type="primary"
                   size="mini"
                   plain
-                  @click="onTaskProgressCheck(scope.$index, scope.row)"
+                  @click.stop="onTaskProgressCheck(scope.$index, scope.row)"
                 >进度查询</el-button>
                 <el-button
                   type="primary"
                   size="mini"
                   plain
-                  @click="onTaskDetailCheck(scope.$index, scope.row)"
+                  @click.stop="onTaskDetailCheck(scope.$index, scope.row)"
                 >任务详情</el-button>
               </template>
             </el-table-column>
@@ -315,47 +312,18 @@
         </el-col>
       </el-row>
       <!-- dialog to upload result -->
-      <el-dialog
-        width="50%"
-        title="尽调结果上传"
-        :show-close="false"
-        :close-on-click-modal="false"
-        :close-on-press-escape="false"
-        :visible.sync="taskResultDialogVisible"
+      <TaskResultUploadDialogVue
+        :visibleProp="taskResultDialogVisible"
+        :taskProp="selectedTask"
+        @success="onTaskResultUploadSuccess"
+        @cancel="onTaskResultCancel"
       >
-        <el-row>
-          <el-col :span="24">
-            <SingleFileUploadVue
-              :ref="resultUploaderRefName"
-              :filePostParamProp="filePostParam"
-              :fileTypesProp="taskResultFileTypes"
-              :fileSizeMProp="taskResultFileSizeMLimit"
-              :hideSubmitButtonProp="true"
-              @success="onTaskResultUploadSuccess"
-            />
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-button
-              type="primary"
-              size="mini"
-              @click="onTaskResultSubmit()"
-            >提交</el-button>
-            <el-button
-              type="primary"
-              plain
-              size="mini"
-              @click="onTaskResultCancel()"
-            >取消</el-button>
-          </el-col>
-        </el-row>
-      </el-dialog>
+      </TaskResultUploadDialogVue>
 
       <!-- dialog to upload the margin image -->
       <MarginDialogVue
         :visibleProp="marginDialogVisible"
-        :targetTaskProp="selectedTask"
+        :taskProp="selectedTask"
         @cancelled="onMarginUploadCancelled"
         @success="onMarginUploadSuccess"
       >
@@ -364,7 +332,7 @@
       <!-- task progress check dialog -->
       <TaskProgressDialogVue
         :visibleProp="taskProgressDialogVisible"
-        :targetTaskProp="selectedTask"
+        :taskProp="selectedTask"
         @closed="onTaskProgressDialogClosed"
       >
       </TaskProgressDialogVue>
@@ -398,5 +366,8 @@ export default class ExecutorTaskVue extends ExecutorTaskTS {}
 }
 .col-task-vertical-align {
   margin-top: 10px;
+}
+.col-task-vertical-align-datetime {
+  margin-top: 12px;
 }
 </style>

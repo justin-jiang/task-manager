@@ -67,17 +67,17 @@
               >
                 <el-input v-model="accountInfoFormDatas.telephone"></el-input>
               </el-form-item>
-              <el-form-item>
-                <el-button
-                  type="primary"
-                  :disabled="!isAccountInfoChanged()"
-                  @click="onAccountInfoSubmit()"
-                >提交</el-button>
-
-              </el-form-item>
             </el-form>
           </el-col>
-
+        </el-row>
+        <el-row class="row-align-form">
+          <el-col :span=24>
+            <el-button
+              type="primary"
+              :disabled="!isAccountInfoChanged()"
+              @click="onAccountInfoSubmit()"
+            >提交</el-button>
+          </el-col>
         </el-row>
       </el-collapse-item>
 
@@ -108,52 +108,57 @@
         title="密码修改"
         :name="passwordCollapseName"
       >
-        <el-form
-          :model="passwordFormDatas"
-          status-icon
-          :rules="passwordFormRules"
-          :ref="passwordFormRefName"
-          style="max-width:1000px; min-width:500px;"
-          label-width="100px"
-          class="form-userInfo"
-          :disabled="isSubmitting"
-        >
-          <el-form-item
-            label="旧密码"
-            prop="oldPassword"
-          >
-            <el-input
-              type="password"
-              v-model="passwordFormDatas.oldPassword"
-            ></el-input>
-          </el-form-item>
-          <el-form-item
-            label="新密码"
-            prop="newPassword"
-          >
-            <el-input
-              type="password"
-              v-model="passwordFormDatas.newPassword"
-            ></el-input>
-          </el-form-item>
-          <el-form-item
-            label="确认新密码"
-            prop="confirmPassword"
-          >
-            <el-input
-              type="password"
-              v-model="passwordFormDatas.confirmPassword"
-            ></el-input>
-          </el-form-item>
-          <el-form-item>
+        <el-row>
+          <el-col :span=24>
+            <el-form
+              :model="passwordFormDatas"
+              status-icon
+              :rules="passwordFormRules"
+              :ref="passwordFormRefName"
+              style="max-width:1000px; min-width:500px;"
+              label-width="100px"
+              class="form-userInfo"
+              :disabled="isSubmitting"
+            >
+              <el-form-item
+                label="旧密码"
+                prop="oldPassword"
+              >
+                <el-input
+                  type="password"
+                  v-model="passwordFormDatas.oldPassword"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="新密码"
+                prop="newPassword"
+              >
+                <el-input
+                  type="password"
+                  v-model="passwordFormDatas.newPassword"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="确认新密码"
+                prop="confirmPassword"
+              >
+                <el-input
+                  type="password"
+                  v-model="passwordFormDatas.confirmPassword"
+                ></el-input>
+              </el-form-item>
+            </el-form>
+          </el-col>
+        </el-row>
+        <el-row class="row-align-form">
+          <el-col :span=24>
             <el-button
               type="primary"
               :disabled="!isPasswordEditReady()"
               @click="onPasswordSubmit()"
             >提交</el-button>
-
-          </el-form-item>
-        </el-form>
+          </el-col>
+        </el-row>
       </el-collapse-item>
     </el-collapse>
   </div>

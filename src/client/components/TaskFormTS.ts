@@ -20,15 +20,22 @@ import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
+import { EventNames } from 'client/common/EventNames';
+import { getPropKeys } from 'common/commonDataObjects/CommonObject';
 const compToBeRegistered: any = {
 };
+/**
+ * the usage scenario of the TaskForm
+ */
 export enum UsageScenario {
     NONE = 0,
     Create = 1,
     Edit = 2,
-    Detail = 3,
-    Audit = 4,
 }
+
+/**
+ * Form data structure
+ */
 interface IFormTaskData {
     address?: string;
     city?: string;
@@ -47,14 +54,10 @@ interface IFormTaskData {
     reward?: number;
     templateFileUid?: string;
 
-    // the following props are for validated
+    // the following props are only for validated
     area?: boolean;
 }
-enum EventNames {
-    Success = 'success',
-    Failure = 'failure',
-    Cancelled = 'cancelled',
-}
+
 @Component({
     components: compToBeRegistered,
 })
@@ -63,13 +66,13 @@ enum EventNames {
  */
 export class TaskFormTS extends Vue {
     // #region -- component props and methods
-    @Prop() public taskViewProp!: TaskView;
+    @Prop() public taskProp!: TaskView;
     @Prop() public usageSenario!: UsageScenario;
     // #endregion
 
-    // #region -- props and methods refered by vue page
+    // #region -- reference by template
     private readonly taskFormRefName: string = 'taskForm';
-    private targetTaskView: TaskView = {};
+    private taskDataForForm: TaskView = {};
     private isSubmitting: boolean = false;
     private formData: IFormTaskData = {
         address: '',
@@ -103,7 +106,17 @@ export class TaskFormTS extends Vue {
             { required: true, message: '不能为空', trigger: 'blur' },
         ],
         deadline: [
-            { required: true, message: '不能为空', trigger: 'blur' },
+            { required: true, message: '不能为空', trigger: 'change' },
+            {
+                trigger: 'change',
+                validator: (rule: any, value: string, callback: any) => {
+                    if (this.formData.deadline == null) {
+                        callback('不能为空');
+                        return;
+                    }
+                    callback();
+                },
+            },
         ],
         executorTypes: [
             { required: true, message: '不能为空', trigger: 'change' },
@@ -198,11 +211,7 @@ export class TaskFormTS extends Vue {
         options.push({ label: '五星', value: 5 });
         return options;
     }
-    private get isSubmitted(): boolean {
-        return this.targetTaskView.state != null &&
-            this.targetTaskView.state !== TaskState.None &&
-            this.targetTaskView.state !== TaskState.Created;
-    }
+
     private get provinces(): string[] {
         const provinces: string[] = [];
         for (const item of locations) {
@@ -253,24 +262,18 @@ export class TaskFormTS extends Vue {
         return this.storeState.templateObjs;
     }
 
-    private get isTaskResultReady(): boolean {
-        return !CommonUtils.isNullOrEmpty(this.targetTaskView.resultFileUid);
-    }
     private get isCreate(): boolean {
         return this.usageSenario === UsageScenario.Create;
     }
-    private get isEdit(): boolean {
-        return this.usageSenario === UsageScenario.Edit;
-    }
-    private get isDetail(): boolean {
-        return this.usageSenario === UsageScenario.Detail;
+
+    private get isDataChanged(): boolean {
+        return getPropKeys(this.getTaskEditParam()).length > 0;
     }
     private onProvinceChanged(): void {
-        this.formData.city = undefined;
-        this.formData.district = undefined;
+        this.formData.city = this.cities[0];
     }
     private onCityChanged(): void {
-        this.formData.district = undefined;
+        this.formData.district = this.districts[0];
     }
     private onSave(): void {
         (this.$refs[this.taskFormRefName] as any).validate((valid: boolean) => {
@@ -287,100 +290,95 @@ export class TaskFormTS extends Vue {
         });
     }
     private onSubmit(): void {
-        (this.$refs[this.taskFormRefName] as any).validate((valid: boolean) => {
-            if (valid) {
-                (async () => {
-                    this.isSubmitting = true;
-                    let apiResult: ApiResult = await this.$$saveTask(true/*submit task*/);
-                    if (apiResult.code === ApiResultCode.Success) {
-                        apiResult = await this.store.dispatch(
-                            StoreActionNames.taskSubmit, {
-                                data: { uid: (apiResult.data as TaskView).uid } as TaskSubmitParam,
-                            } as IStoreActionArgs);
+        const confirm = this.$confirm(
+            '任务提交后，将不可再编辑和删除，确认要提交此任务吗？',
+            '提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                center: true,
+                closeOnClickModal: false,
+            });
+        confirm.then(() => {
+            (this.$refs[this.taskFormRefName] as any).validate((valid: boolean) => {
+                if (valid) {
+                    (async () => {
+                        this.isSubmitting = true;
+                        let apiResult: ApiResult = await this.$$saveTask(true/*submit task*/);
                         if (apiResult.code === ApiResultCode.Success) {
-                            this.$message.success('提交成功');
-                            this.onReset();
-                            this.$emit(EventNames.Success, apiResult);
-                        } else {
-                            this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                            this.$emit(EventNames.Failure, apiResult);
+                            apiResult = await this.store.dispatch(
+                                StoreActionNames.taskSubmit, {
+                                    data: { uid: (apiResult.data as TaskView).uid } as TaskSubmitParam,
+                                } as IStoreActionArgs);
+                            if (apiResult.code === ApiResultCode.Success) {
+                                this.$message.success('提交成功');
+                                this.onReset();
+                                this.$emit(EventNames.Success, apiResult);
+                            } else {
+                                this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+                                this.$emit(EventNames.Failure, apiResult);
+                            }
                         }
-                    }
 
-                })().finally(() => {
-                    this.isSubmitting = false;
-                });
-            } else {
-                this.$message.warning('表单中包含不合格的内容');
-            }
+                    })().finally(() => {
+                        this.isSubmitting = false;
+                    });
+                } else {
+                    this.$message.warning('表单中包含不合格的内容');
+                }
+            });
+        }).catch(() => {
+            // do nothing for cancel
         });
     }
     private onReset(): void {
-        if (this.isCreate) {
-            (this.$refs[this.taskFormRefName] as any).resetFields();
-            this.formData.province = '';
-            this.formData.city = '';
-            this.formData.district = '';
-            this.formData.deadline = Date.now();
-        } else {
-            Object.assign(this.formData, this.targetTaskView);
-        }
+        Object.assign(this.formData, this.taskDataForForm);
+        setTimeout(() => {
+            if (this.$refs[this.taskFormRefName] != null) {
+                (this.$refs[this.taskFormRefName] as any).clearValidate();
+            }
+        }, 0);
     }
-    private onCancelled(): void {
-        this.$emit(EventNames.Cancelled);
+    private onCancel(): void {
+        this.$emit(EventNames.Cancel);
     }
-    private onResultDownload(): void {
-        if (CommonUtils.isNullOrEmpty(this.targetTaskView.resultFileUid)) {
-            this.$message.warning('尽调结果未上传');
-            return;
-        }
-        ComponentUtils.downloadFile(this,
-            {
-                scenario: FileAPIScenario.DownloadTaskResultFile,
-                fileId: this.targetTaskView.resultFileUid,
-                version: this.targetTaskView.resultFileversion,
-            } as FileDownloadParam,
-            `${this.targetTaskView.name}.zip`);
-    }
-    private onTemplateDownload(): void {
-        ComponentUtils.downloadFile(this,
-            {
-                scenario: FileAPIScenario.DownloadTemplateFile,
-                fileId: this.targetTaskView.templateFileUid,
-            } as FileDownloadParam,
-            `${this.targetTaskView.name}.zip`);
-    }
-
-
     // #endregion
 
     // #region Vue life-circle method
     private mounted(): void {
-        this.targetTaskView = this.taskViewProp || {};
-        Object.assign(this.formData, this.targetTaskView);
+        this.taskDataForForm = this.taskProp || {};
+        Object.assign(this.formData, this.taskDataForForm);
     }
     // #endregion
     // region -- internal props and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
-    @Watch('taskViewProp', { immediate: true })
-    private ontaskViewChanged(currentValue: TaskView, previousValue: TaskView) {
-        this.targetTaskView = currentValue || {};
-        Object.assign(this.formData, this.targetTaskView);
+    @Watch('taskProp', { immediate: true })
+    private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
+        if (currentValue != null && !CommonUtils.isNullOrEmpty(currentValue.uid)) {
+            this.taskDataForForm = currentValue;
+        } else {
+            this.taskDataForForm = new TaskView(true);
+        }
+        this.onReset();
     }
 
-    private getTaskCreateParam(formData: IFormTaskData): TaskCreateParam {
-        return ComponentUtils.pickUpKeysByModel(formData, new TaskCreateParam(true));
+    @Watch('formData.city', { immediate: true })
+    private onCityValueChanged(currentValue: string, previousValue: string) {
+        this.formData.district = this.districts[0];
     }
-    private getTaskEditParam(formData: IFormTaskData): TaskBasicInfoEditParam {
+
+    private getTaskCreateParam(): TaskCreateParam {
+        return ComponentUtils.pickUpKeysByModel(this.formData, new TaskCreateParam(true));
+    }
+    private getTaskEditParam(): TaskBasicInfoEditParam {
         const reqParam = new TaskBasicInfoEditParam();
-        Object.keys(this.targetTaskView).forEach((item) => {
-            if (this.targetTaskView[item] !== (formData as any)[item]) {
-                (reqParam as any)[item] = (formData as any)[item];
+        Object.keys(this.taskDataForForm).forEach((item) => {
+            if (this.taskDataForForm[item] !== (this.formData as any)[item]) {
+                (reqParam as any)[item] = (this.formData as any)[item];
             }
         });
         if (Object.keys(reqParam).length > 0) {
-            reqParam.uid = this.targetTaskView.uid;
+            reqParam.uid = this.taskDataForForm.uid;
         }
         return reqParam;
     }
@@ -388,20 +386,20 @@ export class TaskFormTS extends Vue {
         let apiResult: ApiResult = { code: ApiResultCode.NONE };
         if (this.isCreate) {
             // for new creation
-            const reqParam = this.getTaskCreateParam(this.formData);
+            const reqParam = this.getTaskCreateParam();
             apiResult = await this.store.dispatch(
                 StoreActionNames.taskCreation, {
                     data: reqParam,
                 } as IStoreActionArgs);
         } else {
             // for edit or submitting
-            const reqParam = this.getTaskEditParam(this.formData);
+            const reqParam = this.getTaskEditParam();
             if (Object.keys(reqParam).length === 0) {
                 if (!isSubmitting) {
                     this.$message.warning('没有修改任何属性');
                 } else {
                     apiResult.code = ApiResultCode.Success;
-                    apiResult.data = this.targetTaskView;
+                    apiResult.data = this.taskDataForForm;
                 }
                 return apiResult;
             }

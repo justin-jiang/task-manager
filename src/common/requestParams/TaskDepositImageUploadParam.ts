@@ -1,7 +1,15 @@
-import { IRequestParam } from 'common/requestParams/IRequestParam';
+import { ReceiptState } from 'common/ReceiptState';
 
-export class TaskDepositImageUploadParam implements IRequestParam {
+export class TaskDepositImageUploadParam {
     // task uid
     public uid?: string;
-    public receiptRequired?: number;
+    public publisherReceiptRequired?: number;
+
+    constructor(withFullProps?: boolean) {
+        if (withFullProps === true) {
+            this.uid = '';
+            this.publisherReceiptRequired = ReceiptState.None;
+        }
+    }
+
 }

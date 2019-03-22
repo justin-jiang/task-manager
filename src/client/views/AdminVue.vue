@@ -12,7 +12,8 @@
           <el-menu-item :index="userIndex">用户管理</el-menu-item>
           <el-menu-item :index="taskIndex">任务管理</el-menu-item>
           <el-menu-item :index="templateIndex">模板管理</el-menu-item>
-          <el-menu-item :index="notificationIndex">
+          <el-menu-item :index="registerProtocolIndex">用户注册协议管理</el-menu-item>
+          <!-- <el-menu-item :index="notificationIndex">
             消息中心
             <el-badge
               v-if="hasNotification"
@@ -20,7 +21,7 @@
               class="badge_item"
               type="primary"
             ></el-badge>
-          </el-menu-item>
+          </el-menu-item> -->
         </el-menu>
       </el-col>
     </el-row>

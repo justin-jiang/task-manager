@@ -1,10 +1,13 @@
 import { CommonUtils } from 'common/CommonUtils';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskState } from 'common/TaskState';
+import { Request } from 'express';
 import { ApiError } from 'server/common/ApiError';
 import { TaskModelWrapper } from 'server/dataModels/TaskModelWrapper';
+import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
 import { TaskObject } from 'server/dataObjects/TaskObject';
 import { UserObject } from 'server/dataObjects/UserObject';
+import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 
 export class RequestUtils {
@@ -43,9 +46,21 @@ export class RequestUtils {
         }
     }
     public static adminCheck(currentUser: UserObject): void {
-        if (!CommonUtils.isAdmin(currentUser.roles)) {
+        if (!CommonUtils.isAdmin(currentUser)) {
             throw new ApiError(ApiResultCode.AuthForbidden, `User(${currentUser.name}) is not admin`);
         }
+    }
+
+    public static async $$getCurrentUser(req: Request): Promise<UserObject> {
+        const loginUserInCookie: ILoginUserInfoInCookie =
+            CookieUtils.getUserFromCookie(req) as ILoginUserInfoInCookie;
+        // TODO: consider to use cache
+        const dbUsers: UserObject[] = await UserModelWrapper.$$find(
+            { uid: loginUserInCookie.uid } as UserObject) as UserObject[];
+        if (dbUsers == null || dbUsers.length === 0) {
+            throw new ApiError(ApiResultCode.DbNotFound, `UserID:${loginUserInCookie.uid}`);
+        }
+        return dbUsers[0];
     }
     // #endregion
 
@@ -57,7 +72,7 @@ export class RequestUtils {
             throw new ApiError(ApiResultCode.DbNotFound, `TaskId:${uid}`);
         }
 
-        if (dbObj.state !== expectedState) {
+        if (expectedState != null && dbObj.state !== expectedState) {
             throw new ApiError(ApiResultCode.AuthForbidden,
                 `Task:${dbObj.uid} state:${dbObj.state} is not expected one:${expectedState}`);
         }

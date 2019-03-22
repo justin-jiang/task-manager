@@ -13,6 +13,7 @@ export enum RoutePathItem {
 
     Admin_Task = 'task',
     Admin_User = 'user',
+    Admin_Protocol = 'protocol',
     Admin_Template = 'template',
 
     Error = 'error',
@@ -30,11 +31,15 @@ export enum RoutePathItem {
 }
 export enum RouterName {
     Admin = 'admin',
-    AdminRegister = 'adminRegister',
     Admin_Notification = 'admin_notification',
-    Admin_User = 'admin_user',
+    Admin_Procotol = 'admin_Procotol',
+    
     Admin_Task = 'admin_task',
     Admin_Template = 'admin_template',
+    Admin_User = 'admin_user',
+
+    AdminRegister = 'adminRegister',
+
     Error = 'error',
     Executor = 'executor',
     Executor_Task = 'executor_task',
@@ -99,6 +104,12 @@ export class RouterUtils {
             name: RouterName.Publisher_UserInfo,
         } as RawLocation);
     }
+    public static goToPublisherTemplateView(router: VueRouter) {
+        router.push({
+            name: RouterName.Publisher_Template,
+        } as RawLocation);
+    }
+
     public static goToExecutorDefaultView(router: VueRouter) {
         this.goToExecutorTaskView(router);
     }
@@ -113,9 +124,9 @@ export class RouterUtils {
         } as RawLocation);
     }
     public static goToUserInfoView(router: VueRouter, userRoles: UserRole[]) {
-        if (CommonUtils.isExecutor(userRoles)) {
+        if (CommonUtils.isExecutorRole(userRoles)) {
             this.goToExecutorUserInfoView(router);
-        } else if (CommonUtils.isPublisher(userRoles)) {
+        } else if (CommonUtils.isPublisherRole(userRoles)) {
             this.goToPublisherUserInfoView(router);
         }
     }
@@ -127,13 +138,13 @@ export class RouterUtils {
     public static goToUserHomePage(router: VueRouter, user: UserView) {
 
         // according user type to go to different view
-        if (CommonUtils.isAdmin(user.roles)) {
+        if (CommonUtils.isAdmin(user)) {
             RouterUtils.goToAdminView(router);
         } else if (!CommonUtils.isUserReady(user)) {
             RouterUtils.goToUserRegisterView(router, (user.roles as UserRole[])[0]);
-        } else if (CommonUtils.isPublisher(user.roles)) {
+        } else if (CommonUtils.isPublisher(user)) {
             RouterUtils.goToPublisherDefaultView(router);
-        } else if (CommonUtils.isExecutor(user.roles)) {
+        } else if (CommonUtils.isExecutor(user)) {
             RouterUtils.goToExecutorDefaultView(router);
         } else {
             RouterUtils.goToLoginView(router);

@@ -11,4 +11,9 @@ export enum FileType {
     AuthLetter = 9,
     Deposit = 10,
     Margin = 11,
+    TaskPayToExecutor = 12,
+    TaskReceipt = 13,
+    RegisterProtocol = 14,
+    MarginRefund = 15,
+    DepositRefund = 16,
 }

@@ -117,6 +117,8 @@ export class FileCheckDialogTS extends Vue {
     private onFileUidChanged(currentValue: string, previousValue: string) {
         this.checkState = CheckState.Checked;
         this.checkNote = '';
+        this.rateStar = 0;
+        this.rateScore = 0;
     }
     @Watch('scenarioProp', { immediate: true })
     private onScenarioChanged(currentValue: FileCheckScenario, previousValue: FileCheckScenario) {

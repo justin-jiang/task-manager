@@ -19,7 +19,7 @@ export class AdminTemplateTS extends Vue {
     private readonly filePostParam: FileUploadParam = new FileUploadParam();
     private qualificationFileTypes: string[] = ACCEPTED_UPLOAD_FILE_TYPES;
     private qualificationFileSizeMLimit: number = LIMIT_FILE_SIZE_M;
-    private onQualificationSuccess(apiResult: ApiResult): void {
+    private onSuccess(apiResult: ApiResult): void {
         this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
         this.$message.success('提交成功');
     }
@@ -29,7 +29,7 @@ export class AdminTemplateTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.filePostParam.scenario = FileAPIScenario.UpdateQualificationFile;
+        this.filePostParam.scenario = FileAPIScenario.UploadRegisterProtocol;
     }
     // #endregion
 

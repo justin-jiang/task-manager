@@ -9,11 +9,7 @@ import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
-enum EventNames {
-    UploadSuccess = 'success',
-    UploadFailure = 'failure',
-}
-
+import { EventNames } from 'client/common/EventNames';
 
 const compToBeRegistered: any = {
 };
@@ -21,6 +17,7 @@ const compToBeRegistered: any = {
 export interface ISingleFileUploadTS {
     reset(): void;
     submit(): void;
+    isChanged(): boolean;
 }
 
 @Component({
@@ -40,31 +37,35 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
 
     public reset(): void {
         (this.$refs[this.uploaderRefName] as any).clearFiles();
+        this.fileList = [];
+        this.$emit(EventNames.Reset);
     }
 
     public submit(): void {
         this.onSubmit();
     }
-
+    public isChanged(): boolean {
+        return this.fileList.length !== 0;
+    }
     // #endregion
 
     // #region -- referred props and methods for uploader
     private readonly uploaderRefName = 'fileUploader';
     private readonly uploadAPIURL = `${HttpPathItem.Api}/${HttpPathItem.File}`;
+    private readonly countLimit = 1;
+    private readonly keyNameOfuploadedFile: string = HttpUploadKey.File;
 
     // defaut button text which will be overridden by buttonTextProp if it is not null
     private buttonDefaultText: string = '点击上传';
-    private readonly countLimit = 1;
-    private fileList: File[] = [];
+    private acceptFileTypes: string = '';
+    private fileList: Array<{ raw: File }> = [];
 
     private isSubmitting: boolean = false;
-    private readonly keyNameOfuploadedFile: string = HttpUploadKey.File;
-    private acceptFileTypes: string = '';
 
     // used by el-uploader to upload the data with file together
     // which is used to create correponding DB object if required
     private fileUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateTemplateFile,
+        scenario: FileAPIScenario.None,
         optionData: '',
     } as FileUploadParam;
     private get uploadTip(): string {
@@ -129,26 +130,32 @@ export class SingleFileUploadTS extends Vue implements ISingleFileUploadTS {
     }
 
     private onFileChange(file: { raw: File }, fileList: Array<{ raw: File }>) {
-        this.fileList = [];
-        this.fileList.push(file.raw);
+        this.fileList = fileList;
+        this.$emit(EventNames.Change);
     }
+
+    private onFileRemove(file: { raw: File }, fileList: Array<{ raw: File }>) {
+        this.fileList = fileList;
+        this.$emit(EventNames.Change);
+    }
+
     private onFileCountExceed(files: { raw: File }, fileList: Array<{ raw: File }>) {
         this.$message.warning(`每次只能上传一个文件`);
     }
     private onFileUploadDone(apiResult: ApiResult, file: { raw: File }, fileList: Array<{ raw: File }>) {
         this.isSubmitting = false;
         if (apiResult.code === ApiResultCode.Success) {
-            this.$emit(EventNames.UploadSuccess, apiResult);
+            this.$emit(EventNames.Success, apiResult);
         } else {
             this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-            this.$emit(EventNames.UploadFailure);
+            this.$emit(EventNames.Failure);
         }
         this.reset();
     }
     private onFileUploadError(err: Error, file: { raw: File }, fileList: Array<{ raw: File }>) {
         this.$message.error(msgConnectionIssue);
         LoggerManager.error('Error:', err);
-        this.$emit(EventNames.UploadFailure);
+        this.$emit(EventNames.Failure);
     }
     // #endregion
 

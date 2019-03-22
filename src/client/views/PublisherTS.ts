@@ -1,12 +1,12 @@
-import { RoutePathItem, RouterUtils, RouterName } from 'client/common/RouterUtils';
+import { RoutePathItem, RouterName, RouterUtils } from 'client/common/RouterUtils';
+import { ComponentUtils } from 'client/components/ComponentUtils';
 import { LoggerManager } from 'client/LoggerManager';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { CommonUtils } from 'common/CommonUtils';
+import { NotificationState } from 'common/NotificationState';
 import { UserView } from 'common/responseResults/UserView';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { NotificationState } from 'common/NotificationState';
-import { ComponentUtils } from 'client/components/ComponentUtils';
 const compToBeRegistered: any = {
 };
 
@@ -73,9 +73,9 @@ export class PublisherTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     private initialize() {
         const sessionInfo = this.storeState.sessionInfo;
-        if (CommonUtils.isPublisher(sessionInfo.roles)) {
+        if (CommonUtils.isPublisher(sessionInfo)) {
             this.isInitialized = true;
-            ComponentUtils.pullNotification(this);
+            ComponentUtils.pullTemplates(this);
         }
     }
     // #endregion

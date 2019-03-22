@@ -3,8 +3,7 @@
  */
 export enum FileAPIScenario {
     None = 0,
-    UploadTemplate = 2,
-
+    CreateTemplate = 1,
 
     DownloadTaskResultFile = 10,
     DownloadUserLogo = 11,
@@ -18,19 +17,23 @@ export enum FileAPIScenario {
     DownloadQualificationTemplate = 19,
     DownloadTaskDepositImage = 20,
     DownloadTaskMarginImage = 21,
-    
+    DownloadRegisterProtocol = 22,
 
-    UpdateUserLogo = 30,
-    UpdateTemplateFile = 31,
-    UpdateQualificationFile = 32,
-    UpdateTaskResultFile = 33,
-    UpdateUserFrontId = 34,
-    UpdateUserBackId = 35,
-    UpdateLicense = 36,
-    UpdateLicenseWithPersion = 37,
-    UpdateAuthLetter = 38,
-    UpdateDeposit = 39,
-    UpdateMargin = 40,
 
+    UploadUserLogo = 30,
+    UploadQualificationTemplate = 31,
+    UploadQualification = 32,
+    UploadTaskResult = 33,
+    UploadUserFrontId = 34,
+    UploadUserBackId = 35,
+    UploadLicense = 36,
+    UploadLicenseWithPerson = 37,
+    UploadAuthLetter = 38,
+    UploadTaskDeposit = 39,
+    UploadTaskMargin = 40,
+    UploadTaskExecutorPay = 41,
+    UploadExecutorTaskReceipt = 42,
+    UploadRegisterProtocol = 43,
+    UploadTaskRefund = 44,
 
 }

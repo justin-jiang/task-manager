@@ -1,5 +1,5 @@
+import { ViewTextUtils } from 'client/common/ViewTextUtils';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
-import { CommonUtils } from 'common/CommonUtils';
 import { UserView } from 'common/responseResults/UserView';
 import { UserType } from 'common/UserTypes';
 import { Component, Prop, Vue } from 'vue-property-decorator';
@@ -14,9 +14,19 @@ const compToBeRegistered: any = {
 export class UserDetailInTableTS extends Vue {
     // #region -- component props and methods
     @Prop() public dataProp!: UserView;
+    @Prop() public borderStyleProp!: number;
     // #endregion
 
     // #region -- props and methods refered by vue page
+    private get rowItemClass(): string {
+        switch (this.borderStyleProp) {
+            case 0:
+                return 'row-item-dot-border';
+                break;
+            default:
+                return 'row-item-border';
+        }
+    }
     private get userType(): string {
         return this.dataProp.type === UserType.Corp ? '企业' : '个人';
     }
@@ -30,7 +40,7 @@ export class UserDetailInTableTS extends Vue {
         return `${this.dataProp.province} - ${this.dataProp.city} - ${this.dataProp.district}`;
     }
     private get timestampToText(): string {
-        return CommonUtils.convertTimeStampToText(this.dataProp.createTime as number);
+        return ViewTextUtils.convertTimeStampToDatetime(this.dataProp.createTime as number);
     }
     // #endregion
 

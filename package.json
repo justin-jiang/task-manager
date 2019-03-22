@@ -10,7 +10,8 @@
     "build:server": "tslint --config tslint.json --project tsconfig.server.json && TS_NODE_PROJECT='tsconfig.server.json' node -r ts-node/register -r tsconfig-paths/register build/buildServer.ts",
     "build:all": "cnpm run build:client && cnpm run build:server && cnpm run prodPackage",
     "prodInstall": "cnpm install --production --no-optional",
-    "prodPackage": "rm taskManager.tar.gz && tar -cvzf taskManager.tar.gz dist/*"
+    "prodPackage": "rm taskManager.tar.gz && tar -cvzf taskManager.tar.gz dist/*",
+    "deploy": "scp taskManager.tar.gz root@114.67.130.155:/task-manager"
   },
   "dependencies": {
     "cookie-parser": "^1.4.3",

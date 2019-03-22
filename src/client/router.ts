@@ -41,6 +41,11 @@ export default new Router({
           name: RouterName.Admin_Template,
           component: () => import('./views/AdminTemplateVue.vue'),
         },
+        {
+          path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Protocol}`,
+          name: RouterName.Admin_Procotol,
+          component: () => import('./views/AdminProtocolVue.vue'),
+        },
       ],
     },
     {

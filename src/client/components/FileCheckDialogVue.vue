@@ -92,18 +92,17 @@
         <el-button
           size="small"
           type="primary"
-          :disabled="!isReadySubmit"
-          @click="onSubmit()"
-        >提交</el-button>
+          plain
+          @click="onCancelled()"
+        >取消</el-button>
       </el-col>
-
       <el-col :span="12">
         <el-button
           size="small"
           type="primary"
-          plain
-          @click="onCancelled()"
-        >取消</el-button>
+          :disabled="!isReadySubmit"
+          @click="onSubmit()"
+        >提交</el-button>
       </el-col>
     </el-row>
   </el-dialog>

@@ -46,14 +46,21 @@
         <el-button
           size="small"
           type="primary"
-          :disabled="!isReadySubmit"
-          @click="onSubmitted()"
-        >提交</el-button>
+          plain
+          @click="onCancel()"
+        >取消</el-button>
+        <el-button
+          size="small"
+          type="danger"
+          plain
+          @click="onRefund()"
+        >退款</el-button>
         <el-button
           size="small"
           type="primary"
-          @click="onCancelled()"
-        >取消</el-button>
+          :disabled="!isReadySubmit"
+          @click="onSubmit()"
+        >提交</el-button>
       </el-col>
     </el-row>
   </el-dialog>

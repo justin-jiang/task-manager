@@ -89,7 +89,7 @@ export const mutations = {
     },
 
     [StoreMutationNames.templateItemRemove](state: IStoreState, removedItem: TemplateView) {
-        StoreUtils.replaceFromArray(state.templateObjs, removedItem);
+        StoreUtils.deleteFromArray(state.templateObjs, removedItem);
     },
 
     [StoreMutationNames.templateItemInsert](state: IStoreState, insertedItem: TemplateView) {

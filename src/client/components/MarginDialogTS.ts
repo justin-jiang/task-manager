@@ -27,17 +27,17 @@ const compToBeRegistered: any = {
 export class MarginDialogTS extends Vue {
     // #region -- component props and methods
     @Prop() public visibleProp!: boolean;
-    @Prop() public targetTaskProp!: TaskView;
+    @Prop() public taskProp!: TaskView;
     // #endregion
 
     // #region -- referred props and methods by page template
     private readonly marginUploaderRefName: string = 'marginUploader';
-    
+
     private targetTaskView: TaskView = {};
 
     private onlinePayType: number = 0;
     private marginUploadParam: FileUploadParam = {
-        scenario: FileAPIScenario.UpdateMargin,
+        scenario: FileAPIScenario.UploadTaskMargin,
     };
     private marginUid: string = '';
     private isMarginImageChanged: boolean = false;
@@ -67,7 +67,8 @@ export class MarginDialogTS extends Vue {
         this.$emit(EventNames.cancelled);
     }
     private onMarginImageChanged(): void {
-        this.isMarginImageChanged = true;
+        this.isMarginImageChanged = (this.$refs[this.marginUploaderRefName] as any as ISingleImageUploaderTS)
+            .isChanged();
     }
     private onMarginImageReset(): void {
         this.isMarginImageChanged = false;
@@ -84,15 +85,15 @@ export class MarginDialogTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.targetTaskView = this.targetTaskProp || {};
+        this.targetTaskView = this.taskProp || {};
     }
     // #endregion
 
     // #region -- internal variables and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
-    @Watch('targetTaskProp', { immediate: true })
-    private onTargetTaskChanged(currentValue: TaskView, previousValue: TaskView) {
+    @Watch('taskProp', { immediate: true })
+    private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
         this.targetTaskView = currentValue || {};
         if (this.$refs[this.marginUploaderRefName] != null) {
             (this.$refs[this.marginUploaderRefName] as any as ISingleImageUploaderTS).reset();

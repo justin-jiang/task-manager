@@ -1,14 +1,41 @@
 import axios from 'axios';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
+import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
+import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
+import { HttpUploadKey } from 'common/HttpUploadKey';
+import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
+import { UserView } from 'common/responseResults/UserView';
 import { Commit } from 'vuex';
-import { FileUploadParam } from 'common/requestParams/FileUploadParam';
-import { HttpUploadKey } from 'common/HttpUploadKey';
-import { FileAPIScenario } from 'common/FileAPIScenario';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+function handleImageUploadSucess(uploadScenario: FileAPIScenario, commit: Commit, userView: UserView) {
+    (async () => {
+        switch (uploadScenario) {
+            case FileAPIScenario.UploadAuthLetter:
+                userView.authLetterUrl = '';
+                break;
+            case FileAPIScenario.UploadUserBackId:
+                userView.backIdUrl = '';
+                break;
+            case FileAPIScenario.UploadUserFrontId:
+                userView.frontIdUrl = '';
+                break;
+            case FileAPIScenario.UploadLicense:
+                userView.licenseUrl = '';
+                break;
+            case FileAPIScenario.UploadLicenseWithPerson:
+                userView.licenseWithPersonUrl = '';
+                break;
+            case FileAPIScenario.UploadUserLogo:
+                userView.logoUrl = '';
+                break;
+        }
+        commit(StoreMutationNames.sessionInfoPropUpdate, userView);
+    })();
+}
 export const actions = {
     async [StoreActionNames.fileDownload]({ commit }: { commit: Commit }, args: IStoreActionArgs) {
         let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
@@ -51,6 +78,7 @@ export const actions = {
             apiResult = { code: ApiResultCode.Success } as ApiResult;
             if (response.status === 200) {
                 apiResult = response.data as ApiResult;
+                handleImageUploadSucess(reqParam.scenario as FileAPIScenario, commit, apiResult.data);
             } else {
                 apiResult.code = ApiResultCode.FileFailedUpload;
                 apiResult.data = `HttpStatus:${response.status}`;

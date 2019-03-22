@@ -1,8 +1,8 @@
+import { NotificationType } from 'common/NotificationType';
+import { TaskState } from 'common/TaskState';
 import { UserRole } from 'common/UserRole';
 import { UserType } from 'common/UserTypes';
-import { TaskActionType } from 'common/TaskActionType';
-import { TaskState } from 'common/TaskState';
-import { NotificationType } from 'common/NotificationType';
+import * as moment from 'moment';
 
 export class ViewTextUtils {
     public static getUserRoleText(role: UserRole): string {
@@ -44,16 +44,15 @@ export class ViewTextUtils {
             case TaskState.Created:
                 return '待提交';
             case TaskState.Submitted:
-                return '待通过';
             case TaskState.InfoPassed:
                 return '待托管';
-            case TaskState.Deposited:
+            case TaskState.DepositUploaded:
                 return '待发布';
             case TaskState.ReadyToApply:
                 return '待申请';
             case TaskState.Applying:
                 return '待投保';
-            case TaskState.ReadyToAuditApply:
+            case TaskState.MarginUploaded:
                 return '待受理';
             case TaskState.Assigned:
                 return '待交付';
@@ -66,6 +65,7 @@ export class ViewTextUtils {
             case TaskState.PublisherVisited:
                 return '待支付';
             case TaskState.ExecutorPaid:
+            case TaskState.ReceiptUploaded:
                 return '已完结';
             default:
                 return '未知';
@@ -77,16 +77,16 @@ export class ViewTextUtils {
             case TaskState.Created:
                 return '创建任务';
             case TaskState.Submitted:
-                return '提交任务，并等待平台审核任务内容';
+                return '任务信息已提交，等待平台审核任';
             case TaskState.InfoPassed:
-                return '任务已通过，并等待提交托管资金';
-            case TaskState.Deposited:
-                return '托管任务，并等待审核';
+                return '任务信息已通过审核，等待提交托管金';
+            case TaskState.DepositUploaded:
+                return '托管金已提交，等待平台审核';
             case TaskState.ReadyToApply:
-                return '任务托管审核成功，等待雇员申请此任务';
+                return '任务托管成功，等待雇员申请';
             case TaskState.Applying:
                 return '已有雇员申请，等待投保';
-            case TaskState.ReadyToAuditApply:
+            case TaskState.MarginUploaded:
                 return '雇员资质审核中';
             case TaskState.Assigned:
                 return '等待任务交付';
@@ -99,11 +99,15 @@ export class ViewTextUtils {
             case TaskState.PublisherVisited:
                 return '雇员佣金支付中';
             case TaskState.ExecutorPaid:
+                return '发票入账中';
+            case TaskState.ReceiptUploaded:
                 return '已完结';
             case TaskState.InfoAuditDenied:
                 return '任务内容审核被拒绝';
             case TaskState.DepositAuditDenied:
                 return '托管资金审核被拒绝';
+            case TaskState.ApplyReleased:
+                return '任务申请被释放';
             default:
                 return '未知';
         }
@@ -155,5 +159,15 @@ export class ViewTextUtils {
                 break;
         }
         return title;
+    }
+
+    public static convertTimeStampToDatetime(timestamp: number): string {
+        return (moment as any)(timestamp).format('YYYY-MM-DD HH:mm:ss');
+    }
+    public static convertTimeStampToDate(timestamp: number): string {
+        return (moment as any)(timestamp).format('YYYY-MM-DD');
+    }
+    public static convertTimeStampToTime(timestamp: number): string {
+        return (moment as any)(timestamp).format('HH:mm:ss');
     }
 }

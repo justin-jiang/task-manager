@@ -1,6 +1,5 @@
-import { IRequestParam } from 'common/requestParams/IRequestParam';
 
-export class UserPasswordResetParam implements IRequestParam {
+export class UserPasswordResetParam {
     public uid?: string;
 }
 

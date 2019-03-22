@@ -1,21 +1,21 @@
-import { UserNotificationView } from 'common/responseResults/UserNotificationView';
-import { Component, Vue, Watch } from 'vue-property-decorator';
-import { Store } from 'vuex';
-import { IStoreState } from 'client/VuexOperations/IStoreState';
-import { UserView } from 'common/responseResults/UserView';
-import { CommonUtils } from 'common/CommonUtils';
-import { RouterUtils } from 'client/common/RouterUtils';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { msgConnectionIssue } from 'client/common/Constants';
+import { RouterUtils } from 'client/common/RouterUtils';
+import { ViewTextUtils } from 'client/common/ViewTextUtils';
+import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
+import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
+import { CommonUtils } from 'common/CommonUtils';
 import { NotificationState } from 'common/NotificationState';
 import { NotificationType } from 'common/NotificationType';
-import { taskListTabName } from './PublisherTaskTS';
-import { ApiResult } from 'common/responseResults/APIResult';
-import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
-import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
-import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { NotificationReadParam } from 'common/requestParams/NotificationReadParam';
-import { ViewTextUtils } from 'client/common/ViewTextUtils';
+import { ApiResult } from 'common/responseResults/APIResult';
+import { ApiResultCode } from 'common/responseResults/ApiResultCode';
+import { UserNotificationView } from 'common/responseResults/UserNotificationView';
+import { UserView } from 'common/responseResults/UserView';
+import { Component, Vue, Watch } from 'vue-property-decorator';
+import { Store } from 'vuex';
+import { taskListTabName } from './PublisherTaskTS';
 
 const compToBeRegistered: any = {
 
@@ -37,7 +37,7 @@ export class NotificationManagementTS extends Vue {
         return this.renderedNotifications.length > 0;
     }
     private timestampToText(timestamp: number): string {
-        return CommonUtils.convertTimeStampToText(timestamp);
+        return ViewTextUtils.convertTimeStampToDatetime(timestamp);
     }
     private isUnread(item: UserNotificationView) {
         return item.state === NotificationState.Unread;
@@ -50,9 +50,6 @@ export class NotificationManagementTS extends Vue {
         switch (item.type) {
             case NotificationType.TaskApply:
                 name = '查看申请者资料';
-                break;
-            default:
-                name = '未知';
                 break;
         }
         return name;
@@ -112,7 +109,7 @@ export class NotificationManagementTS extends Vue {
         const sessionInfo = this.storeState.sessionInfo;
         if (CommonUtils.isReadyPublisher(sessionInfo) ||
             CommonUtils.isReadyExecutor(sessionInfo) ||
-            CommonUtils.isAdmin(sessionInfo.roles)) {
+            CommonUtils.isAdmin(sessionInfo)) {
             this.isInitialized = true;
             // TODO: support incremental render
             this.renderedNotifications = this.storeState.notificationObjs;

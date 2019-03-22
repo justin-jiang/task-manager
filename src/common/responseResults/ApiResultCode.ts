@@ -7,7 +7,7 @@ export enum ApiResultCode {
 
     InputImageTooLarge = 20,
     InputInvalidParam = 21,
-    InputInvalidScenario = 22,
+    InputInvalidFileScenario = 22,
     InputInvalidPassword = 23,
     InputImageInvalidType = 24,
 
@@ -20,6 +20,7 @@ export enum ApiResultCode {
     DbDuplicateKey = 62,
     DbSchemaPropMissed = 63,
     DbUnexpectedUserState = 64,
+    DbNotFound_User = 65,
 
     FileFailedDownload = 80,
     FileFailedUpload = 81,

@@ -11,8 +11,8 @@ export class TaskObject extends TaskFullCommon {
     }
 
     protected getKeysOfDBObject(): string[] {
-        return keysOfITaskObject;
+        return keysOfTaskObject;
     }
 }
 
-export const keysOfITaskObject: string[] = getPropKeys(new TaskObject(true));
+export const keysOfTaskObject: string[] = getPropKeys(new TaskObject(true));

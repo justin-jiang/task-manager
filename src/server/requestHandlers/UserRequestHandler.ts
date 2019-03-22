@@ -2,20 +2,22 @@ import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
 import { UserAccountInfoEditParam } from 'common/requestParams/UserAccountInfoEditParam';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
-import { UserCheckParam } from 'common/requestParams/UserCheckParam';
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
+import { UserIdCheckParam } from 'common/requestParams/UserIdCheckParam';
 import { UserPasswordEditParam } from 'common/requestParams/UserPasswordEditParam';
 import { UserPasswordResetParam } from 'common/requestParams/UserPasswordResetParam';
+import { UserQualificationCheckParam } from 'common/requestParams/UserQualificationCheckParam';
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { keysOfIUserView, UserView } from 'common/responseResults/UserView';
 import { UserState } from 'common/UserState';
-import * as nodemailer from 'nodemailer';
 import { ApiError } from 'server/common/ApiError';
 import { AppStatus } from 'server/common/AppStatus';
+import { EmailUtils, IMailContent } from 'server/common/EmailUtils';
 import { UserModelWrapper } from '../dataModels/UserModelWrapper';
 import { UserObject } from '../dataObjects/UserObject';
 import { RequestUtils } from './RequestUtils';
+import { UserPasswordRecoverParam } from 'common/requestParams/UserPasswordRecoverParam';
 
 export class UserRequestHandler {
     public static async $$query(currentUser: UserObject): Promise<UserView[]> {
@@ -63,15 +65,16 @@ export class UserRequestHandler {
         }
         dbObj.type = reqParam.type;
 
-        if (!CommonUtils.isAdmin(reqParam.roles) &&
-            !CommonUtils.isExecutor(reqParam.roles) &&
-            !CommonUtils.isPublisher(reqParam.roles)) {
+        dbObj.roles = reqParam.roles;
+        if (!CommonUtils.isAdmin(dbObj) &&
+            !CommonUtils.isExecutor(dbObj) &&
+            !CommonUtils.isPublisher(dbObj)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'UserCreateParam.roles');
         }
-        dbObj.roles = reqParam.roles;
 
-        if (CommonUtils.isAdmin(dbObj.roles)) {
+
+        if (CommonUtils.isAdmin(dbObj)) {
             dbObj.uid = UserModelWrapper.adminUID;
         } else {
             dbObj.uid = CommonUtils.getUUIDForMongoDB();
@@ -83,7 +86,7 @@ export class UserRequestHandler {
 
         // if admin has been existing, the following sentence will throw dup error
         dbObj = await UserModelWrapper.$$create(dbObj) as UserObject;
-        if (CommonUtils.isAdmin(dbObj.roles)) {
+        if (CommonUtils.isAdmin(dbObj)) {
             AppStatus.isSystemInitialized = true;
         }
         return await UserRequestHandler.$$convertToDBView(dbObj);
@@ -133,37 +136,46 @@ export class UserRequestHandler {
     }
     public static async $$passwordReset(
         reqParam: UserPasswordResetParam, currentUser: UserObject): Promise<void> {
-        if (!CommonUtils.isAdmin(currentUser.roles)) {
+        if (!CommonUtils.isAdmin(currentUser)) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
         const targetUser: UserObject = await UserModelWrapper.$$findOne(
             { uid: reqParam.uid } as UserObject) as UserObject;
         if (targetUser == null) {
-            throw new ApiError(ApiResultCode.DbNotFound, `UserUid:${reqParam.uid}`);
+            throw new ApiError(ApiResultCode.DbNotFound_User, `UserUid:${reqParam.uid}`);
         }
-        const adminEmail = 'justinjiang_email@163.com';
-        const adminEmailPassword = 'TaskManag2';
-        const randomPassword = CommonUtils.getRandomPassword();
-        const transporter = nodemailer.createTransport(
-            {
-                host: 'smtp.163.com',
-                secure: true,
-                port: 465,
-                auth: { user: adminEmail, pass: adminEmailPassword },
-            });
 
-        const mailOptions = {
-            from: adminEmail,
-            to: targetUser.email,
-            subject: '尽调系统密码重置',
+        const randomPassword = CommonUtils.getRandomString(6);
+        const mailOptions: IMailContent = {
+            to: targetUser.email as string,
+            subject: `用户${targetUser.name}密码重置`,
             html: `新密码：${randomPassword}`,
         };
 
         // send mail with defined transport object
-        await transporter.sendMail(mailOptions);
+        await EmailUtils.sendEmail(mailOptions);
         const updatedProps: UserObject = { password: randomPassword } as UserObject;
         await UserModelWrapper.$$updateOne({ uid: targetUser.uid } as UserObject, updatedProps);
     }
+
+    public static async $$passwordRecover(
+        reqParam: UserPasswordRecoverParam): Promise<void> {
+        const targetUser: UserObject = await UserModelWrapper.$$findOne(
+            { name: reqParam.name } as UserObject) as UserObject;
+        if (targetUser == null) {
+            throw new ApiError(ApiResultCode.DbNotFound_User, `UserName:${reqParam.name}`);
+        }
+
+        const mailOptions: IMailContent = {
+            to: 'public@khoodys.com',
+            subject: `用户${targetUser.name}申请密码密码重置`,
+            html: `用户${targetUser.name}申请密码密码重置，请通过系统的重置密码功能，完成用户密码的重置`,
+        };
+
+        // send mail with defined transport object
+        await EmailUtils.sendEmail(mailOptions);
+    }
+
 
     public static async $$remove(reqParam: UserRemoveParam, currentUser: UserObject): Promise<UserView | null> {
         if (reqParam == null || CommonUtils.isNullOrEmpty(reqParam.uid)) {
@@ -175,7 +187,7 @@ export class UserRequestHandler {
             throw new ApiError(ApiResultCode.AuthForbidden, 'cannot remove default admin');
         }
         // only admin can remove user
-        if (!CommonUtils.isAdmin(currentUser.roles)) {
+        if (!CommonUtils.isAdmin(currentUser)) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
         const dbObj: UserObject = await UserModelWrapper.$$findeOneAndDelete(
@@ -187,21 +199,24 @@ export class UserRequestHandler {
         }
     }
 
-    public static async $$check(reqParam: UserCheckParam, currentUser: UserObject): Promise<UserView> {
+    public static async $$check(
+        reqParam: UserQualificationCheckParam | UserIdCheckParam, currentUser: UserObject): Promise<UserView> {
         // only admin can check user register
-        if (!CommonUtils.isAdmin(currentUser.roles)) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
-        }
-        if (reqParam == null ||
-            CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'UserCheckParam, UserCheckParam.uid');
+        RequestUtils.adminCheck(currentUser);
+        reqParam = reqParam || {};
+        if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
         }
         const dbObj: UserObject = await UserModelWrapper.$$findOne({ uid: reqParam.uid } as UserObject) as UserObject;
         if (dbObj == null) {
             throw new ApiError(ApiResultCode.DbNotFound, `UserId:${reqParam.uid}`);
         }
-        const updatedProps: UserObject = RequestUtils.pickUpKeysByModel(reqParam, new UserCheckParam(true));
+        let updatedProps: UserObject = {};
+        if ((reqParam as UserIdCheckParam).idState != null) {
+            updatedProps = RequestUtils.pickUpKeysByModel(reqParam, new UserIdCheckParam(true));
+        } else {
+            updatedProps = RequestUtils.pickUpKeysByModel(reqParam, new UserQualificationCheckParam(true));
+        }
 
         if (Object.keys(updatedProps).length > 0) {
             await UserModelWrapper.$$updateOne({ uid: dbObj.uid } as UserObject, updatedProps);
@@ -215,7 +230,7 @@ export class UserRequestHandler {
         state: UserState.Disabled | UserState.Enabled,
         currentUser: UserObject): Promise<UserView> {
         // only admin can check user register
-        if (!CommonUtils.isAdmin(currentUser.roles)) {
+        if (!CommonUtils.isAdmin(currentUser)) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
         if (CommonUtils.isNullOrEmpty(uid)) {

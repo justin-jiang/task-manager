@@ -6,14 +6,14 @@ export enum TaskState {
     Submitted = 2,
     // info has been auditted by admin and wait for publisher to deposit
     InfoPassed = 3,
-    // deposit has been auditted, deposit is waitted to be auditted by admin
-    Deposited = 4,
+    // deposit has been sumbitted, and wait for admin to audit
+    DepositUploaded = 4,
     // both info and deposit has been auditted and wait to be applied by executors
     ReadyToApply = 5,
     // task has been applied by some executor and wait for margin
     Applying = 6,
     // executor has sumbit the margin and wait for be audit by admin
-    ReadyToAuditApply = 7,
+    MarginUploaded = 7,
     // margin has been auditted and task has been assigned to the executor too, wait for the task regin from executor
     Assigned = 8,
     // task result has been uploaded by executor and wait to be auditted by admin
@@ -26,12 +26,17 @@ export enum TaskState {
     PublisherVisited = 12,
     // has paid to executor
     ExecutorPaid = 13,
+    ReceiptUploaded = 14,
 
     // some sub state which will be used in task histories
     InfoAuditDenied = 101,
     DepositAuditDenied = 102,
-    ApplyAuditDenied = 103,
+    ApplyQualificationAuditDenied = 103,
     ResultAuditDenied = 104,
     ResultCheckDenied = 105,
+    MarginAuditDenied = 106,
+    ApplyReleased = 107,
+    DepositRefund = 108,
+    MarginRefund = 109,
 }
 

@@ -1,26 +1,27 @@
+import { EventNames } from 'client/common/EventNames';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
-import { UserType } from 'common/UserTypes';
+import { GeneralAuditParam } from 'common/requestParams/GeneralAuditParam';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { GeneralAuditParam } from 'common/requestParams/GeneralAuditParam';
-enum EventNames {
-    submitted = 'submitted',
-    cancelled = 'cancelled',
 
+export enum UsageScenario {
+    NONE = 0,
+    Fund = 1,
 }
+
 const compToBeRegistered: any = {
 };
 
 @Component({
     components: compToBeRegistered,
 })
-export class AuditDialogTS extends Vue {
-    // #region -- component props and methods
+export class AuditDialogTS extends Vue {    // #region -- component props and methods
     @Prop() public titleProp!: string;
     @Prop() public visibleProp!: string;
     @Prop() public widthProp!: string;
+    @Prop() public usageSenario!: UsageScenario;
     // #endregion
 
     // #region -- refered by this Vue Template
@@ -39,12 +40,18 @@ export class AuditDialogTS extends Vue {
         return this.auditState === CheckState.Checked ||
             (this.auditState === CheckState.FailedToCheck && !CommonUtils.isNullOrEmpty(this.auditNote));
     }
-    private onSubmitted(): void {
-        this.$emit(EventNames.submitted,
+    private get isFundAudit(): boolean {
+        return this.usageSenario === UsageScenario.Fund;
+    }
+    private onSubmit(): void {
+        this.$emit(EventNames.Submit,
             { note: this.auditNote, state: this.auditState } as GeneralAuditParam);
     }
-    private onCancelled(): void {
-        this.$emit(EventNames.cancelled);
+    private onCancel(): void {
+        this.$emit(EventNames.Cancel);
+    }
+    private onRefund(): void {
+        this.$emit(EventNames.Refund);
     }
     // #endregion
 

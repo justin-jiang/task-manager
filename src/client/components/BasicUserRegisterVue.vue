@@ -70,18 +70,25 @@
             </el-switch>
           </el-form-item>
           <el-form-item>
-            <el-button
-              type="primary"
-              :disabled="!isReadyToSubmit"
-              :loading="isSubmitting"
-              @click="onSubmitForm()"
-            >提交</el-button>
-            <el-button
-              type="warning"
-              @click="resetForm()"
-            >重置</el-button>
+
           </el-form-item>
         </el-form>
+      </el-col>
+    </el-row>
+    <el-row class="row-align-form">
+      <el-col :span="24">
+        <el-button
+          type="warning"
+          plain
+          @click="resetForm()"
+        >重置</el-button>
+        <el-button
+          type="primary"
+          :disabled="!isReadyToSubmit"
+          :loading="isSubmitting"
+          @click="onSubmitForm()"
+        >提交</el-button>
+
       </el-col>
     </el-row>
   </div>
@@ -94,5 +101,7 @@ export default class BasicUserRegisterVue extends BasicUserRegisterTS {}
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
-
+.row-align-form {
+  text-align: center;
+}
 </style>

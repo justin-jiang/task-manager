@@ -46,11 +46,12 @@ export class PublisherTaskTS extends Vue {
 
     // #region -- props and methods for Whole Template
     private readonly taskTableName: string = 'taskTable';
+    private readonly taskFormRefName: string = 'taskForm';
     private isInitialized: boolean = false;
 
     // #endregion
 
-    // #region -- props and methods for task list tab
+    // #region -- props and methods for task lis
     private search: string = '';
     private selectedTask: TaskView = {};
     private taskStateRadio: TaskState = TaskState.None;
@@ -62,16 +63,16 @@ export class PublisherTaskTS extends Vue {
         return ViewTextUtils.getTaskStateText(state);
     }
     private timestampToText(timestamp: number): string {
-        return CommonUtils.convertTimeStampToText(timestamp);
+        return ViewTextUtils.convertTimeStampToDatetime(timestamp);
     }
 
-    private get filtredTaskObjs(): TaskView[] {
+    private get filteredTaskObjs(): TaskView[] {
         let result: TaskView[];
         switch (this.taskStateRadio) {
             case TaskState.Created:
                 result = this.toBeSubmittedTasks;
                 break;
-            case TaskState.InfoPassed:
+            case TaskState.Submitted:
                 result = this.toBeDepositedTasks;
                 break;
             case TaskState.ResultAudited:
@@ -123,30 +124,45 @@ export class PublisherTaskTS extends Vue {
      * used to determine whether show deposit button
      */
     private isToBeDeposited(index: number, task: TaskView) {
-        return task.state === TaskState.InfoPassed;
+        return task.state === TaskState.Submitted;
     }
 
     private isTaskResultUploaded(task: TaskView): boolean {
         return task.state === TaskState.ResultUploaded;
     }
 
+    private onRowClick(task: TaskView, column: any): void {
+        (this.$refs[this.taskTableName] as any).toggleRowExpansion(task);
+    }
     /**
      * on task submit button is clicked
      * @param index 
      * @param task 
      */
     private onSubmit(index: number, task: TaskView): void {
-        (async () => {
-            const apiResult: ApiResult = await this.store.dispatch(
-                StoreActionNames.taskSubmit, {
-                    data: { uid: task.uid } as TaskSubmitParam,
-                } as IStoreActionArgs);
-            if (apiResult.code === ApiResultCode.Success) {
-                this.$message.success('提交成功');
-            } else {
-                this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-            }
-        })();
+        const confirm = this.$confirm(
+            '任务提交后，将不可再编辑和删除，确认要提交此任务吗？',
+            '提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                center: true,
+                closeOnClickModal: false,
+            });
+        confirm.then(() => {
+            (async () => {
+                const apiResult: ApiResult = await this.store.dispatch(
+                    StoreActionNames.taskSubmit, {
+                        data: { uid: task.uid } as TaskSubmitParam,
+                    } as IStoreActionArgs);
+                if (apiResult.code === ApiResultCode.Success) {
+                    this.$message.success('提交成功');
+                } else {
+                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+                }
+            })();
+        }).catch(() => {
+            // do nothing for cancel
+        });
     }
 
     private onTaskDelete(index: number, task: TaskView): void {
@@ -197,10 +213,10 @@ export class PublisherTaskTS extends Vue {
     private get toBeSubmittedTasksCount(): number {
         return this.toBeSubmittedTasks.length;
     }
-    private readonly toBeDepositedTasksLab: TaskState = TaskState.InfoPassed;
+    private readonly toBeDepositedTasksLab: TaskState = TaskState.Submitted;
     private get toBeDepositedTasks(): TaskView[] {
         return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.InfoPassed;
+            return item.state === TaskState.Submitted;
         });
     }
     private get toBeDepositedTasksCount(): number {
@@ -298,8 +314,26 @@ export class PublisherTaskTS extends Vue {
     private usageSenario: UsageScenario = UsageScenario.NONE;
     private onTaskCreate(): void {
         this.selectedTask = {};
-        this.usageSenario = UsageScenario.Create;
-        this.taskCreateOrEditDialogVisible = true;
+        if (this.storeState.templateObjs == null || this.storeState.templateObjs.length === 0) {
+            const confirm = this.$confirm(
+                '创建第一个任务前，请先创建任务模板',
+                '模板缺失提示', {
+                    confirmButtonText: '确定',
+                    type: 'warning',
+                    center: true,
+                    closeOnClickModal: false,
+                    showCancelButton: false,
+                });
+            confirm.then(() => {
+                RouterUtils.goToPublisherTemplateView(this.$router);
+            }).catch(() => {
+                // do nothing for cancel
+            });
+        } else {
+            this.taskCreateOrEditDialogTitle = '创建任务';
+            this.usageSenario = UsageScenario.Create;
+            this.taskCreateOrEditDialogVisible = true;
+        }
     }
     private onTaskEdit(index: number, task: TaskView): void {
         this.selectedTask = task;
@@ -310,9 +344,12 @@ export class PublisherTaskTS extends Vue {
         this.selectedTask = {};
         this.taskCreateOrEditDialogVisible = false;
     }
-    private onTaskCreateOrEditCancelled(): void {
+    private onTaskCreateOrEditCancel(): void {
         this.selectedTask = {};
         this.taskCreateOrEditDialogVisible = false;
+    }
+    private onTaskFormOpened(): void {
+
     }
     // #endregion
 
@@ -323,8 +360,8 @@ export class PublisherTaskTS extends Vue {
         this.taskProgressDialogVisible = true;
     }
     private onTaskProgressDialogClosed(): void {
-        this.selectedTask = {};
         this.taskProgressDialogVisible = false;
+        // this.selectedTask = {};
     }
     // #endregion
 
