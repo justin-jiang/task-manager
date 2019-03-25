@@ -9,7 +9,7 @@ import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
-import { LIMIT_FILE_SIZE_M } from 'common/Config';
+import { LIMIT_FILE_SIZE_M } from 'common/Constants';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { NotificationType } from 'common/NotificationType';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';

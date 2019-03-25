@@ -38,13 +38,14 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
+/**
+ * used by admin to manage the executor and publisher
+ */
 export class UserManagementTS extends Vue {
-    // #region -- references by the whole page
+    // #region -- reference by template
     private readonly executorTabName = 'executorTab';
     private readonly publisherTabName = 'publisherTab';
-    private isInitialized: boolean = false;
-    private activeTabName: string = this.executorTabName;
-    private tableSearch: string = '';
+    private executorSearch: string = '';
     private publisherSearch: string = '';
     private idCheckDialogVisible: boolean = false;
     private qualificationCheckDialogVisible: boolean = false;
@@ -72,7 +73,7 @@ export class UserManagementTS extends Vue {
     }
     private get executorObjs(): UserView[] {
         return this.storeState.userObjs.filter((item) => {
-            if (CommonUtils.isNullOrEmpty(this.tableSearch)) {
+            if (CommonUtils.isNullOrEmpty(this.executorSearch)) {
                 if (CommonUtils.isExecutor(item)) {
                     return true;
                 } else {
@@ -80,7 +81,7 @@ export class UserManagementTS extends Vue {
                 }
             } else {
                 if (CommonUtils.isExecutor(item) &&
-                    (item.name as string).toLowerCase().includes(this.tableSearch.toLowerCase())) {
+                    (item.name as string).toLowerCase().includes(this.executorSearch.toLowerCase())) {
                     return true;
                 } else {
                     return false;
@@ -93,13 +94,6 @@ export class UserManagementTS extends Vue {
     }
     private getUserState(user: UserView): string {
         return ComponentUtils.getUserStateText(user);
-    }
-    private getName(user: UserView): string {
-        if (user.type === UserType.Corp) {
-            return user.realName as string;
-        } else {
-            return user.re;
-        }
     }
     private getPersonName(user: UserView): string {
         if (user.type === UserType.Corp) {
@@ -117,6 +111,10 @@ export class UserManagementTS extends Vue {
 
     private isDisabled(index: number, user: UserView): boolean {
         return user.state === UserState.Disabled;
+    }
+
+    private realNameSort(a: UserView, b: UserView): number {
+        return (a.realName as string).localeCompare(b.realName as string, 'zh-CN');
     }
 
     /**
@@ -244,8 +242,8 @@ export class UserManagementTS extends Vue {
             }
         });
         return result.filter(
-            (data: UserView) => !CommonUtils.isNullOrEmpty(this.tableSearch) ||
-                (data.name as string).toLowerCase().includes(this.tableSearch.toLowerCase()));
+            (data: UserView) => !CommonUtils.isNullOrEmpty(this.executorSearch) ||
+                (data.name as string).toLowerCase().includes(this.executorSearch.toLowerCase()));
     }
     // #endregion 
 
@@ -347,13 +345,7 @@ export class UserManagementTS extends Vue {
         const apiResult: ApiResult = await this.store.dispatch(
             StoreActionNames.userQuery, { notUseLocalData: true } as IStoreActionArgs);
         if (apiResult.code !== ApiResultCode.Success) {
-            RouterUtils.goToErrorView(
-                this.$router,
-                this.storeState,
-                `获取用户信息失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-
-        } else {
-            this.isInitialized = true;
+            this.$message.error(`获取用户信息失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
         }
     }
     // #endregion

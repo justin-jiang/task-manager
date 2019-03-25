@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    width="400px"
+    width="420px"
     custom-class="dialog-deposit"
     :show-close="false"
     :close-on-click-modal="false"
@@ -33,11 +33,17 @@
       </el-col>
     </el-row>
     <el-row class="row-item">
-      <el-col :span="6">
-        退款金额￥：
+      <el-col
+        :span="6"
+        class="col-money-label"
+      >
+        退款金额：
       </el-col>
-      <el-col :span="18">
-        {{refundSum}}
+      <el-col
+        :span="18"
+        class="col-money"
+      >
+        ￥{{refundSum}}
       </el-col>
     </el-row>
 
@@ -140,6 +146,14 @@ export default class RefundDialogTSVue extends RefundDialogTS {}
   .col-title {
     margin-top: 7px;
     font-size: 20px;
+  }
+  .col-money-label {
+    margin-top: 2px;
+  }
+  .col-money {
+    font-size: 16px;
+    font-weight: 800;
+    color: red;
   }
 }
 .row-item-task-name {

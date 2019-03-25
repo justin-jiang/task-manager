@@ -47,6 +47,11 @@ export class BaseModelWrapper {
         const result = await dbModel.updateOne(conditions, dbObj);
         LoggerManager.debug('$$updateOne result:', result);
     }
+    public static async $$updateMany(conditions: IQueryConditions, dbObj: CommonObject): Promise<void> {
+        const dbModel: Model<IModel> = await this.getDBModel();
+        const result = await dbModel.updateMany(conditions, dbObj);
+        LoggerManager.debug('$$updateOne result:', result);
+    }
     public static async $$findOneAndUpdate(
         conditions: IQueryConditions, dbObj: CommonObject): Promise<CommonObject | null> {
         const dbModel: Model<IModel> = await this.getDBModel();

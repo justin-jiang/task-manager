@@ -1,6 +1,6 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { StoreUtils } from 'client/common/StoreUtils';
-import { ViewTextUtils } from 'client/common/ViewTextUtils';
+import { UsageScenario } from 'client/components/AuditDialogTS';
 import AuditDialogVue from 'client/components/AuditDialogVue.vue';
 import AvatarWithNameVue from 'client/components/AvatarWithNameVue.vue';
 import { ComponentUtils } from 'client/components/ComponentUtils';
@@ -8,10 +8,9 @@ import FileCheckDialogVue from 'client/components/FileCheckDialogVue.vue';
 import PayToExecutorDialogVue from 'client/components/PayToExecutorDialogVue.vue';
 import PublisherVisitDialogVue from 'client/components/PublisherVisitDialogVue.vue';
 import ReceiptUploadDialogVue from 'client/components/ReceiptUploadDialogVue.vue';
-import TaskApplyCheckDialogVue from 'client/components/TaskApplyCheckDialogVue.vue';
-import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
-import TaskFormVue from 'client/components/TaskFormVue.vue';
+import RefundDialogVue from 'client/components/RefundDialogVue.vue';
 import TaskProgressDialogVue from 'client/components/TaskProgressDialogVue.vue';
+import TaskTableVue from 'client/components/TaskTableVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
@@ -19,6 +18,7 @@ import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
+import { RefundScenario } from 'common/RefundScenario';
 import { FileCheckParam } from 'common/requestParams/FileCheckParam';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { GeneralAuditParam } from 'common/requestParams/GeneralAuditParam';
@@ -31,8 +31,6 @@ import { TaskState } from 'common/TaskState';
 import Viewer from 'viewerjs';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { RefundScenario } from 'common/RefundScenario';
-import RefundDialogVue from 'client/components/RefundDialogVue.vue';
 const compToBeRegistered: any = {
 
     AvatarWithNameVue,
@@ -46,10 +44,8 @@ const compToBeRegistered: any = {
 
     RefundDialogVue,
 
-    TaskApplyCheckDialogVue,
-    TaskDetailInTableVue,
     TaskProgressDialogVue,
-    TaskFormVue,
+    TaskTableVue,
 
 };
 
@@ -59,8 +55,7 @@ const compToBeRegistered: any = {
 export class AdminTaskTS extends Vue {
     // #region -- reference by Template
     private readonly taskTableName: string = 'taskTable';
-    private readonly switchActiveValue: CheckState = CheckState.Checked;
-    private readonly switchInactiveValue: CheckState = CheckState.FailedToCheck;
+    private readonly labelOfRemainingDays: string = '剩余天数';
     private isInitialized: boolean = false;
     private selectedTask: TaskView = {};
     private imageViewer: Viewer | null = null;
@@ -148,11 +143,8 @@ export class AdminTaskTS extends Vue {
     }
     // #endregion
 
-    // #region -- references by task tables
-    private search: string = '';
-    private isSearchReady(): boolean {
-        return true;
-    }
+    // #region -- references by task table data and buttons
+
     /**
      * the data used by task table
      */
@@ -190,16 +182,9 @@ export class AdminTaskTS extends Vue {
                 break;
 
         }
-        return result.filter(
-            (data: TaskView) => !this.search ||
-                (data.name as string).toLowerCase().includes(this.search.toLowerCase()));
+        return result;
     }
-    private taskStateToText(state: TaskState): string {
-        return ViewTextUtils.getTaskStateText(state);
-    }
-    private timestampToText(timestamp: number): string {
-        return ViewTextUtils.convertTimeStampToDatetime(timestamp);
-    }
+
     /**
      * used to determine whether show the edit, submit and progressquery buttons
      * @param index 
@@ -207,10 +192,6 @@ export class AdminTaskTS extends Vue {
      */
     private isNotSubmitted(index: number, task: TaskView): boolean {
         return task.state === TaskState.None || task.state === TaskState.Created;
-    }
-
-    private onRowClick(task: TaskView, column: any): void {
-        (this.$refs[this.taskTableName] as any).toggleRowExpansion(task);
     }
     // #endregion
 
@@ -226,12 +207,6 @@ export class AdminTaskTS extends Vue {
     }
     // #endregion
 
-    // #region -- references by task detail component
-    private onTaskDetailCheck(index: number, task: TaskView): void {
-        (this.$refs[this.taskTableName] as any).toggleRowExpansion(task);
-    }
-    // #endregion
-
     //#region -- reference by task info audit
     private infoAuditDialogVisible: boolean = false;
 
@@ -241,7 +216,6 @@ export class AdminTaskTS extends Vue {
     }
     private onInfoAudit(index: number, task: TaskView): void {
         this.selectedTask = task;
-        (this.$refs[this.taskTableName] as any).toggleRowExpansion(task, true);
         this.infoAuditDialogVisible = true;
     }
     private onInfoAuditSubmit(auditResult: GeneralAuditParam): void {
@@ -273,9 +247,7 @@ export class AdminTaskTS extends Vue {
 
     // #region -- references by fund(deposit and margin) audit dialog
 
-    private fundAuditState: CheckState = CheckState.Checked;
-
-    private fundAuditNote: string = '';
+    private readonly fundScenario: UsageScenario = UsageScenario.Fund;
 
     private fundAuditDialogVisible: boolean = false;
 
@@ -572,7 +544,8 @@ export class AdminTaskTS extends Vue {
     private payToExecutorDialogVisible: boolean = false;
 
     private isReadyToPayToExecutor(index: number, task: TaskView): boolean {
-        return task.state === TaskState.PublisherVisited;
+        return task.state === TaskState.PublisherVisited &&
+            CommonUtils.isNullOrEmpty(task.payToExecutorImageUid);
     }
     private onPayToExecutor(index: number, task: TaskView): void {
         (async () => {
@@ -601,7 +574,8 @@ export class AdminTaskTS extends Vue {
 
     private isReadyToReceiptUpload(index: number, task: TaskView): boolean {
         return task.state === TaskState.PublisherVisited &&
-            task.executorReceiptRequired == null;
+            CommonUtils.isNullOrEmpty(task.executorReceiptNumber) &&
+            CommonUtils.isNullOrEmpty(task.executorReceiptNote);
     }
     private onReceiptUpload(index: number, task: TaskView): void {
         this.selectedTask = task;
@@ -620,7 +594,7 @@ export class AdminTaskTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.initialize();
+        // the watch will be triggered before mounted
     }
 
     // #endregion
@@ -639,14 +613,6 @@ export class AdminTaskTS extends Vue {
         if (this.isInitialized === false) {
             (async () => {
                 let apiResult: ApiResult = { code: ApiResultCode.NONE };
-                // get Template Objs
-                apiResult = await this.store.dispatch(StoreActionNames.templateQuery,
-                    {
-                        notUseLocalData: true,
-                    } as IStoreActionArgs);
-                if (apiResult.code !== ApiResultCode.Success) {
-                    this.$message.error(`获取模板列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                }
                 apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
                     {
                         notUseLocalData: true,
@@ -654,10 +620,7 @@ export class AdminTaskTS extends Vue {
                 if (apiResult.code !== ApiResultCode.Success) {
                     this.$message.error(`获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                 }
-                apiResult = await this.store.dispatch(StoreActionNames.userQuery,
-                    {
-                        notUseLocalData: false,
-                    } as IStoreActionArgs);
+                apiResult = await StoreUtils.$$pullAllUsers(this.store);
                 if (apiResult.code !== ApiResultCode.Success) {
                     this.$message.error(`获取用户列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                 }

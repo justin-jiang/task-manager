@@ -1,7 +1,7 @@
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
-import { LIMIT_FILE_SIZE_M, ACCEPTED_UPLOAD_FILE_TYPES } from 'common/Config';
+import { LIMIT_FILE_SIZE_M, ACCEPTED_UPLOAD_FILE_TYPES } from 'common/Constants';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';

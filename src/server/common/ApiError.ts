@@ -1,11 +1,12 @@
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import * as mongoose from 'mongoose';
 import { CommonUtils } from 'common/CommonUtils';
+import { ApiResult } from 'common/responseResults/APIResult';
 interface IErrorData {
     originalCode: number;
     message: string;
 }
-export class ApiError {
+export class ApiError extends ApiResult {
     public static fromError(error: any): ApiError {
         const outputError: ApiError = new ApiError(ApiResultCode.ConnectionError);
         if (error instanceof mongoose.Error.ValidationError) {
@@ -20,7 +21,9 @@ export class ApiError {
         if (error.stack != null) {
             outputError.stack = error.stack;
             if (CommonUtils.isPrimitiveString(outputError.stack)) {
-                if ((outputError.stack as string).includes('E11000 duplicate key')) {
+                if ((outputError.stack as string).includes('taskManager.taskApplications index: taskUid_1 dup key')) {
+                    outputError.code = ApiResultCode.Logic_Task_Been_Applied;
+                } else if ((outputError.stack as string).includes('E11000 duplicate key')) {
                     outputError.code = ApiResultCode.DbDuplicateKey;
                 }
             }
@@ -28,11 +31,10 @@ export class ApiError {
         return outputError;
     }
 
-    public code: ApiResultCode;
-    public data?: IErrorData;
     public stack?: string;
 
     constructor(code: ApiResultCode, message?: string, data?: IErrorData) {
+        super();
         this.code = code;
         this.data = data || {} as IErrorData;
         if (message == null) {

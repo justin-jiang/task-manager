@@ -12,8 +12,8 @@
           style="font-size:15px;"
         ><b>新用户注册协议，用户注册前可以下载此协议文件</b></span>
       </el-alert>
-
     </el-row>
+    
     <el-row>
       <el-col :span=24>
         <SingleFileUploadVue

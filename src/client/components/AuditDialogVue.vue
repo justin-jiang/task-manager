@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    class="dialog-audit"
+    custom-class="dialog-audit"
     :width="width"
     :show-close="false"
     :close-on-click-modal="false"
@@ -50,6 +50,7 @@
           @click="onCancel()"
         >取消</el-button>
         <el-button
+          v-if="isFundAudit"
           size="small"
           type="danger"
           plain

@@ -4,8 +4,7 @@ export enum TaskState {
     Created = 1,
     // task has been submitted, info is waitted to be auditted by admin
     Submitted = 2,
-    // info has been auditted by admin and wait for publisher to deposit
-    InfoPassed = 3,
+
     // deposit has been sumbitted, and wait for admin to audit
     DepositUploaded = 4,
     // both info and deposit has been auditted and wait to be applied by executors
@@ -31,7 +30,7 @@ export enum TaskState {
     // some sub state which will be used in task histories
     InfoAuditDenied = 101,
     DepositAuditDenied = 102,
-    ApplyQualificationAuditDenied = 103,
+    ExecutorAuditDenied = 103,
     ResultAuditDenied = 104,
     ResultCheckDenied = 105,
     MarginAuditDenied = 106,

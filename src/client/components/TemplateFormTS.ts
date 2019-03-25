@@ -7,7 +7,7 @@ import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CommonUtils } from 'common/CommonUtils';
-import { LIMIT_FILE_SIZE_M } from 'common/Config';
+import { LIMIT_FILE_SIZE_M } from 'common/Constants';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { TemplateCreateParam } from 'common/requestParams/TemplateCreateParam';

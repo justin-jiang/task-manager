@@ -4,6 +4,9 @@ import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { Store } from 'vuex';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
+import { CommonUtils } from 'common/CommonUtils';
+import { ApiResult } from 'common/responseResults/APIResult';
+import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 
 export class StoreUtils {
     public static replaceFromArray(objArray: CommonObject[], substitute: CommonObject) {
@@ -70,12 +73,23 @@ export class StoreUtils {
      * @param uid 
      */
     public static async $$getUserById(store: Store<IStoreState>, uid: string): Promise<UserView | undefined> {
-        await store.dispatch(StoreActionNames.userQuery,
-            {
-                notUseLocalData: false,
-            } as IStoreActionArgs);
-        const storeState = (store.state as IStoreState);
+        await this.$$pullAllUsers(store);
+        return this.getUserById(store.state, uid);
+    }
 
-        return this.getUserById(storeState, uid);
+    public static async $$pullAllUsers(store: Store<IStoreState>, notUseLocalData?: boolean): Promise<ApiResult> {
+        if (notUseLocalData == null) {
+            notUseLocalData = false;
+        }
+        if (CommonUtils.isAdmin(store.state.sessionInfo)) {
+            return await store.dispatch(StoreActionNames.userQuery,
+                {
+                    notUseLocalData,
+                } as IStoreActionArgs);
+        } else {
+            const apiResult: ApiResult = new ApiResult();
+            apiResult.code = ApiResultCode.AuthForbidden;
+            return apiResult;
+        }
     }
 }

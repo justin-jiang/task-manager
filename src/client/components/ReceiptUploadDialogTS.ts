@@ -32,7 +32,8 @@ export class ReceiptUploadDialogTS extends Vue {
 
     // #region -- referred props and methods by page template
     private readonly imageUploaderRefName: string = 'imageUploader';
-    private readonly NO_RECEIPT: number = 0;
+    private readonly labelOfNoReceipt: ReceiptState = ReceiptState.NotRequired;
+    private readonly labelOfReceipt: ReceiptState = ReceiptState.Required;
     private targetTaskView: TaskView = {};
     private uploadParam: FileUploadParam = {
         scenario: FileAPIScenario.UploadExecutorTaskReceipt,
@@ -61,27 +62,36 @@ export class ReceiptUploadDialogTS extends Vue {
     }
 
     private get isReadyToSubmit(): boolean {
-        if (this.uploadOptionParam.executorReceiptRequired) {
+        if (this.uploadOptionParam.executorReceiptRequired === ReceiptState.Required) {
             return this.isImageReady;
         } else {
             return !CommonUtils.isNullOrEmpty(this.uploadOptionParam.executorReceiptNote);
         }
     }
 
+    private get isReceiptStateNone(): boolean {
+        return this.targetTaskView.executorReceiptRequired == null ||
+            this.targetTaskView.executorReceiptRequired === ReceiptState.None;
+    }
+
+    private get isReceiptRequired(): boolean {
+        return this.uploadOptionParam.executorReceiptRequired === ReceiptState.Required;
+    }
+
     private onSubmit(): void {
         this.uploadParam.optionData = this.uploadOptionParam;
         this.uploadParam.optionData.uid = this.targetTaskView.uid;
-        if (this.uploadOptionParam.executorReceiptRequired) {
+        if (this.uploadOptionParam.executorReceiptRequired === ReceiptState.Required) {
             (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).submit();
         } else {
             (async () => {
                 const apiResult: ApiResult = await this.store.dispatch(
-                    StoreActionNames.taskReceiptDeny,
+                    StoreActionNames.taskExecutorReceiptNotRequired,
                     {
                         data: {
                             uid: this.taskProp.uid,
-                            receiptNote: this.uploadOptionParam.executorReceiptNote,
-                            receiptRequired: ReceiptState.NotRequired,
+                            executorReceiptNote: this.uploadOptionParam.executorReceiptNote,
+                            executorReceiptRequired: ReceiptState.NotRequired,
                         } as TaskExecutorReceiptUploadParam,
                     } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success) {
@@ -99,7 +109,7 @@ export class ReceiptUploadDialogTS extends Vue {
         this.isImageChanged = (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).isChanged();
     }
     private onImageReset(): void {
-        this.isImageChanged = (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).isChanged();
+        this.isImageChanged = false;
     }
     private onUploadSuccess(apiResult: ApiResult) {
         this.isImageChanged = false;

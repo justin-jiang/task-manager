@@ -14,6 +14,7 @@ export enum ApiResultCode {
     AuthUnauthorized = 50,
     AuthForbidden = 51,
     AuthUserNotReady = 52,
+    Auth_Not_Task_Publisher_Onwer = 53,
 
     DbValidationError = 60,
     DbNotFound = 61,
@@ -24,6 +25,10 @@ export enum ApiResultCode {
 
     FileFailedDownload = 80,
     FileFailedUpload = 81,
+
+    Logic_Receipt_State_Not_Matched = 200,
+    Logic_Task_State_Not_Matched = 201,
+    Logic_Task_Been_Applied = 202,
 
     ConnectionError = 500,
 }

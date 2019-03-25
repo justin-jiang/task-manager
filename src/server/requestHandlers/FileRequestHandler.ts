@@ -1,15 +1,19 @@
 import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
-import { LIMIT_FILE_SIZE_M, LIMIT_LOGO_SIZE_M } from 'common/Config';
+import { LIMIT_FILE_SIZE_M, LIMIT_LOGO_SIZE_M } from 'common/Constants';
+import { FeeCalculator } from 'common/FeeCalculator';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileType } from 'common/FileType';
+import { ReceiptState } from 'common/ReceiptState';
+import { RefundScenario } from 'common/RefundScenario';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { FileRemoveParam } from 'common/requestParams/FileRemoveParam';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { TaskDepositImageUploadParam } from 'common/requestParams/TaskDepositImageUploadParam';
+import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
 import { TaskMarginImageUploadParam } from 'common/requestParams/TaskMarginImageUploadParam';
 import { TaskPayToExecutorImageUploadParam } from 'common/requestParams/TaskPayToExecutorImageUploadParam';
-import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
+import { TaskRefundImageUploadParam } from 'common/requestParams/TaskRefundImageUploadParam';
 import { TaskResultFileUploadParam } from 'common/requestParams/TaskResultFileUploadParam';
 import { TemplateCreateParam } from 'common/requestParams/TemplateCreateParam';
 import { TemplateFileEditParam } from 'common/requestParams/TemplateFileEditParam';
@@ -20,7 +24,7 @@ import { UserView } from 'common/responseResults/UserView';
 import { TaskHistoryItem } from 'common/TaskHistoryItem';
 import { TaskState } from 'common/TaskState';
 import { UserState } from 'common/UserState';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ApiError } from 'server/common/ApiError';
 import { TaskModelWrapper } from 'server/dataModels/TaskModelWrapper';
 import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
@@ -34,10 +38,8 @@ import { TemplateRequestHandler } from 'server/requestHandlers/TemplateRequestHa
 import { UserRequestHandler } from 'server/requestHandlers/UserRequestHandler';
 import { RequestUtils } from './RequestUtils';
 import { TaskRequestHandler } from './TaskRequestHandler';
-import { ReceiptState } from 'common/ReceiptState';
-import { Request } from 'express';
-import { TaskRefundImageUploadParam } from 'common/requestParams/TaskRefundImageUploadParam';
-import { RefundScenario } from 'common/RefundScenario';
+import { TaskApplicationModelWrapper } from 'server/dataModels/TaskApplicationModelWrapper';
+import { UserType } from 'common/UserTypes';
 export class FileRequestHandler {
     // #region -- template related methods
     /**
@@ -160,7 +162,6 @@ export class FileRequestHandler {
         let fileIdToCreate: string;
         let fileType: FileType;
         const updatedProps: UserObject = {};
-        updatedProps.idState = CheckState.ToBeChecked;
 
         switch (reqParam.scenario) {
             case FileAPIScenario.UploadUserLogo:
@@ -248,43 +249,73 @@ export class FileRequestHandler {
                 originalFileName: fileData.originalname,
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
+        Object.assign(currentUser, updatedProps);
+        // only all the required id ready, we can set the idState to ToBeChecked
+        if (currentUser.type === UserType.Corp) {
+            if ((currentUser.authLetterState === CheckState.ToBeChecked ||
+                currentUser.authLetterState === CheckState.Checked) &&
+                (currentUser.licenseWidthPersonState === CheckState.ToBeChecked ||
+                    currentUser.licenseWidthPersonState === CheckState.Checked) &&
+                (currentUser.licenseState === CheckState.ToBeChecked ||
+                    currentUser.licenseState === CheckState.Checked) &&
+                (currentUser.backIdState === CheckState.ToBeChecked ||
+                    currentUser.backIdState === CheckState.Checked) &&
+                (currentUser.frontIdState === CheckState.ToBeChecked ||
+                    currentUser.frontIdState === CheckState.Checked)) {
+                updatedProps.idState = CheckState.ToBeChecked;
+                currentUser.idState = CheckState.ToBeChecked;
+            }
+        } else {
+            if ((currentUser.backIdState === CheckState.ToBeChecked ||
+                currentUser.backIdState === CheckState.Checked) &&
+                (currentUser.frontIdState === CheckState.ToBeChecked ||
+                    currentUser.frontIdState === CheckState.Checked)) {
+                updatedProps.idState = CheckState.ToBeChecked;
+                currentUser.idState = CheckState.ToBeChecked;
+            }
+        }
 
         await UserModelWrapper.$$updateOne(
             { uid: currentUser.uid } as UserObject,
             updatedProps);
-        Object.assign(currentUser, updatedProps);
+
         return UserRequestHandler.$$convertToDBView(currentUser);
     }
     // #endregion
 
     // #region -- task related methods
     /**
-     * update task deposit image which will cause task to be Deposited state
+     * upload task deposit image which will cause task to be DepositeUploaded state
      * used by publisher owner
      * @param fileData 
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$updateTaskDepositImage(
+    public static async $$uploadTaskDepositImage(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
-        RequestUtils.readyPublisherCheck(currentUser);
-        this.checkImageFileSize(fileData);
+        // param check
         const metadata: TaskDepositImageUploadParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam, 'uid should not be null');
         }
-        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Submitted);
+        this.checkImageFileSize(fileData);
 
+        // user check
+        RequestUtils.readyPublisherCheck(currentUser);
+
+        // task check
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Submitted);
         if (dbObj.publisherUid !== currentUser.uid) {
-            throw new ApiError(ApiResultCode.AuthForbidden,
+            throw new ApiError(ApiResultCode.Auth_Not_Task_Publisher_Onwer,
                 `User:${currentUser.name} is not owner of task:${dbObj.uid}`);
         }
         const updatedProps: TaskObject = new TaskObject();
         updatedProps.state = TaskState.DepositUploaded;
         // pick up the props in param and assign to updatedProps object
-        Object.assign(updatedProps, RequestUtils.pickUpKeysByModel(metadata, new TaskDepositImageUploadParam(true)));
+        Object.assign(updatedProps, RequestUtils.pickUpPropsByModel(
+            metadata, new TaskDepositImageUploadParam(true)), true);
 
         if (CommonUtils.isNullOrEmpty(dbObj.depositImageUid)) {
             updatedProps.depositImageUid = CommonUtils.getUUIDForMongoDB();
@@ -322,7 +353,7 @@ export class FileRequestHandler {
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$updateTaskMarginImage(
+    public static async $$uploadTaskMarginImage(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
@@ -331,7 +362,7 @@ export class FileRequestHandler {
         const metadata: TaskMarginImageUploadParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TaskMarginImageUploadParam.uid should not be null');
+                'uid should not be null');
         }
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Applying);
 
@@ -363,7 +394,11 @@ export class FileRequestHandler {
 
         // update object
         await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
-        await TaskModelWrapper.$$addHistoryItem(dbObj.uid as string, TaskState.MarginUploaded, '');
+        await TaskModelWrapper.$$addHistoryItem(
+            dbObj.uid as string,
+            TaskState.MarginUploaded,
+            CommonUtils.getStepTitleByTaskState(TaskState.MarginUploaded));
+        await TaskApplicationModelWrapper.$$deleteByTaskId(dbObj.uid as string);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
@@ -377,45 +412,49 @@ export class FileRequestHandler {
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
-        RequestUtils.adminCheck(currentUser);
+        // param check
         this.checkImageFileSize(fileData);
         const metadata: TaskRefundImageUploadParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'uid should not be null');
         }
+
+        // use check
+        RequestUtils.adminCheck(currentUser);
+
         let dbObj: TaskObject;
         let fileType: FileType;
         let fileId: string;
         let historyItemState: TaskState;
-        const updatedProps: TaskObject = new TaskObject();
+        const allUpdatedProps: TaskObject = new TaskObject();
         if (metadata.scenario === RefundScenario.DepositRefund) {
             dbObj = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.DepositUploaded);
             if (CommonUtils.isNullOrEmpty(dbObj.depositRefundImageUid)) {
-                updatedProps.depositRefundImageUid = CommonUtils.getUUIDForMongoDB();
+                allUpdatedProps.depositRefundImageUid = CommonUtils.getUUIDForMongoDB();
             } else {
                 // remove existing one
                 await FileStorage.$$deleteEntry(dbObj.depositRefundImageUid as string, 0);
             }
-            updatedProps.state = TaskState.Created;
+            allUpdatedProps.state = TaskState.Created;
             fileType = FileType.DepositRefund;
-            fileId = updatedProps.depositRefundImageUid as string;
+            fileId = allUpdatedProps.depositRefundImageUid as string;
             historyItemState = TaskState.DepositRefund;
         } else {
             dbObj = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.MarginUploaded);
             if (CommonUtils.isNullOrEmpty(dbObj.marginRefundImageUid)) {
-                updatedProps.marginRefundImageUid = CommonUtils.getUUIDForMongoDB();
+                allUpdatedProps.marginRefundImageUid = CommonUtils.getUUIDForMongoDB();
             } else {
                 // remove existing one
                 await FileStorage.$$deleteEntry(dbObj.marginRefundImageUid as string, 0);
             }
-            updatedProps.state = TaskState.ReadyToApply;
+            allUpdatedProps.state = TaskState.ReadyToApply;
             fileType = FileType.MarginRefund;
-            fileId = updatedProps.marginRefundImageUid as string;
+            fileId = allUpdatedProps.marginRefundImageUid as string;
             historyItemState = TaskState.MarginRefund;
         }
 
-        Object.assign(dbObj, updatedProps);
+        Object.assign(dbObj, allUpdatedProps);
         await FileStorage.$$saveEntry(
             fileId,
             0,
@@ -427,7 +466,7 @@ export class FileRequestHandler {
             (fileData as Express.Multer.File).buffer);
 
         // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
         await TaskModelWrapper.$$addHistoryItem(
             dbObj.uid as string, historyItemState, CommonUtils.getStepTitleByTaskState(historyItemState));
         return TaskRequestHandler.$$convertToDBView(dbObj);
@@ -493,39 +532,64 @@ export class FileRequestHandler {
 
 
     /**
-     * used by admin to upload(update) task pay_to_executor image
+     * used by admin to upload task pay_to_executor image
      * 
      * @param fileData 
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$updateTaskPayToExecutorImage(
+    public static async $$uploadTaskExecutorPaymentImage(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
-        RequestUtils.adminCheck(currentUser);
-        this.checkImageFileSize(fileData);
         const metadata: TaskPayToExecutorImageUploadParam = JSON.parse(reqParam.optionData as string);
+        // param check
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TaskPayToExecutorImageUploadParam.uid should not be null');
+                'uid should not be null');
         }
+        this.checkImageFileSize(fileData);
+
+        // user check
+        RequestUtils.adminCheck(currentUser);
+
+        // task check
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
             metadata.uid as string, TaskState.PublisherVisited);
 
-        const updatedProps: TaskObject = new TaskObject();
-        updatedProps.state = TaskState.ExecutorPaid;
+        const allUpdatedProps: TaskObject = new TaskObject();
+        // pick up the props in param and assign to updatedProps object
+        Object.assign(allUpdatedProps, RequestUtils.pickUpPropsByModel(
+            metadata, new TaskPayToExecutorImageUploadParam(true)), true);
+        // if receipt state has been set in receipt upload or NotRequire set, we should keep the state consistence
+        if (dbObj.executorReceiptRequired != null &&
+            dbObj.executorReceiptRequired !== ReceiptState.None &&
+            allUpdatedProps.executorReceiptRequired !== dbObj.executorReceiptRequired) {
+            throw new ApiError(ApiResultCode.Logic_Receipt_State_Not_Matched);
+        }
+
+        // here only both receipt upload(or NotRequired) and executor payment done, 
+        // we can set the TaskState.ExecutorPaid
+        if (!CommonUtils.isNullOrEmpty(dbObj.executorReceiptImageUid) ||
+            !CommonUtils.isNullOrEmpty(dbObj.executorReceiptNote)) {
+            allUpdatedProps.state = TaskState.ExecutorPaid;
+        }
 
         if (CommonUtils.isNullOrEmpty(dbObj.payToExecutorImageUid)) {
-            updatedProps.payToExecutorImageUid = CommonUtils.getUUIDForMongoDB();
+            allUpdatedProps.payToExecutorImageUid = CommonUtils.getUUIDForMongoDB();
         } else {
             // remove existing one
             await FileStorage.$$deleteEntry(dbObj.payToExecutorImageUid as string, 0);
+            allUpdatedProps.payToExecutorImageUid = dbObj.payToExecutorImageUid;
         }
+        allUpdatedProps.paymentToExecutor = FeeCalculator.calcPaymentToExecutor(
+            dbObj.reward as number,
+            dbObj.proposedMargin as number,
+            dbObj.executorReceiptRequired as ReceiptState);
 
-        Object.assign(dbObj, updatedProps);
+        Object.assign(dbObj, allUpdatedProps);
         await FileStorage.$$saveEntry(
-            dbObj.payToExecutorImageUid as string,
+            allUpdatedProps.payToExecutorImageUid as string,
             0,
             {
                 type: FileType.TaskPayToExecutor,
@@ -535,53 +599,59 @@ export class FileRequestHandler {
             (fileData as Express.Multer.File).buffer);
 
         // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
         // add history item
-        await TaskModelWrapper.$$addHistoryItem(dbObj.uid as string, TaskState.ExecutorPaid, '');
+        if (allUpdatedProps.state === TaskState.ExecutorPaid) {
+            await TaskModelWrapper.$$addHistoryItem(
+                dbObj.uid as string,
+                TaskState.ExecutorPaid,
+                CommonUtils.getStepTitleByTaskState(TaskState.ExecutorPaid));
+        }
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
     /**
-     * used by admin to upload(update) task receipt image from executor
+     * used by admin to upload task receipt image from executor
      * 
      * @param fileData 
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$updateExecutorReceiptImage(
+    public static async $$uploadExecutorReceiptImage(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
-        RequestUtils.adminCheck(currentUser);
-        this.checkImageFileSize(fileData);
+        // parameter check
         const metadata: TaskExecutorReceiptUploadParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(metadata));
         }
+        this.checkImageFileSize(fileData);
+
+        // user check
+        RequestUtils.adminCheck(currentUser);
+
+        // task check
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
             metadata.uid as string, TaskState.PublisherVisited);
 
-        const updatedProps: TaskObject = new TaskObject();
+        const allUpdatedProps: TaskObject = new TaskObject();
         // pick up the props in param and assign to updatedProps object
-        Object.assign(updatedProps, RequestUtils.pickUpKeysByModel(metadata, new TaskExecutorReceiptUploadParam(true)));
+        Object.assign(allUpdatedProps, RequestUtils.pickUpPropsByModel(
+            metadata, new TaskExecutorReceiptUploadParam(true)), true);
 
         if (CommonUtils.isNullOrEmpty(dbObj.executorReceiptImageUid)) {
-            updatedProps.executorReceiptImageUid = CommonUtils.getUUIDForMongoDB();
+            allUpdatedProps.executorReceiptImageUid = CommonUtils.getUUIDForMongoDB();
         } else {
             // remove existing one
             await FileStorage.$$deleteEntry(dbObj.executorReceiptImageUid as string, 0);
         }
 
-        Object.assign(dbObj, updatedProps);
         // only update the state when both executor receipt and executor payment done
-        if ((dbObj.executorReceiptRequired === ReceiptState.NotRequired ||
-            !CommonUtils.isNullOrEmpty(dbObj.executorReceiptNumber)) &&
-            !CommonUtils.isNullOrEmpty(dbObj.payToExecutorImageUid)) {
-            dbObj.state = TaskState.ExecutorPaid;
-            updatedProps.state = TaskState.ExecutorPaid;
-        } else {
-            updatedProps.state = dbObj.state;
+        if (!CommonUtils.isNullOrEmpty(dbObj.payToExecutorImageUid)) {
+            allUpdatedProps.state = TaskState.ExecutorPaid;
         }
+
         await FileStorage.$$saveEntry(
             dbObj.executorReceiptImageUid as string,
             0,
@@ -592,13 +662,16 @@ export class FileRequestHandler {
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
-        if (updatedProps.state === TaskState.ExecutorPaid) {
+        if (allUpdatedProps.state === TaskState.ExecutorPaid) {
             // add history
-            await TaskModelWrapper.$$addHistoryItem(dbObj.uid as string, TaskState.ExecutorPaid, '');
+            await TaskModelWrapper.$$addHistoryItem(
+                dbObj.uid as string,
+                TaskState.ExecutorPaid,
+                CommonUtils.getStepTitleByTaskState(TaskState.ExecutorPaid));
         }
 
         // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
     // #endregion

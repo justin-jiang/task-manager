@@ -1,10 +1,10 @@
-import { msgConnectionIssue } from 'client/common/Constants';
-import { RouterUtils } from 'client/common/RouterUtils';
+import { EventNames } from 'client/common/EventNames';
+import { LoggerManager } from 'client/LoggerManager';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
-import { LIMIT_LOGO_SIZE_M } from 'common/Config';
+import { LIMIT_LOGO_SIZE_M } from 'common/Constants';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
 import { HttpUploadKey } from 'common/HttpUploadKey';
@@ -15,8 +15,6 @@ import VueCropper from 'vue-cropperjs';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ComponentUtils } from './ComponentUtils';
-import { LoggerManager } from 'client/LoggerManager';
-import { EventNames } from 'client/common/EventNames';
 
 
 const compToBeRegistered: any = {

@@ -135,7 +135,7 @@
             <el-col
               :span="2"
               class="col-task-vertical-align"
-            >￥{{item.reward}}</el-col>
+            >￥{{item.proposedMargin}}</el-col>
             <el-col
               :span="2"
               class="col-task-vertical-align"
@@ -166,6 +166,7 @@
 
     </el-tab-pane>
 
+    <!-- task table list tab-->
     <el-tab-pane
       label="任务列表"
       :name="appliedTaskTabName"
@@ -221,94 +222,40 @@
       <!-- Task Table -->
       <el-row>
         <el-col :span="24">
-          <el-table
-            :ref="appliedTaskTableName"
-            :data="filteredappliedTaskObjs"
-            style="width: 100%"
-            @row-click="onRowClick"
-          >
-            <el-table-column type="expand">
-              <template slot-scope="props">
-                <TaskDetailInTableVue :dataProp="props.row"></TaskDetailInTableVue>
-              </template>
-            </el-table-column>
-            <el-table-column
-              label="名称"
-              prop="name"
-              width="400px"
+          <TaskTableVue :dataProp="filteredappliedTaskObjs">
+            <template
+              slot="buttons"
+              slot-scope="scope"
             >
-            </el-table-column>
-            <el-table-column
-              label="金额"
-              prop="reward"
-              width="100px"
-            >
-            </el-table-column>
-            <el-table-column
-              label="状态"
-              width="100px"
-            >
-              <template slot-scope="scope">
-                <span>{{taskStateToText(scope.row.state)}}</span>
-              </template>
-            </el-table-column>
-            <el-table-column
-              label="创建时间"
-              width="200px"
-            >
-              <template slot-scope="scope">
-                <span>{{timestampToText(scope.row.createTime)}}</span>
-              </template>
-            </el-table-column>
-            <el-table-column align="right">
-              <template
-                slot="header"
-                slot-scope="scope"
-              >
-                <el-input
-                  v-if="isSearchReady(scope.row)"
-                  v-model="appliedTaskSearch"
-                  size="mini"
-                  placeholder="名称搜索"
-                />
-              </template>
-              <template slot-scope="scope">
-                <el-button
-                  type="primary"
-                  plain
-                  size="mini"
-                  v-if="isTaskApplying(scope.$index, scope.row)"
-                  @click.stop="onApplyingReleased(scope.$index, scope.row)"
-                >释放任务</el-button>
-                <el-button
-                  type="primary"
-                  plain
-                  size="mini"
-                  v-if="isTaskApplying(scope.$index, scope.row)"
-                  @click.stop="onMarginUpload(scope.$index, scope.row)"
-                >保证金托管</el-button>
-                <el-button
-                  type="primary"
-                  plain
-                  size="mini"
-                  v-if="isTaskAssigned(scope.$index, scope.row)"
-                  @click.stop="onSelectTaskResultUpload(scope.$index, scope.row)"
-                >提交任务结果</el-button>
-                <el-button
-                  type="primary"
-                  size="mini"
-                  plain
-                  @click.stop="onTaskProgressCheck(scope.$index, scope.row)"
-                >进度查询</el-button>
-                <el-button
-                  type="primary"
-                  size="mini"
-                  plain
-                  @click.stop="onTaskDetailCheck(scope.$index, scope.row)"
-                >任务详情</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+              <el-button
+                type="primary"
+                plain
+                size="mini"
+                v-if="isTaskApplying(scope.$index, scope.row)"
+                @click.stop="onApplyingReleased(scope.$index, scope.row)"
+              >释放任务</el-button>
+              <el-button
+                type="primary"
+                plain
+                size="mini"
+                v-if="isTaskApplying(scope.$index, scope.row)"
+                @click.stop="onMarginUpload(scope.$index, scope.row)"
+              >保证金托管</el-button>
+              <el-button
+                type="primary"
+                plain
+                size="mini"
+                v-if="isTaskAssigned(scope.$index, scope.row)"
+                @click.stop="onSelectTaskResultUpload(scope.$index, scope.row)"
+              >提交任务结果</el-button>
+              <el-button
+                type="primary"
+                size="mini"
+                plain
+                @click.stop="onTaskProgressCheck(scope.$index, scope.row)"
+              >进度查询</el-button>
+            </template>
+          </TaskTableVue>
         </el-col>
       </el-row>
       <!-- dialog to upload result -->
@@ -324,7 +271,7 @@
       <MarginDialogVue
         :visibleProp="marginDialogVisible"
         :taskProp="selectedTask"
-        @cancelled="onMarginUploadCancelled"
+        @cancel="onMarginUploadCancel"
         @success="onMarginUploadSuccess"
       >
       </MarginDialogVue>

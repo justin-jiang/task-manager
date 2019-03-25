@@ -12,10 +12,10 @@
           :span="16"
           style="text-align:left;"
         >
-          <!-- <img
+          <img
             class="img-logo"
             src="./assets/companyLogo_mini.jpg"
-          /> -->
+          />
         </el-col>
         <el-col
           :span="8"
@@ -74,6 +74,7 @@ export default class AppVue extends AppTS {}
 }
 .main-app {
   margin-top: @headerHeight;
+  padding: 0px;
 }
 
 .form-main {
@@ -111,7 +112,14 @@ export default class AppVue extends AppTS {}
   padding-top: 0px;
 }
 
-.dialog-fund-audit .el-dialog__body {
+.dialog-margin .el-dialog__header {
+  padding-bottom: 0px;
+}
+.dialog-margin .el-dialog__body {
+  padding-top: 0px;
+}
+
+.dialog-audit .el-dialog__body {
   padding-top: 0px;
 }
 

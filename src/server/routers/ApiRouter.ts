@@ -62,40 +62,72 @@ export class ApiRouter extends BaseRouter {
     public mount(): void {
         const apiBuilder: ApiBuilder = new ApiBuilder(this);
         // #region -- build user API
+        /**
+         * used to register user(admin, executor and publisher)
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}`, {
             post: this.$$userCreate.bind(this),
         } as IApiHandlers);
+
         /**
          * used by admin to query all users
          */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Query}`, {
             post: this.$$userQuery.bind(this),
         } as IApiHandlers);
+
+        /**
+         * used by executor and publisher to update their basic info
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Edit}`, {
             post: this.$$userBasicInfoEdit.bind(this),
         } as IApiHandlers);
+        /**
+         * used by admin to remove executor and publisher
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Remove}`, {
             post: this.$$userRemove.bind(this),
         } as IApiHandlers);
+        /**
+         * used by admin to enable executor and publisher
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Enable}`, {
             post: this.$$userEnable.bind(this),
         } as IApiHandlers);
+        /**
+         * used by admin to disable executor and publisher
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Disable}`, {
             post: this.$$userDisable.bind(this),
         } as IApiHandlers);
+
+        /**
+         * used by executor and publisher to update password
+         */
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Edit}`, {
                 post: this.$$userPasswordEdit.bind(this),
             } as IApiHandlers);
+
+        /**
+         * used by admin to reset user password
+         */
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Reset}`, {
                 post: this.$$userPasswordReset.bind(this),
             } as IApiHandlers);
-        // used by executor or publisher to notify the admin to reset password
+
+        /**
+         * used by executor or publisher to notify the admin to reset password
+         */
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.Password}/${HttpPathItem.Recover}`, {
                 post: this.$$userPasswordRecover.bind(this),
             } as IApiHandlers);
+
+        /**
+         * used by executor or publisher to update the account info which will not trigger the audit progress
+         */
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.User}/${HttpPathItem.AccoutInfo}/${HttpPathItem.Edit}`, {
                 post: this.$$userAccountInfoEdit.bind(this),
@@ -180,15 +212,27 @@ export class ApiRouter extends BaseRouter {
         // #endregion
 
         // #region [SubRegion] -- -- Task
-        apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Task}`, {
+        /**
+         * used by pubisher to create task
+         */
+        apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Create}`, {
             post: this.$$taskCreate.bind(this),
         } as IApiHandlers);
+        /**
+         * used by admin/publisher/executor to query available tasks
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Query}`, {
             post: this.$$taskQuery.bind(this),
         } as IApiHandlers);
+        /**
+         * used by publisher to edit the task before submit
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Edit}`, {
             post: this.$$taskBasicInfoEdit.bind(this),
         } as IApiHandlers);
+        /**
+         * used by publisher owner to remove the task before submit
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Remove}`, {
             post: this.$$taskRemove.bind(this),
         } as IApiHandlers);
@@ -234,7 +278,7 @@ export class ApiRouter extends BaseRouter {
 
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Receipt}/${HttpPathItem.Deny}`, {
-                post: this.$$receiptDeny.bind(this),
+                post: this.$$executorReceiptNotRequired.bind(this),
             } as IApiHandlers);
 
         // #endregion
@@ -452,23 +496,23 @@ export class ApiRouter extends BaseRouter {
                 break;
             case FileAPIScenario.UploadTaskDeposit:
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateTaskDepositImage(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$uploadTaskDepositImage(req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadTaskMargin:
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateTaskMarginImage(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$uploadTaskMarginImage(req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadTaskExecutorPay:
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateTaskPayToExecutorImage(
+                apiResult.data = await FileRequestHandler.$$uploadTaskExecutorPaymentImage(
                     req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadExecutorTaskReceipt:
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateExecutorReceiptImage(
+                apiResult.data = await FileRequestHandler.$$uploadExecutorReceiptImage(
                     req.file, reqParam, currentDBUser);
                 break;
-                case FileAPIScenario.UploadTaskRefund:
+            case FileAPIScenario.UploadTaskRefund:
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$uploadRefundImage(
                     req.file, reqParam, currentDBUser);
@@ -534,7 +578,7 @@ export class ApiRouter extends BaseRouter {
 
     // #region -- task relative API
     /**
-     * publisher create task
+     * used by publisher to create task
      * @param req 
      * @param res 
      * @param next 
@@ -747,11 +791,11 @@ export class ApiRouter extends BaseRouter {
         apiResult.data = taskView;
         res.json(apiResult).end();
     }
-    private async $$receiptDeny(req: Request, res: Response, next: NextFunction) {
+    private async $$executorReceiptNotRequired(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const reqParam: TaskExecutorReceiptUploadParam = req.body as TaskExecutorReceiptUploadParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const taskView: TaskView = await TaskRequestHandler.$$receiptDeny(reqParam, currentUser);
+        const taskView: TaskView = await TaskRequestHandler.$$executorReceiptNotRequired(reqParam, currentUser);
         apiResult.data = taskView;
         res.json(apiResult).end();
     }

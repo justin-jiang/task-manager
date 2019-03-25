@@ -51,6 +51,7 @@ export class UserCommon extends CommonObject {
     public qualificationStar?: number;
     public qualificationScore?: number;
 
+    // indiviual name or corp name
     public realName?: string;
     public registerProtocolUid?: string;
     public registerProtocolVersion?: number;

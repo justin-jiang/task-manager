@@ -353,7 +353,7 @@
             <b>发票入账：</b><span>￥{{targetTask.paymentToExecutor}}</span>
           </el-col>
           <el-col :span="3">
-            <b>雇员:</b>
+            <b>雇主:</b>
           </el-col>
           <el-col :span="5">
             <el-radio-group

@@ -1,12 +1,10 @@
-import { IRequestParam } from 'common/requestParams/IRequestParam';
-
 /**
  * the props of the class don't need the admin audit if they are updated
  */
-export class UserAccountInfoEditParam implements IRequestParam {
-
-    public nickName?: string;
+export class UserAccountInfoEditParam {
     public email?: string;
+    public nickName?: string;
+
     public telephone?: string;
 
 

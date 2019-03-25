@@ -1,7 +1,7 @@
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
-import { LIMIT_FILE_SIZE_M, ACCEPTED_UPLOAD_FILE_TYPES } from 'common/Config';
+import { LIMIT_FILE_SIZE_M, ACCEPTED_UPLOAD_FILE_TYPES } from 'common/Constants';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
@@ -14,7 +14,7 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
-export class AdminTemplateTS extends Vue {
+export class QualificationTemplateTS extends Vue {
     // #region -- referred props and methods by this page
     private readonly filePostParam: FileUploadParam = new FileUploadParam();
     private qualificationFileTypes: string[] = ACCEPTED_UPLOAD_FILE_TYPES;
@@ -29,7 +29,7 @@ export class AdminTemplateTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.filePostParam.scenario = FileAPIScenario.UploadRegisterProtocol;
+        this.filePostParam.scenario = FileAPIScenario.UploadQualificationTemplate;
     }
     // #endregion
 

@@ -86,7 +86,10 @@ export class TaskDetailInTableTS extends Vue {
         return (this.averageStar / 5 * 100).toFixed(1);
     }
     private paymentToExecutor(): number {
-        return FeeCalculator.calcPaymentToExecutor(this.targetTask);
+        return FeeCalculator.calcPaymentToExecutor(
+            this.targetTask.reward as number,
+            this.targetTask.proposedMargin as number,
+            this.targetTask.executorReceiptRequired as ReceiptState);
     }
     private get isTaskExecutor(): boolean {
         return this.dataProp.executorUid === this.storeState.sessionInfo.uid;
@@ -144,10 +147,14 @@ export class TaskDetailInTableTS extends Vue {
         this.averageStar = ((this.targetTask.adminSatisfiedStar as number) +
             (this.targetTask.publisherResultSatisfactionStar as number) +
             (this.targetTask.publisherVisitStar as number)) / 3;
-        (async () => {
-            this.taskPublisher = await StoreUtils.$$getUserById(this.store, currentValue.publisherUid as string) || {};
-            this.taskExecutor = await StoreUtils.$$getUserById(this.store, currentValue.applicantUid as string) || {};
-        })();
+        if (this.isAdmin) {
+            (async () => {
+                this.taskPublisher = await StoreUtils.$$getUserById(
+                    this.store, currentValue.publisherUid as string) || {};
+                this.taskExecutor = await StoreUtils.$$getUserById(
+                    this.store, currentValue.applicantUid as string) || {};
+            })();
+        }
     }
     // #endregion
 

@@ -11,29 +11,35 @@ import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserView } from 'common/responseResults/UserView';
 import { Commit } from 'vuex';
-function handleImageUploadSucess(uploadScenario: FileAPIScenario, commit: Commit, userView: UserView) {
+import { TaskView } from 'common/responseResults/TaskView';
+function handleImageUploadSucess(uploadScenario: FileAPIScenario, commit: Commit, userView: UserView | TaskView) {
     (async () => {
         switch (uploadScenario) {
             case FileAPIScenario.UploadAuthLetter:
                 userView.authLetterUrl = '';
+                commit(StoreMutationNames.sessionInfoPropUpdate, userView);
                 break;
             case FileAPIScenario.UploadUserBackId:
                 userView.backIdUrl = '';
+                commit(StoreMutationNames.sessionInfoPropUpdate, userView);
                 break;
             case FileAPIScenario.UploadUserFrontId:
                 userView.frontIdUrl = '';
+                commit(StoreMutationNames.sessionInfoPropUpdate, userView);
                 break;
             case FileAPIScenario.UploadLicense:
                 userView.licenseUrl = '';
+                commit(StoreMutationNames.sessionInfoPropUpdate, userView);
                 break;
             case FileAPIScenario.UploadLicenseWithPerson:
                 userView.licenseWithPersonUrl = '';
+                commit(StoreMutationNames.sessionInfoPropUpdate, userView);
                 break;
             case FileAPIScenario.UploadUserLogo:
                 userView.logoUrl = '';
+                commit(StoreMutationNames.sessionInfoPropUpdate, userView);
                 break;
         }
-        commit(StoreMutationNames.sessionInfoPropUpdate, userView);
     })();
 }
 export const actions = {

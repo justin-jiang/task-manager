@@ -72,9 +72,9 @@ export class TaskFormTS extends Vue {
 
     // #region -- reference by template
     private readonly taskFormRefName: string = 'taskForm';
-    private taskDataForForm: TaskView = {};
+    private orignTaskData: TaskView = {};
     private isSubmitting: boolean = false;
-    private formData: IFormTaskData = {
+    private nullFormData: IFormTaskData = {
         address: '',
         city: '',
         companyContact: '',
@@ -83,7 +83,7 @@ export class TaskFormTS extends Vue {
         contactEmail: '',
         deadline: Date.now(),
         district: '',
-        executorTypes: [],
+        executorTypes: [UserType.Individual, UserType.Corp],
         minExecutorStar: 0,
         name: '',
         note: '',
@@ -94,6 +94,7 @@ export class TaskFormTS extends Vue {
         // the following props are only for validation
         area: false,
     };
+    private formData: IFormTaskData = Object.assign({}, this.nullFormData);
     private readonly formRules: any = {
         name: [
             { required: true, message: '请输入任务名称', trigger: 'blur' },
@@ -270,10 +271,10 @@ export class TaskFormTS extends Vue {
         return getPropKeys(this.getTaskEditParam()).length > 0;
     }
     private onProvinceChanged(): void {
-        this.formData.city = this.cities[0];
+        this.formData.city = this.cities[0] || '';
     }
     private onCityChanged(): void {
-        this.formData.district = this.districts[0];
+        this.formData.district = this.districts[0] || '';
     }
     private onSave(): void {
         (this.$refs[this.taskFormRefName] as any).validate((valid: boolean) => {
@@ -331,7 +332,11 @@ export class TaskFormTS extends Vue {
         });
     }
     private onReset(): void {
-        Object.assign(this.formData, this.taskDataForForm);
+        if (this.isCreate) {
+            Object.assign(this.formData, this.nullFormData);
+        } else {
+            Object.assign(this.formData, this.orignTaskData);
+        }
         setTimeout(() => {
             if (this.$refs[this.taskFormRefName] != null) {
                 (this.$refs[this.taskFormRefName] as any).clearValidate();
@@ -339,14 +344,34 @@ export class TaskFormTS extends Vue {
         }, 0);
     }
     private onCancel(): void {
-        this.$emit(EventNames.Cancel);
+        if (this.isDataChanged) {
+            const confirm = this.$confirm(
+                '确实要放弃修改吗？',
+                '提示', {
+                    confirmButtonText: '确定',
+                    type: 'warning',
+                    center: true,
+                    closeOnClickModal: false,
+                });
+            confirm.then(() => {
+                this.$emit(EventNames.Cancel);
+            }).catch(() => {
+                // do nothing for cancel
+            });
+        } else {
+            this.$emit(EventNames.Cancel);
+        }
     }
     // #endregion
 
     // #region Vue life-circle method
     private mounted(): void {
-        this.taskDataForForm = this.taskProp || {};
-        Object.assign(this.formData, this.taskDataForForm);
+        this.orignTaskData = Object.assign({}, this.taskProp);
+        if (this.isCreate) {
+            Object.assign(this.formData, this.nullFormData);
+        } else {
+            Object.assign(this.formData, this.orignTaskData);
+        }
     }
     // #endregion
     // region -- internal props and methods
@@ -355,16 +380,16 @@ export class TaskFormTS extends Vue {
     @Watch('taskProp', { immediate: true })
     private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
         if (currentValue != null && !CommonUtils.isNullOrEmpty(currentValue.uid)) {
-            this.taskDataForForm = currentValue;
+            this.orignTaskData = currentValue;
         } else {
-            this.taskDataForForm = new TaskView(true);
+            this.orignTaskData = Object.assign({}, this.nullFormData);
         }
         this.onReset();
     }
 
     @Watch('formData.city', { immediate: true })
     private onCityValueChanged(currentValue: string, previousValue: string) {
-        this.formData.district = this.districts[0];
+        this.formData.district = this.districts[0] || '';
     }
 
     private getTaskCreateParam(): TaskCreateParam {
@@ -372,13 +397,14 @@ export class TaskFormTS extends Vue {
     }
     private getTaskEditParam(): TaskBasicInfoEditParam {
         const reqParam = new TaskBasicInfoEditParam();
-        Object.keys(this.taskDataForForm).forEach((item) => {
-            if (this.taskDataForForm[item] !== (this.formData as any)[item]) {
+        Object.keys(this.orignTaskData).forEach((item) => {
+            if ((this.formData as any)[item] !== undefined &&
+                this.orignTaskData[item] !== (this.formData as any)[item]) {
                 (reqParam as any)[item] = (this.formData as any)[item];
             }
         });
         if (Object.keys(reqParam).length > 0) {
-            reqParam.uid = this.taskDataForForm.uid;
+            reqParam.uid = this.orignTaskData.uid;
         }
         return reqParam;
     }
@@ -388,7 +414,7 @@ export class TaskFormTS extends Vue {
             // for new creation
             const reqParam = this.getTaskCreateParam();
             apiResult = await this.store.dispatch(
-                StoreActionNames.taskCreation, {
+                StoreActionNames.taskCreate, {
                     data: reqParam,
                 } as IStoreActionArgs);
         } else {
@@ -399,7 +425,7 @@ export class TaskFormTS extends Vue {
                     this.$message.warning('没有修改任何属性');
                 } else {
                     apiResult.code = ApiResultCode.Success;
-                    apiResult.data = this.taskDataForForm;
+                    apiResult.data = this.orignTaskData;
                 }
                 return apiResult;
             }

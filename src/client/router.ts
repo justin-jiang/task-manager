@@ -39,7 +39,7 @@ export default new Router({
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`,
           name: RouterName.Admin_Template,
-          component: () => import('./views/AdminTemplateVue.vue'),
+          component: () => import('./views/QualificationTemplateVue.vue'),
         },
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Protocol}`,

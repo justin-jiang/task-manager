@@ -125,7 +125,7 @@
             <el-input v-model="formData.bankAccountNumber"></el-input>
           </el-form-item>
 
-           <el-form-item
+          <el-form-item
             label="开户行联行号"
             prop="linkBankAccountNumber"
           >

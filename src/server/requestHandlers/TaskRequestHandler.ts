@@ -4,7 +4,6 @@ import { CommonUtils } from 'common/CommonUtils';
 import { IQueryConditions } from 'common/IQueryConditions';
 import { NotificationType } from 'common/NotificationType';
 import { ReceiptState } from 'common/ReceiptState';
-import { FileRemoveParam } from 'common/requestParams/FileRemoveParam';
 import { TaskApplyParam } from 'common/requestParams/TaskApplyParam';
 import { TaskApplyRemoveParam } from 'common/requestParams/TaskApplyRemoveParam';
 import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
@@ -28,8 +27,6 @@ import { TaskApplicationObject } from 'server/dataObjects/TaskApplicationObject'
 import { TaskObject } from 'server/dataObjects/TaskObject';
 import { UserNotificationObject } from 'server/dataObjects/UserNotificationObject';
 import { UserObject } from 'server/dataObjects/UserObject';
-import { LoggerManager } from 'server/libsWrapper/LoggerManager';
-import { FileRequestHandler } from 'server/requestHandlers/FileRequestHandler';
 import { NotificationRequestHandler } from './NotificationRequestHandler';
 import { RequestUtils } from './RequestUtils';
 
@@ -45,7 +42,8 @@ export class TaskRequestHandler {
         RequestUtils.readyPublisherCheck(currentUser);
 
         // only pickup params which appear in TaskCreateParam
-        let dbObj: TaskObject = RequestUtils.pickUpKeysByModel(reqParam, new TaskCreateParam(true));
+        let dbObj: TaskObject = RequestUtils.pickUpPropsByModel(
+            reqParam, new TaskCreateParam(true), true);
         dbObj.uid = CommonUtils.getUUIDForMongoDB();
         dbObj.createTime = Date.now();
         dbObj.publisherUid = currentUser.uid;
@@ -91,6 +89,10 @@ export class TaskRequestHandler {
             // for publisher, only can query task published by current user
             queryCondition.$or = [];
             queryCondition.$or.push({ publisherUid: currentUser.uid } as TaskObject);
+        } else {
+            // for admin, don't return the task whose state is Created
+            queryCondition.$or = [];
+            queryCondition.$or.push({ state: { $ne: TaskState.Created } as any } as TaskObject);
         }
 
         return await TaskRequestHandler.$$find(queryCondition, currentUser);
@@ -131,30 +133,20 @@ export class TaskRequestHandler {
      * @param currentUser 
      */
     public static async $$remove(reqParam: TaskRemoveParam, currentUser: UserObject): Promise<TaskView> {
-        let resultFileUid: string | undefined;
-        let publisherUid: string | undefined;
-        const dbObj: TaskObject | null = await TaskModelWrapper.$$findOne(
-            { uid: reqParam.uid } as TaskObject) as TaskObject;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound, `task id:${reqParam.uid}`);
-        }
-        resultFileUid = dbObj.resultFileUid;
-        publisherUid = dbObj.publisherUid;
+        let publisherUid: string;
+        const dbObj = await RequestUtils.$$taskStateCheck(reqParam.uid as string);
 
-        // only admin or ownered publisher can remove task
-        if (!CommonUtils.isAdmin(currentUser) && currentUser.uid !== publisherUid) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
+        // task state check: only Created, Submitted state can be deleted
+        if (dbObj.state !== TaskState.Created && dbObj.state !== TaskState.Submitted) {
+            throw new ApiError(ApiResultCode.Logic_Task_State_Not_Matched);
         }
+        publisherUid = dbObj.publisherUid as string;
 
-        if (resultFileUid != null) {
-            const fileDeleteParam: FileRemoveParam = {
-                fileId: resultFileUid,
-            } as FileRemoveParam;
-            LoggerManager.debug(`delete all result files of task:${reqParam.uid}`);
-            await FileRequestHandler.$$deleteOne(fileDeleteParam);
+        // only  ownered publisher can remove task
+        if (currentUser.uid !== publisherUid) {
+            throw new ApiError(ApiResultCode.Auth_Not_Task_Publisher_Onwer,
+                `current user is not owner of taskUid:${dbObj.uid}`);
         }
-        // remove task apply record
-        await TaskApplicationModelWrapper.$$deleteOne({ taskUid: reqParam.uid } as TaskApplicationObject);
 
         // remove task
         await TaskModelWrapper.$$deleteOne({ uid: dbObj.uid } as TaskObject);
@@ -177,7 +169,8 @@ export class TaskRequestHandler {
             throw new ApiError(ApiResultCode.InputInvalidParam, 'TaskBasicInfoEditParam.uid');
         }
 
-        const updatedProps: TaskObject = RequestUtils.pickUpKeysByModel(reqParam, new TaskBasicInfoEditParam(true));
+        const updatedProps: TaskObject = RequestUtils.pickUpPropsByModel(
+            reqParam, new TaskBasicInfoEditParam(true), true);
         if (Object.keys(updatedProps).length === 0) {
             throw new ApiError(ApiResultCode.InputInvalidParam, 'TaskBasicInfoEditParam');
         }
@@ -219,6 +212,42 @@ export class TaskRequestHandler {
     }
 
     /**
+     * Executor applies specified task
+     * @param reqParam 
+     * @param currentUser 
+     */
+    public static async $$apply(reqParam: TaskApplyParam, currentUser: UserObject): Promise<TaskView> {
+        // only ready executor can apply task
+        RequestUtils.readyExecutorCheck(currentUser);
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(reqParam.uid as string, TaskState.ReadyToApply);
+
+        // here the TaskApplicationModel likes a locker, only the one who creates it successfully
+        // can apply the task
+        const taskAppObj: TaskApplicationObject = new TaskApplicationObject();
+        taskAppObj.uid = CommonUtils.getUUIDForMongoDB();
+        taskAppObj.taskUid = dbObj.uid;
+        taskAppObj.applicantUid = currentUser.uid;
+        await TaskApplicationModelWrapper.$$create(taskAppObj);
+
+        // update task props
+        const allUpdatedProps: TaskObject = new TaskObject();
+        allUpdatedProps.uid = reqParam.uid as string;
+        allUpdatedProps.templateFileUid = currentUser.uid;
+        allUpdatedProps.state = TaskState.Applying;
+        allUpdatedProps.applicantUid = currentUser.uid;
+        allUpdatedProps.applyingDatetime = Date.now();
+
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+
+        await TaskModelWrapper.$$addHistoryItem(
+            dbObj.uid as string,
+            allUpdatedProps.state,
+            CommonUtils.getStepTitleByTaskState(allUpdatedProps.state));
+        Object.assign(dbObj, allUpdatedProps);
+        return await this.$$convertToDBView(dbObj);
+    }
+
+    /**
      * used by admin to audit the task info
      * @param reqParam 
      * @param currentUser 
@@ -250,40 +279,7 @@ export class TaskRequestHandler {
             { depositAuditState: CheckState.FailedToCheck, depositAuditNote: reqParam.note } as TaskObject);
     }
 
-    /**
-     * Executor applies specified task
-     * @param reqParam 
-     * @param currentUser 
-     */
-    public static async $$apply(reqParam: TaskApplyParam, currentUser: UserObject): Promise<TaskView> {
-        // only ready executor can apply task
-        RequestUtils.readyExecutorCheck(currentUser);
-        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(reqParam.uid as string, TaskState.ReadyToApply);
 
-        // here the TaskApplicationModel likes a locker, only the one who creates it successfully
-        // can apply the task
-        const taskAppObj: TaskApplicationObject = new TaskApplicationObject();
-        taskAppObj.uid = CommonUtils.getUUIDForMongoDB();
-        taskAppObj.taskUid = dbObj.uid;
-        taskAppObj.applicantUid = currentUser.uid;
-        await TaskApplicationModelWrapper.$$create(taskAppObj);
-
-        // update task props
-        const dbObjWithUpdatedProps: TaskObject = new TaskObject();
-        dbObjWithUpdatedProps.uid = reqParam.uid as string;
-        dbObjWithUpdatedProps.templateFileUid = currentUser.uid;
-        dbObjWithUpdatedProps.state = TaskState.Applying;
-        dbObjWithUpdatedProps.applicantUid = currentUser.uid;
-
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, dbObjWithUpdatedProps);
-
-        await TaskModelWrapper.$$addHistoryItem(
-            dbObj.uid as string,
-            dbObjWithUpdatedProps.state,
-            CommonUtils.getStepTitleByTaskState(dbObjWithUpdatedProps.state));
-        Object.assign(dbObj, dbObjWithUpdatedProps);
-        return await this.$$convertToDBView(dbObj);
-    }
     /**
      * used by executor to release the task apply
      * @param reqParam 
@@ -336,7 +332,7 @@ export class TaskRequestHandler {
             reqParam,
             TaskState.MarginUploaded /* expected state */,
             TaskState.Assigned /* target approve state, decided in method */,
-            reqParam.state as TaskState /* target deny state */,
+            TaskState.ExecutorAuditDenied /* target deny state */,
             TaskState.ReadyToApply /* go back state*/,
             { executorAuditState: CheckState.Checked } as TaskObject /* updated props after approve*/,
             {
@@ -358,7 +354,7 @@ export class TaskRequestHandler {
             reqParam,
             TaskState.MarginUploaded /* expected state */,
             TaskState.Assigned /* target approve state, decided in method */,
-            reqParam.state as TaskState /* target deny state */,
+            TaskState.MarginAuditDenied /* target deny state */,
             TaskState.Applying /* go back state*/,
             { marginAditState: CheckState.Checked } as TaskObject /* updated props after approve*/,
             {
@@ -458,33 +454,54 @@ export class TaskRequestHandler {
             TaskState.PublisherVisited /* target approve state */,
             TaskState.None /* target deny state */,
             TaskState.None /* go back state*/,
-            RequestUtils.pickUpKeysByModel(
-                reqParam, new TaskPublisherVisitParam(true)) /* updated props after approve*/,
+            RequestUtils.pickUpPropsByModel(
+                reqParam, new TaskPublisherVisitParam(true), true) /* updated props after approve*/,
             {} as TaskObject /* updated props after deny*/);
     }
 
     /**
-     * used by admin to abandon the receipt from executor
+     * used by admin to give up the receipt from executor
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$receiptDeny(reqParam: TaskExecutorReceiptUploadParam, currentUser: UserObject) {
+    public static async $$executorReceiptNotRequired(
+        reqParam: TaskExecutorReceiptUploadParam, currentUser: UserObject) {
+        // param check
+        if (CommonUtils.isNullOrEmpty(reqParam.executorReceiptNote)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, 'executorReceiptNote cannot be null');
+        }
+        // user check
         RequestUtils.adminCheck(currentUser);
-        const auditParam: TaskAuditParam = {
-            auditState: CheckState.Checked,
-            uid: reqParam.uid,
-        };
-        return await this.$$taskAudit(
-            auditParam,
-            TaskState.PublisherVisited /* expected state */,
-            TaskState.ExecutorPaid /* target approve state */,
-            TaskState.None /* target deny state */,
-            TaskState.None /* go back state*/,
-            {
-                executorReceiptNote: reqParam.executorReceiptNote,
-                executorReceiptRequired: ReceiptState.NotRequired,
-            } as TaskObject /* updated props after approve*/,
-            {} as TaskObject /* updated props after deny*/);
+
+        // task check
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
+            reqParam.uid as string, TaskState.PublisherVisited);
+        const allUpdatedProps: TaskObject = new TaskObject();
+
+        // if receipt state has been set in PayToExecutor, we should keep the state consistence
+        // here we expect the state should be NotRequired
+        if (dbObj.executorReceiptRequired === ReceiptState.Required) {
+            throw new ApiError(ApiResultCode.Logic_Receipt_State_Not_Matched);
+        }
+        allUpdatedProps.executorReceiptRequired = ReceiptState.NotRequired;
+        allUpdatedProps.executorReceiptNote = reqParam.executorReceiptNote;
+        // here only both receipt upload(or NotRequired) and executor payment done, 
+        // we can set the TaskState.ExecutorPaid
+        if (!CommonUtils.isNullOrEmpty(dbObj.payToExecutorImageUid)) {
+            allUpdatedProps.state = TaskState.ExecutorPaid;
+        }
+
+        await TaskModelWrapper.$$updateOne(
+            { uid: dbObj.uid } as TaskObject, allUpdatedProps);
+        // add history item
+        if (allUpdatedProps.state === TaskState.ExecutorPaid) {
+            await TaskModelWrapper.$$addHistoryItem(
+                dbObj.uid as string,
+                TaskState.ExecutorPaid,
+                CommonUtils.getStepTitleByTaskState(TaskState.ExecutorPaid));
+        }
+        Object.assign(dbObj, allUpdatedProps);
+        return await this.$$convertToDBView(dbObj);
     }
     // #endregion
 

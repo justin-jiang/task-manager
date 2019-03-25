@@ -142,7 +142,11 @@ export class TaskProgressDialogTS extends Vue {
         }
     }
     private getStepDescription(step: TaskHistoryItem): string {
-        return step.description || '';
+        if (CommonUtils.isNullOrEmpty(step.description)) {
+            return '';
+        } else {
+            return `原因：${step.description}`;
+        }
     }
     private onClosed(): void {
         this.$emit(EventNames.Closed);

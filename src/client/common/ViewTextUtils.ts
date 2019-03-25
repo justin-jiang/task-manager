@@ -44,7 +44,6 @@ export class ViewTextUtils {
             case TaskState.Created:
                 return '待提交';
             case TaskState.Submitted:
-            case TaskState.InfoPassed:
                 return '待托管';
             case TaskState.DepositUploaded:
                 return '待发布';
@@ -67,47 +66,6 @@ export class ViewTextUtils {
             case TaskState.ExecutorPaid:
             case TaskState.ReceiptUploaded:
                 return '已完结';
-            default:
-                return '未知';
-        }
-    }
-
-    public static getTaskStateTextInProgress(state: TaskState): string {
-        switch (state) {
-            case TaskState.Created:
-                return '创建任务';
-            case TaskState.Submitted:
-                return '任务信息已提交，等待平台审核任';
-            case TaskState.InfoPassed:
-                return '任务信息已通过审核，等待提交托管金';
-            case TaskState.DepositUploaded:
-                return '托管金已提交，等待平台审核';
-            case TaskState.ReadyToApply:
-                return '任务托管成功，等待雇员申请';
-            case TaskState.Applying:
-                return '已有雇员申请，等待投保';
-            case TaskState.MarginUploaded:
-                return '雇员资质审核中';
-            case TaskState.Assigned:
-                return '等待任务交付';
-            case TaskState.ResultUploaded:
-                return '任务结果审核中';
-            case TaskState.ResultAudited:
-                return '等待雇主验收';
-            case TaskState.ResultChecked:
-                return '雇主回访中';
-            case TaskState.PublisherVisited:
-                return '雇员佣金支付中';
-            case TaskState.ExecutorPaid:
-                return '发票入账中';
-            case TaskState.ReceiptUploaded:
-                return '已完结';
-            case TaskState.InfoAuditDenied:
-                return '任务内容审核被拒绝';
-            case TaskState.DepositAuditDenied:
-                return '托管资金审核被拒绝';
-            case TaskState.ApplyReleased:
-                return '任务申请被释放';
             default:
                 return '未知';
         }

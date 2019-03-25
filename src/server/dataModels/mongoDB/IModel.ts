@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
-import * as Constants from 'common/Config';
+import * as Constants from 'common/Constants';
 export const BaseSchemaDef = {
     uid: { type: String, required: true, index: { unique: true } },
     dataV: { type: String, default: Constants.ProductVersion },

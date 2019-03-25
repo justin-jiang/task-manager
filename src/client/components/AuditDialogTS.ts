@@ -21,7 +21,7 @@ export class AuditDialogTS extends Vue {    // #region -- component props and me
     @Prop() public titleProp!: string;
     @Prop() public visibleProp!: string;
     @Prop() public widthProp!: string;
-    @Prop() public usageSenario!: UsageScenario;
+    @Prop() public usageScenarioProp!: UsageScenario;
     // #endregion
 
     // #region -- refered by this Vue Template
@@ -41,7 +41,7 @@ export class AuditDialogTS extends Vue {    // #region -- component props and me
             (this.auditState === CheckState.FailedToCheck && !CommonUtils.isNullOrEmpty(this.auditNote));
     }
     private get isFundAudit(): boolean {
-        return this.usageSenario === UsageScenario.Fund;
+        return this.usageScenarioProp === UsageScenario.Fund;
     }
     private onSubmit(): void {
         this.$emit(EventNames.Submit,

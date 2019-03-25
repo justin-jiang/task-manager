@@ -1,4 +1,5 @@
 <template>
+  <!-- Used by publisher to manage the template -->
   <div>
     <el-row>
       <el-col :span="4">

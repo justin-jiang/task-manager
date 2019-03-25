@@ -60,21 +60,56 @@ export class CommonUtils {
             case TaskState.MarginUploaded:
                 return '雇员完成保证金缴纳';
             case TaskState.Assigned:
-                return '平台完成任务申请审核';
+                if (actualState == null) {
+                    return '平台方完成任务申请审核';
+                } else if (expectedState === actualState) {
+                    return '平台方完成任务申请审核，任务委托“通过”';
+                } else {
+                    return '平台方完成任务申请审核，任务发布“被拒绝”';
+                }
             case TaskState.ResultUploaded:
                 return '雇员完成尽职调查内容，提交尽调结果';
             case TaskState.ResultAudited:
-                return '平台完成尽调结果审核';
+                if (actualState == null) {
+                    return '平台方完成尽调结果审核';
+                } else if (expectedState === actualState) {
+                    return '平台方完成尽调结果审核，初验“通过”';
+                } else {
+                    return '平台方完成尽调结果审核，初验“被拒绝”';
+                }
             case TaskState.ResultChecked:
-                return '雇主完成尽调结果审核';
+                if (actualState == null) {
+                    return '雇主完成尽调结果审核';
+                } else if (expectedState === actualState) {
+                    return '雇主完成尽调结果审核，终验“通过”';
+                } else {
+                    return '雇主完成尽调结果审核，终验“被拒绝”';
+                }
             case TaskState.PublisherVisited:
-                return '平台完成尽调任务回访';
+                return '平台方完成尽调任务回访';
             case TaskState.ExecutorPaid:
-                return '平台完成任务支付，任务完结';
+                return '平台方完成任务支付，任务完结';
 
-            case TaskState.ApplyQualificationAuditDenied:
-            return ''
-                break;
+            case TaskState.Created:
+                return '雇主创建任务';
+            case TaskState.ApplyReleased:
+                return '雇员释放任务';
+            case TaskState.InfoAuditDenied:
+                return '任务信息平台审核：失败';
+            case TaskState.DepositAuditDenied:
+                return '任务托管资金平台审核：失败';
+            case TaskState.DepositRefund:
+                return '托管金退款';
+            case TaskState.ExecutorAuditDenied:
+                return '任务雇员资质平台审核：失败';
+            case TaskState.MarginAuditDenied:
+                return '任务保证金平台审核：失败';
+            case TaskState.MarginRefund:
+                return '保证金退款';
+            case TaskState.ResultAuditDenied:
+                return '任务尽调结果平台审核：失败';
+            case TaskState.ResultCheckDenied:
+                return '任务尽调结果雇主验收：失败';
             default:
                 return '未知步骤';
         }

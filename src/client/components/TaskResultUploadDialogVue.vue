@@ -41,7 +41,7 @@
 
 <script lang="ts">
 import { TaskResultUploadDialogTS } from "./TaskResultUploadDialogTS";
-export default class TaskApplyCheckDialogVue extends TaskResultUploadDialogTS {}
+export default class TaskResultUploadDialogVue extends TaskResultUploadDialogTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

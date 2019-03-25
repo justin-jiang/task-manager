@@ -7,6 +7,9 @@ import { TaskObject } from 'server/dataObjects/TaskObject';
 import { MongoDBModelManager } from 'server/dbDrivers/mongoDB/MongoDBModelManager';
 import { TaskState } from 'common/TaskState';
 import { TaskHistoryItem } from 'common/TaskHistoryItem';
+import { ArgsParser } from 'server/common/ArgsParser';
+import { TaskApplicationModelWrapper } from './TaskApplicationModelWrapper';
+import { TaskApplicationObject } from 'server/dataObjects/TaskApplicationObject';
 
 export class TaskModelWrapper extends BaseModelWrapper {
 
@@ -17,6 +20,19 @@ export class TaskModelWrapper extends BaseModelWrapper {
         // create case-insensitive name index
         await model.collection.createIndex({ name: 1 },
             { unique: true, collation: this.caseInsensitiveCollation, name: 'name_1_collation' } as any);
+    }
+
+    public static async $$releaseTasksWithoutMargin(): Promise<void> {
+        const deadline: number = Date.now() - ArgsParser.getApplyingDeadline();
+        // remove expired items from taskApplication collection
+        await TaskApplicationModelWrapper.$$deleteMany(
+            { createTime: { $lte: deadline } as any } as TaskApplicationObject);
+
+        // update the expired items to be ReadyToApplyState
+        await this.$$updateMany({
+            state: TaskState.Applying,
+            applyingDatetime: { $lte: deadline } as any,
+        } as TaskObject, { applicantUid: '', state: TaskState.ReadyToApply } as TaskObject);
     }
     public static async $$addHistoryItem(
         uid: string, state: TaskState, title: string, description?: string): Promise<void> {

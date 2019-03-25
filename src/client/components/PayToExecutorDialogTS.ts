@@ -32,10 +32,11 @@ export class PayToExecutorDialogTS extends Vue {
 
     // #region -- referred props and methods by page template
     private readonly imageUploaderRefName: string = 'imageUploader';
-    private readonly NO_RECEIPT: number = 0;
+    private readonly labelOfNoReceipt: number = ReceiptState.NotRequired;
+    private readonly labelOfReceipt: number = ReceiptState.Required;
     private targetTaskView: TaskView = {};
     private targetTaskExecutorView: UserView = {};
-    private receiptRequired: number = this.NO_RECEIPT;
+    private receiptRequired: number = this.labelOfNoReceipt;
     private uploadParam: FileUploadParam = {
         scenario: FileAPIScenario.UploadTaskExecutorPay,
     };
@@ -54,7 +55,10 @@ export class PayToExecutorDialogTS extends Vue {
         return this.targetTaskView.proposedMargin || 0;
     }
     private get payableFee(): number {
-        return FeeCalculator.calcPaymentToExecutor(this.targetTaskView);
+        return FeeCalculator.calcPaymentToExecutor(
+            this.targetTaskView.reward as number,
+            this.targetTaskView.proposedMargin as number,
+            this.receiptRequired as ReceiptState);
     }
 
     private get isImageReady(): boolean {
@@ -88,16 +92,22 @@ export class PayToExecutorDialogTS extends Vue {
     private get contactEmail(): string {
         return this.targetTaskExecutorView.email || '';
     }
+    private get isReceiptStatNone(): boolean {
+        return this.targetTaskView.executorReceiptRequired == null ||
+            this.targetTaskView.executorReceiptRequired === ReceiptState.None;
+    }
     private onSubmit(): void {
-        this.uploadParam.optionData = new TaskPayToExecutorImageUploadParam(true);
-        this.uploadParam.optionData.uid = this.targetTaskView.uid;
+        const reqOptionParam = new TaskPayToExecutorImageUploadParam();
+        reqOptionParam.uid = this.targetTaskView.uid;
+        reqOptionParam.executorReceiptRequired = this.receiptRequired;
+        this.uploadParam.optionData = reqOptionParam;
         (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).submit();
     }
     private onCancel(): void {
         this.$emit(EventNames.Cancel);
     }
     private onImageChanged(): void {
-        this.isImageChanged = true;
+        this.isImageChanged = (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).isChanged();;
     }
     private onImageReset(): void {
         this.isImageChanged = false;
@@ -125,7 +135,7 @@ export class PayToExecutorDialogTS extends Vue {
     @Watch('taskProp', { immediate: true })
     private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
         this.targetTaskView = currentValue || {};
-        this.receiptRequired = currentValue.executorReceiptRequired || this.NO_RECEIPT;
+        this.receiptRequired = currentValue.executorReceiptRequired || this.labelOfNoReceipt;
         if (this.$refs[this.imageUploaderRefName] != null) {
             (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).reset();
         }

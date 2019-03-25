@@ -5,6 +5,7 @@ export class TaskFullCommon extends TaskBasicCommon {
     public address?: string;
     public adminSatisfiedStar?: number;
     public applicantUid?: string;
+    public applyingDatetime?: number;
     public companyContact?: string;
     public companyName?: string;
     public contactPhone?: string;
@@ -56,6 +57,7 @@ export class TaskFullCommon extends TaskBasicCommon {
             this.address = '';
             this.adminSatisfiedStar = 0;
             this.applicantUid = '';
+            this.applyingDatetime = 0;
 
             this.companyContact = '';
             this.companyName = '';

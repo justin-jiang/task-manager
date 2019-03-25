@@ -1,4 +1,5 @@
 <template>
+  <!-- used by publisher to upload the deposit image -->
   <el-dialog
     width="430px"
     custom-class="dialog-deposit"
@@ -11,11 +12,17 @@
       class="row-item row-item-icon"
       slot="title"
     >
-      <el-col :span="24">
+      <el-col :span="10">
         <img
           class="img-logo-cash"
           src="../assets/logo_cashRegister.png"
         />
+      </el-col>
+      <el-col
+        :span="14"
+        class="col-title"
+      >
+        托管金支付
       </el-col>
     </el-row>
     <el-row class="row-item row-item-title">
@@ -28,10 +35,10 @@
     </el-row>
     <el-row class="row-item">
       <el-col :span="6">
-        任务金额￥：
+        任务金额：
       </el-col>
       <el-col :span="4">
-        {{taskReward}}
+        ￥{{taskReward}}
       </el-col>
       <el-col :span="6">
         手续费￥：
@@ -43,7 +50,7 @@
     <el-row class="row-item">
       <el-col
         :span="12"
-        style="margin-right:10px"
+        class="col-receipt-radio"
       >
         <el-radio-group
           v-model="receiptRequired"
@@ -54,10 +61,16 @@
         </el-radio-group>
       </el-col>
 
-      <el-col :span="6">
+      <el-col
+        :span="6"
+        class="col-payment-label"
+      >
         应付金额：
       </el-col>
-      <el-col :span="4">
+      <el-col
+        :span="4"
+        class="col-payment"
+      >
         ￥{{taskTotalFee}}
       </el-col>
     </el-row>
@@ -132,7 +145,7 @@
     >
       <el-col :span="24">
         <SingleImageUploaderVue
-          :ref="depositUploaderRefName"
+          :ref="imageUploaderRefName"
           :filePostParamProp="depositUploadParam"
           :noCropProp="true"
           :imageUidProp="depositUid"
@@ -150,7 +163,7 @@
           type="primary"
           size="small"
           plain
-          @click="onCancelled()"
+          @click="onCancel()"
         >取消</el-button>
         <el-button
           size="small"
@@ -174,6 +187,21 @@ export default class DepositDialogVue extends DepositDialogTS {}
 .row-item {
   margin-bottom: 15px;
   text-align: left;
+  .col-title {
+    margin-top: 7px;
+    font-size: 20px;
+  }
+  .col-payment {
+    color: red;
+    font-size: 18px;
+  }
+  .col-receipt-radio {
+    margin-top: 4px;
+    margin-right: 10px;
+  }
+  .col-payment-label {
+    margin-top: 3px;
+  }
 }
 .row-item-icon {
   margin-bottom: 10px;

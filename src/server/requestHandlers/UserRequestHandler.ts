@@ -99,7 +99,8 @@ export class UserRequestHandler {
      */
     public static async $$basicInfoEdit(
         reqParam: UserBasicInfoEditParam, currentUser: UserObject): Promise<UserView> {
-        const updatedProps: UserObject = RequestUtils.pickUpKeysByModel(reqParam, new UserBasicInfoEditParam(true));
+        const updatedProps: UserObject = RequestUtils.pickUpPropsByModel(
+            reqParam, new UserBasicInfoEditParam(true), true);
         const updatedKeys = Object.keys(updatedProps);
         if (updatedKeys.length > 0) {
             updatedProps.idState = CheckState.ToBeChecked;
@@ -116,7 +117,8 @@ export class UserRequestHandler {
      */
     public static async $$accountInfoEdit(
         reqParam: UserAccountInfoEditParam, currentUser: UserObject): Promise<UserView> {
-        const updatedProps: UserObject = RequestUtils.pickUpKeysByModel(reqParam, new UserAccountInfoEditParam(true));
+        const updatedProps: UserObject = RequestUtils.pickUpPropsByModel(
+            reqParam, new UserAccountInfoEditParam(true), true);
         const updatedKeys = Object.keys(updatedProps);
         if (updatedKeys.length > 0) {
             await UserModelWrapper.$$updateOne({ uid: currentUser.uid } as UserObject, updatedProps);
@@ -213,9 +215,9 @@ export class UserRequestHandler {
         }
         let updatedProps: UserObject = {};
         if ((reqParam as UserIdCheckParam).idState != null) {
-            updatedProps = RequestUtils.pickUpKeysByModel(reqParam, new UserIdCheckParam(true));
+            updatedProps = RequestUtils.pickUpPropsByModel(reqParam, new UserIdCheckParam(true), true);
         } else {
-            updatedProps = RequestUtils.pickUpKeysByModel(reqParam, new UserQualificationCheckParam(true));
+            updatedProps = RequestUtils.pickUpPropsByModel(reqParam, new UserQualificationCheckParam(true), true);
         }
 
         if (Object.keys(updatedProps).length > 0) {

@@ -21,12 +21,14 @@ import { UserView } from 'common/responseResults/UserView';
 import { TaskState } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import TaskTableVue from 'client/components/TaskTableVue.vue';
 const compToBeRegistered: any = {
     SingleFileUploadVue,
     TaskDetailInTableVue,
     MarginDialogVue,
     TaskProgressDialogVue,
     TaskResultUploadDialogVue,
+    TaskTableVue,
 };
 
 @Component({
@@ -84,7 +86,7 @@ export class ExecutorTaskTS extends Vue {
     private onRewardChanged(value: number): void {
         switch (value) {
             case 0:
-                this.endRewardFilter = 1000;
+                this.endRewardFilter = 999;
                 break;
             case 1:
                 this.startRewardFilter = 1000;
@@ -99,7 +101,7 @@ export class ExecutorTaskTS extends Vue {
                 this.endRewardFilter = 50000;
                 break;
             case 4:
-                this.startRewardFilter = 50000;
+                this.startRewardFilter = 50001;
                 this.endRewardFilter = Number.MAX_VALUE;
                 break;
 
@@ -191,7 +193,9 @@ export class ExecutorTaskTS extends Vue {
     // #region -- referenced by Task Radio buttons for applied Task List
     private readonly allTasksLab: TaskState = TaskState.None;
     private get allTasks(): TaskView[] {
-        return this.storeState.taskObjs;
+        return this.storeState.taskObjs.filter((task) => {
+            return task.state !== TaskState.ReadyToApply;
+        });
     }
     private get allTaskCount(): number {
         return this.allTasks.length;
@@ -229,15 +233,13 @@ export class ExecutorTaskTS extends Vue {
     // #endregion
 
 
-    // #region -- referenced applied Task Table
+    // #region -- reference by applied Task Table data and buttons
     private readonly appliedTaskTableName: string = 'appliedTaskTable';
     private readonly appliedTaskTabName: string = 'appliedTaskTab';
 
     private marginDialogVisible: boolean = false;
     private taskResultDialogVisible: boolean = false;
     private taskProgressDialogVisible: boolean = false;
-    private appliedTaskSearch: string = '';
-
 
     private selectedTask: TaskView = {};
 
@@ -246,13 +248,13 @@ export class ExecutorTaskTS extends Vue {
     private get filteredappliedTaskObjs(): TaskView[] {
         let result: TaskView[];
         switch (this.taskStateRadio) {
-            case TaskState.Applying:
+            case this.toBeInsuredTasksLab:
                 result = this.toBeInsuredTasks;
                 break;
-            case TaskState.Assigned:
+            case this.toBeSubmitResultTasksLab:
                 result = this.toBeSubmitResultTasks;
                 break;
-            case TaskState.ExecutorPaid:
+            case this.completedTasksLab:
                 result = this.completedTasks;
                 break;
             default:
@@ -260,41 +262,16 @@ export class ExecutorTaskTS extends Vue {
                     return (item.state as TaskState) > TaskState.ReadyToApply;
                 });
         }
-        return result.filter(
-            (data: TaskView) => !this.appliedTaskSearch ||
-                (data.name as string).toLowerCase().includes(this.appliedTaskSearch.toLowerCase())).sort(
-                    (a: TaskView, b: TaskView) => {
-                        if (a.createTime == null) {
-                            // a is behind of b
-                            return 1;
-                        }
-                        if (b.createTime == null) {
-                            // a is ahead of b
-                            return -1;
-                        }
-                        // if a.createTime is bigger than b.createTime, a is ahead of b
-                        return b.createTime - a.createTime;
-                    });
-    }
-    private isSearchReady(): boolean {
-        return true;
+        return result;
     }
 
-    private taskStateToText(state: TaskState): string {
-        return ViewTextUtils.getTaskStateText(state);
-    }
-    private timestampToText(timestamp: number): string {
-        return ViewTextUtils.convertTimeStampToDatetime(timestamp);
-    }
     private isTaskApplying(index: number, task: TaskView): boolean {
         return task.state === TaskState.Applying;
     }
     private isTaskAssigned(index: number, task: TaskView): boolean {
         return task.state === TaskState.Assigned;
     }
-    private onRowClick(task: TaskView, column: any): void {
-        (this.$refs[this.appliedTaskTableName] as any).toggleRowExpansion(task);
-    }
+
     private onSelectTaskResultUpload(index: number, task: TaskView): void {
         this.selectedTask = task;
         this.taskResultDialogVisible = true;
@@ -342,7 +319,7 @@ export class ExecutorTaskTS extends Vue {
         this.selectedTask = task;
         this.marginDialogVisible = true;
     }
-    private onMarginUploadCancelled(): void {
+    private onMarginUploadCancel(): void {
         this.marginDialogVisible = false;
     }
     private onMarginUploadSuccess(apiResult: ApiResult): void {
@@ -359,16 +336,11 @@ export class ExecutorTaskTS extends Vue {
         this.selectedTask = {};
         this.taskProgressDialogVisible = false;
     }
-
-    private onTaskDetailCheck(index: number, task: TaskView): void {
-        (this.$refs[this.appliedTaskTableName] as any).toggleRowExpansion(task);
-    }
     // #endregion
 
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.initialize();
     }
 
     // #endregion
@@ -401,7 +373,6 @@ export class ExecutorTaskTS extends Vue {
             })();
         }
     }
-
     // #endregion
 
 }

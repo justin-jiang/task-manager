@@ -17,7 +17,7 @@
         </el-radio-group>
       </el-col>
     </el-row>
-
+    <!-- Users Table -->
     <el-row>
       <el-col :span="24">
         <el-table
@@ -33,12 +33,15 @@
             label="账号"
             prop="name"
             width="150px"
+            sortable
           >
           </el-table-column>
           <el-table-column
             label="名称"
             prop="realName"
             width="300px"
+            sortable
+            :sortMethod="realNameSort"
           >
           </el-table-column>
 
@@ -68,7 +71,7 @@
               v-if="isSearchReady(scope.row)"
             >
               <el-input
-                v-model="tableSearch"
+                v-model="executorSearch"
                 size="mini"
                 placeholder="账号搜索"
                 class="input-search"
@@ -164,5 +167,4 @@ export default class UserManagementVue extends UserManagementTS {}
     width: 500px;
   }
 }
-
 </style>

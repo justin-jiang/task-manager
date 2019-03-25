@@ -19,6 +19,8 @@ const schemaDef = Object.assign({
     adminSatisfiedStar: { type: Number },
     // the applicant(i.e. some executor) id
     applicantUid: { type: String },
+    // the datetime of the executor starts to apply
+    applyingDatetime: { type: Number },
     companyName: { type: String, required: true },
     companyContact: { type: String, required: true },
     contactPhone: { type: String, required: true },

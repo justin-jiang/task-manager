@@ -14,7 +14,7 @@ export class RequestUtils {
     /**
      * according the param model to pick up the matched props from client request
      */
-    public static pickUpKeysByModel(reqParam: any, paramModel: any): any {
+    public static pickUpPropsByModel(reqParam: any, paramModel: any, strict?: boolean): any {
         if (reqParam == null) {
             throw new ApiError(ApiResultCode.InputInvalidParam, 'reqParam');
         }
@@ -27,7 +27,7 @@ export class RequestUtils {
         paramKeys.forEach((key) => {
             if (modelKeys.includes(key)) {
                 result[key] = reqParam[key];
-            } else {
+            } else if (strict === true) {
                 LoggerManager.warn(`unexpected prop:${key} from client`);
             }
         });
@@ -65,7 +65,7 @@ export class RequestUtils {
     // #endregion
 
     // #region -- task related
-    public static async $$taskStateCheck(uid: string, expectedState: TaskState): Promise<TaskObject> {
+    public static async $$taskStateCheck(uid: string, expectedState?: TaskState): Promise<TaskObject> {
         const dbObj: TaskObject | null = await TaskModelWrapper.$$findOne(
             { uid } as TaskObject) as TaskObject | null;
         if (dbObj == null) {

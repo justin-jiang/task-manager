@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    width="30%"
+    width="450px"
     custom-class="dialog-deposit"
     :show-close="false"
     :close-on-click-modal="false"
@@ -17,7 +17,10 @@
           src="../assets/logo_cashRegister.png"
         />
       </el-col>
-      <el-col :span="14">
+      <el-col
+        :span="14"
+        class="col-title"
+      >
         支付酬劳
       </el-col>
     </el-row>
@@ -31,22 +34,22 @@
     </el-row>
     <el-row class="row-item">
       <el-col :span="5">
-        任务金额￥：
+        任务金额：
       </el-col>
       <el-col :span="3">
-        {{taskReward}}
+        ￥{{taskReward}}
       </el-col>
       <el-col :span="5">
-        手续费￥：
+        手续费：
       </el-col>
       <el-col :span="3">
-        {{taskAgentFee}}
+        ￥{{taskAgentFee}}
       </el-col>
       <el-col :span="5">
-        保证金￥：
+        保证金：
       </el-col>
       <el-col :span="3">
-        {{taskMargin}}
+        ￥{{taskMargin}}
       </el-col>
     </el-row>
     <el-row class="row-item">
@@ -55,59 +58,62 @@
         style="margin-right:10px"
       >
         <el-radio-group
-          disabled
+          :disabled="!isReceiptStatNone"
           v-model="receiptRequired"
           size="mini"
         >
-          <el-radio :label="1">开具发票</el-radio>
-          <el-radio :label="0">不开发票</el-radio>
+          <el-radio :label="labelOfReceipt">开具发票</el-radio>
+          <el-radio :label="labelOfNoReceipt">不开发票</el-radio>
         </el-radio-group>
       </el-col>
 
       <el-col :span="6">
         应付金额：
       </el-col>
-      <el-col :span="4">
+      <el-col
+        :span="4"
+        class="col-money"
+      >
         ￥{{payableFee}}
       </el-col>
     </el-row>
     <el-row class="row-item row-item-border">
-      <el-row class="row-item-no-margin">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           雇员名称：{{executorName}}
         </el-col>
       </el-row>
-      <el-row class="row-item-no-margin">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           开户银行：{{bankName}}
         </el-col>
       </el-row>
-      <el-row class="row-item">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           账户名称：{{bankAccountName}}
         </el-col>
       </el-row>
-      <el-row class="row-item">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           账号：{{bankAccountNumber}}
         </el-col>
       </el-row>
-      <el-row class="row-item">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           开户行联行号：{{linkBankAccountNumber}}
         </el-col>
       </el-row>
-      <el-row class="row-item">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           姓名：{{contactName}}
         </el-col>
       </el-row>
-      <el-row class="row-item">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           电话：{{contactTelephone}}
         </el-col>
       </el-row>
-      <el-row class="row-item">
+      <el-row class="row-item-sub">
         <el-col :span="24">
           邮箱：{{contactEmail}}
         </el-col>
@@ -142,14 +148,15 @@
         <el-button
           size="small"
           type="primary"
+          plain
+          @click="onCancel()"
+        >取消</el-button>
+        <el-button
+          size="small"
+          type="primary"
           :disabled="!isImageReady"
           @click="onSubmit()"
         >支付完毕</el-button>
-
-        <el-button
-          size="small"
-          @click="onCancel()"
-        >取消</el-button>
       </el-col>
     </el-row>
   </el-dialog>
@@ -163,8 +170,22 @@ export default class PayToExecutorDialogVue extends PayToExecutorDialogTS {}
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
 .row-item {
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   text-align: left;
+  .col-title {
+    margin-top: 7px;
+    font-size: 20px;
+  }
+  .col-money {
+    color: red;
+    font-size: 18px;
+  }
+  .row-item-sub {
+    margin-bottom: 5px;
+    &:first-child {
+      margin-top: 5px;
+    }
+  }
 }
 .row-item-no-margin {
   text-align: left;
@@ -176,5 +197,6 @@ export default class PayToExecutorDialogVue extends PayToExecutorDialogTS {}
 .row-item-border {
   border-top: 1px solid cadetblue;
   border-bottom: 1px solid cadetblue;
+  margin-top: 5px;
 }
 </style>

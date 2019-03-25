@@ -38,7 +38,8 @@ export class TemplateRequestHandler {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
 
-        const updatedProps: TemplateObject = RequestUtils.pickUpKeysByModel(reqParam, new TemplateEditParam(true));
+        const updatedProps: TemplateObject = RequestUtils.pickUpPropsByModel(
+            reqParam, new TemplateEditParam(true), true);
         const updatedKeys = Object.keys(updatedProps);
         if (updatedKeys.length > 1) {
             await TemplateModelWrapper.$$updateOne({ uid: updatedProps.uid } as TemplateObject, updatedProps);

@@ -76,145 +76,84 @@
     <!-- task table -->
     <el-row>
       <el-col :span="24">
-        <el-table
-          style="width: 100%"
-          stripe
-          :ref="taskTableName"
-          :data="filteredTaskObjs"
-          @row-click="onRowClick"
-        >
-          <el-table-column type="expand">
-            <template slot-scope="props">
-              <TaskDetailInTableVue :dataProp="props.row"></TaskDetailInTableVue>
-            </template>
-          </el-table-column>
-          <el-table-column
-            label="名称"
-            prop="name"
-            width="400px"
+        <TaskTableVue :dataProp="filteredTaskObjs">
+          <template
+            slot="buttons"
+            slot-scope="scope"
           >
-          </el-table-column>
-          <el-table-column
-            label="金额"
-            prop="reward"
-            width="100px"
-          >
-          </el-table-column>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isInfoReadyToBeAudited(scope.$index, scope.row)"
+              @click.stop="onInfoAudit(scope.$index, scope.row)"
+            >任务信息审核</el-button>
 
-          <el-table-column
-            label="状态"
-            width="100px"
-          >
-            <template slot-scope="scope">
-              <span>{{taskStateToText(scope.row.state)}}</span>
-            </template>
-          </el-table-column>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isDepositReadyToBeAudited(scope.$index, scope.row)"
+              @click.stop="onDepositAudit(scope.$index, scope.row)"
+            >托管资金审核</el-button>
 
-          <el-table-column
-            label="创建时间"
-            width="200px"
-          >
-            <template slot-scope="scope">
-              <span>{{timestampToText(scope.row.createTime)}}</span>
-            </template>
-          </el-table-column>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isExecutorReadyToBeAudited(scope.$index, scope.row)"
+              @click.stop="onExecutorAudit(scope.$index, scope.row)"
+            >雇员资质审核</el-button>
 
-          <el-table-column align="right">
-            <template
-              slot="header"
-              slot-scope="scope"
-            >
-              <el-input
-                v-if="isSearchReady(scope.row)"
-                v-model="search"
-                size="mini"
-                placeholder="名称搜索"
-              />
-            </template>
-            <template slot-scope="scope">
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isInfoReadyToBeAudited(scope.$index, scope.row)"
-                @click.stop="onInfoAudit(scope.$index, scope.row)"
-              >任务信息审核</el-button>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isMarginReadyToBeAudited(scope.$index, scope.row)"
+              @click.stop="onMarginAudit(scope.$index, scope.row)"
+            >保证金托管审核</el-button>
 
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isDepositReadyToBeAudited(scope.$index, scope.row)"
-                @click.stop="onDepositAudit(scope.$index, scope.row)"
-              >托管资金审核</el-button>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isResultReadyToBeAudited(scope.$index, scope.row)"
+              @click.stop="onResultAudit(scope.$index, scope.row)"
+            >结果审核</el-button>
 
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isExecutorReadyToBeAudited(scope.$index, scope.row)"
-                @click.stop="onExecutorAudit(scope.$index, scope.row)"
-              >雇员资质审核</el-button>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isReadyToVisitPublisher(scope.$index, scope.row)"
+              @click.stop="onPublisherVisit(scope.$index, scope.row)"
+            >用户回访</el-button>
 
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isMarginReadyToBeAudited(scope.$index, scope.row)"
-                @click.stop="onMarginAudit(scope.$index, scope.row)"
-              >保证金托管审核</el-button>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isReadyToPayToExecutor(scope.$index, scope.row)"
+              @click.stop="onPayToExecutor(scope.$index, scope.row)"
+            >支付酬劳</el-button>
 
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isResultReadyToBeAudited(scope.$index, scope.row)"
-                @click.stop="onResultAudit(scope.$index, scope.row)"
-              >结果审核</el-button>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="isReadyToReceiptUpload(scope.$index, scope.row)"
+              @click.stop="onReceiptUpload(scope.$index, scope.row)"
+            >发票入账</el-button>
 
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isReadyToVisitPublisher(scope.$index, scope.row)"
-                @click.stop="onPublisherVisit(scope.$index, scope.row)"
-              >用户回访</el-button>
-
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isReadyToPayToExecutor(scope.$index, scope.row)"
-                @click.stop="onPayToExecutor(scope.$index, scope.row)"
-              >支付酬劳</el-button>
-
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="isReadyToReceiptUpload(scope.$index, scope.row)"
-                @click.stop="onReceiptUpload(scope.$index, scope.row)"
-              >发票入账</el-button>
-
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="!isNotSubmitted(scope.$index, scope.row)"
-                @click.stop="onTaskProgressCheck(scope.$index, scope.row)"
-              >进度查询</el-button>
-
-              <el-button
-                type="primary"
-                size="mini"
-                plain
-                v-if="!isNotSubmitted(scope.$index, scope.row)"
-                @click.stop="onTaskDetailCheck(scope.$index, scope.row)"
-              >任务详情</el-button>
-
-            </template>
-          </el-table-column>
-        </el-table>
+            <el-button
+              type="primary"
+              size="mini"
+              plain
+              v-if="!isNotSubmitted(scope.$index, scope.row)"
+              @click.stop="onTaskProgressCheck(scope.$index, scope.row)"
+            >进度查询</el-button>
+          </template>
+        </TaskTableVue>
       </el-col>
     </el-row>
     <!-- task process dialog -->
@@ -228,18 +167,25 @@
     <!-- dialog to audit the task info -->
     <AuditDialogVue
       titleProp="任务信息审核"
-      widthProp="40%"
+      widthProp="400px"
       :visibleProp="infoAuditDialogVisible"
       @submit="onInfoAuditSubmit"
       @cancel="onInfoAuditCancel"
     >
-      【点击’任务详情‘按钮可以查看任务信息】
+      <el-alert
+        title="审核前，请点击’任务详情‘按钮，查看任务信息"
+        type="warning"
+        center
+        show-icon
+      >
+      </el-alert>
     </AuditDialogVue>
 
     <!-- dialog for deposit and margin audit -->
     <AuditDialogVue
       :titleProp="fundAuditDialogTitle"
       :visibleProp="fundAuditDialogVisible"
+      :usageScenarioProp="fundScenario"
       @submit="onFundAuditSubmit"
       @cancel="onFundAuditCancel"
       @refund="onRefund"
@@ -388,6 +334,15 @@ export default class AdminTaskVue extends AdminTaskTS {}
 
   .col-align-left {
     text-align: left;
+  }
+  .row-deadline-gt-5 {
+    background: none;
+  }
+  .row-deadline-between-5-3 {
+    background: yellow;
+  }
+  .row-deadline-lt-3 {
+    background: red;
   }
 }
 </style>

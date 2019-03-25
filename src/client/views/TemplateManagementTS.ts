@@ -6,7 +6,7 @@ import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
 import { CommonUtils } from 'common/CommonUtils';
-import { LIMIT_FILE_SIZE_M } from 'common/Config';
+import { LIMIT_FILE_SIZE_M } from 'common/Constants';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { TemplateRemoveParam } from 'common/requestParams/TemplateRemoveParam';
@@ -25,6 +25,9 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
+/**
+ * Used by publisher to manage the template
+ */
 export class TemplateManagementTS extends Vue {
     // #region -- reference by template
 

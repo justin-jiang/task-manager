@@ -1,7 +1,6 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { msgConnectionIssue } from 'client/common/Constants';
 import { RouterUtils } from 'client/common/RouterUtils';
-import { ViewTextUtils } from 'client/common/ViewTextUtils';
 import { ComponentUtils } from 'client/components/ComponentUtils';
 import DepositDialogVue from 'client/components/DepositDialogVue.vue';
 import FileCheckDialogVue from 'client/components/FileCheckDialogVue.vue';
@@ -9,6 +8,7 @@ import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import { UsageScenario } from 'client/components/TaskFormTS';
 import TaskFormVue from 'client/components/TaskFormVue.vue';
 import TaskProgressDialogVue from 'client/components/TaskProgressDialogVue.vue';
+import TaskTableVue from 'client/components/TaskTableVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
@@ -17,10 +17,8 @@ import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileCheckParam } from 'common/requestParams/FileCheckParam';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
-import { TaskApplyCheckParam } from 'common/requestParams/TaskApplyCheckParam';
 import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
-import { TaskResultCheckParam } from 'common/requestParams/TaskResultCheckParam';
 import { TaskSubmitParam } from 'common/requestParams/TaskSubmitParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
@@ -32,11 +30,12 @@ import { Store } from 'vuex';
 export const taskListTabName: string = 'taskListTab';
 
 const compToBeRegistered: any = {
-    TaskDetailInTableVue,
-    TaskFormVue,
     DepositDialogVue,
     FileCheckDialogVue,
+    TaskDetailInTableVue,
+    TaskFormVue,
     TaskProgressDialogVue,
+    TaskTableVue,
 };
 
 @Component({
@@ -47,24 +46,11 @@ export class PublisherTaskTS extends Vue {
     // #region -- props and methods for Whole Template
     private readonly taskTableName: string = 'taskTable';
     private readonly taskFormRefName: string = 'taskForm';
-    private isInitialized: boolean = false;
-
     // #endregion
 
-    // #region -- props and methods for task lis
-    private search: string = '';
+    // #region -- reference by task table and buttons
     private selectedTask: TaskView = {};
     private taskStateRadio: TaskState = TaskState.None;
-
-    private isSearchReady(): boolean {
-        return true;
-    }
-    private taskStateToText(state: TaskState): string {
-        return ViewTextUtils.getTaskStateText(state);
-    }
-    private timestampToText(timestamp: number): string {
-        return ViewTextUtils.convertTimeStampToDatetime(timestamp);
-    }
 
     private get filteredTaskObjs(): TaskView[] {
         let result: TaskView[];
@@ -84,21 +70,7 @@ export class PublisherTaskTS extends Vue {
             default:
                 result = this.storeState.taskObjs;
         }
-        return result.filter(
-            (data: TaskView) => !this.search ||
-                (data.name as string).toLowerCase().includes(this.search.toLowerCase())).sort(
-                    (a: TaskView, b: TaskView) => {
-                        if (a.createTime == null) {
-                            // a is behind of b
-                            return 1;
-                        }
-                        if (b.createTime == null) {
-                            // a is ahead of b
-                            return -1;
-                        }
-                        // if a.createTime is bigger than b.createTime, a is ahead of b
-                        return b.createTime - a.createTime;
-                    });
+        return result;
     }
 
     /**
@@ -131,9 +103,6 @@ export class PublisherTaskTS extends Vue {
         return task.state === TaskState.ResultUploaded;
     }
 
-    private onRowClick(task: TaskView, column: any): void {
-        (this.$refs[this.taskTableName] as any).toggleRowExpansion(task);
-    }
     /**
      * on task submit button is clicked
      * @param index 
@@ -284,7 +253,7 @@ export class PublisherTaskTS extends Vue {
             this.taskResultCheckDialogVisible = false;
         });
     }
-    private onTaskResultCheckCancelled(): void {
+    private onTaskResultCheckCancel(): void {
         this.selectedTask = {};
         this.taskResultCheckDialogVisible = false;
     }
@@ -296,7 +265,7 @@ export class PublisherTaskTS extends Vue {
         this.selectedTask = task;
         this.depositDialogVisible = true;
     }
-    private onDepositCancelled(): void {
+    private onDepositCancel(): void {
         this.selectedTask = {};
         this.depositDialogVisible = false;
     }
@@ -348,9 +317,6 @@ export class PublisherTaskTS extends Vue {
         this.selectedTask = {};
         this.taskCreateOrEditDialogVisible = false;
     }
-    private onTaskFormOpened(): void {
-
-    }
     // #endregion
 
     // #region references by progress query dialog
@@ -361,19 +327,12 @@ export class PublisherTaskTS extends Vue {
     }
     private onTaskProgressDialogClosed(): void {
         this.taskProgressDialogVisible = false;
-        // this.selectedTask = {};
     }
     // #endregion
 
-    // #region references by task detail dialog
-    private onTaskDetailCheck(index: number, task: TaskView): void {
-        (this.$refs[this.taskTableName] as any).toggleRowExpansion(task);
-    }
-    // #endregion
 
     // #region -- vue life-circle methods and events
     private mounted(): void {
-        this.initialize();
     }
     @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
@@ -388,7 +347,6 @@ export class PublisherTaskTS extends Vue {
     private initialize() {
         const sessionInfo = this.storeState.sessionInfo;
         if (CommonUtils.isReadyPublisher(sessionInfo)) {
-            this.isInitialized = true;
             (async () => {
                 // only publisher can see the page
                 let apiResult: ApiResult = { code: ApiResultCode.Success };
@@ -422,108 +380,4 @@ export class PublisherTaskTS extends Vue {
         }
     }
     // #endregion
-
-    // #region -- to be removed
-    private onTaskApplyAccepted(index: number, task: TaskView): void {
-        const confirm = this.$confirm(
-            '确认要接受执行人的申请吗？',
-            '提示', {
-                type: 'warning',
-                center: true,
-                closeOnClickModal: false,
-            });
-        confirm.then(() => {
-            (async () => {
-                const apiResult: ApiResult = await this.store.dispatch(
-                    StoreActionNames.taskApplyCheck,
-                    {
-                        data: {
-                            uid: task.uid,
-                            pass: true,
-                        } as TaskApplyCheckParam,
-                    } as IStoreActionArgs);
-                if (apiResult.code === ApiResultCode.Success) {
-                    this.$message.success(`任务申请接受成功`);
-                } else {
-                    this.$message.error(`任务申请接受失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                }
-            })().catch((ex) => {
-                RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
-            });
-        }).catch(() => {
-            // do nothing for cancel
-        });
-    }
-
-    private onTaskResultDenied(index: number, task: TaskView): void {
-        const confirm = this.$prompt(
-            `确认要拒绝此用户的任务结果吗？`,
-            '提示', {
-                confirmButtonText: '确定',
-                type: 'warning',
-                center: true,
-                closeOnClickModal: false,
-                inputType: 'textarea',
-                inputPlaceholder: '请输入理由',
-                inputPattern: /.+/,
-                inputErrorMessage: '请填写拒绝理由',
-            });
-        confirm.then(({ value }) => {
-            (async () => {
-                const store = (this.$store as Store<IStoreState>);
-                const apiResult: ApiResult = await store.dispatch(
-                    StoreActionNames.taskResultCheck,
-                    {
-                        data: {
-                            uid: task.uid,
-                            pass: false,
-                            note: value,
-                        } as TaskResultCheckParam,
-                    } as IStoreActionArgs);
-                if (apiResult.code === ApiResultCode.Success) {
-                    this.$message.success(`提交成功`);
-                } else {
-                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                }
-            })().finally(() => {
-                this.taskResultCheckDialogVisible = false;
-            });
-        }).catch(() => {
-            // do nothing for cancel
-        });
-    }
-    private onTaskApplyDenied(index: number, task: TaskView): void {
-        const confirm = this.$prompt(
-            '请输入拒绝的理由',
-            '提示', {
-                type: 'warning',
-                center: true,
-                closeOnClickModal: false,
-                inputType: 'textarea',
-            });
-        confirm.then(({ value }) => {
-            (async () => {
-                const apiResult: ApiResult = await this.store.dispatch(
-                    StoreActionNames.taskApplyCheck,
-                    {
-                        data: {
-                            uid: task.uid,
-                            pass: false,
-                            note: value,
-                        } as TaskApplyCheckParam,
-                    } as IStoreActionArgs);
-                if (apiResult.code === ApiResultCode.Success) {
-                    this.$message.success(`任务申请拒绝成功`);
-                } else {
-                    this.$message.error(`任务申请拒绝失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                }
-            })().catch((ex) => {
-                RouterUtils.goToErrorView(this.$router, this.storeState, msgConnectionIssue, ex);
-            });
-        }).catch(() => {
-            // do nothing for cancel
-        });
-    }
-    // #endregion
-
 }

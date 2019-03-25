@@ -92,19 +92,28 @@ module.exports = {
                 // specified host can get the data
                 // e.g. if you only allow 127.0.0.1 host to get health data
                 // the value of HealthCheckHost should be '127\.0\.0\.1'
-                HealthCheckHost: '.*',
+                healthCheckHost: '.*',
+                
                 // the http port which used by App
-                AppPort: '8081',
+                appPort: '8081',
+                
                 // whether start App in debug mode
-                DebugMode: false,
+                debugMode: false,
+               
                 // Mongoose poolsize
-                PoolSize: 5,
+                poolSize: 5,
+                
                 // Mongodb connection address
-                MongoDBURLs: '127.0.0.1:27017',
+                mongoDBURLs: '127.0.0.1:27017',
+               
                 // whether the logger uses UTC time
-                UTCLogTime: false,
+                utcLogTime: false,
+                
                 // Mongodb replicaSet Name which is required if target mongodb support ReplicaSet
                 // ReplicaSetName:'rs',
+                
+                // the timespan in which the executor must pay the margin after applying
+                applyingDeadline: 30 * 60 * 1000,
             },
         },
     ]

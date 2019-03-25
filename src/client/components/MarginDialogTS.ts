@@ -9,10 +9,7 @@ import { ApiResult } from 'common/responseResults/APIResult';
 import { TaskView } from 'common/responseResults/TaskView';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-enum EventNames {
-    success = 'success',
-    cancelled = 'cancelled',
-}
+import { EventNames } from 'client/common/EventNames';
 
 
 const compToBeRegistered: any = {
@@ -63,8 +60,8 @@ export class MarginDialogTS extends Vue {
         } as TaskMarginImageUploadParam;
         (this.$refs[this.marginUploaderRefName] as any as ISingleImageUploaderTS).submit();
     }
-    private onCancelled(): void {
-        this.$emit(EventNames.cancelled);
+    private onCancel(): void {
+        this.$emit(EventNames.Cancel);
     }
     private onMarginImageChanged(): void {
         this.isMarginImageChanged = (this.$refs[this.marginUploaderRefName] as any as ISingleImageUploaderTS)
@@ -75,7 +72,7 @@ export class MarginDialogTS extends Vue {
     }
     private onMarginUploadSuccess(apiResult: ApiResult) {
         this.isMarginImageChanged = false;
-        this.$emit(EventNames.success, apiResult);
+        this.$emit(EventNames.Success, apiResult);
     }
     private onMarginUploadFailure(apiResult: ApiResult): void {
         this.isMarginImageChanged = false;

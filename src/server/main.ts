@@ -1,6 +1,10 @@
 import { getPropKeys } from 'common/commonDataObjects/CommonObject';
+import { TaskDepositImageUploadParam } from 'common/requestParams/TaskDepositImageUploadParam';
 import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
+import { UserAccountInfoEditParam } from 'common/requestParams/UserAccountInfoEditParam';
+import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import * as http from 'http';
+import * as cron from 'node-cron';
 import { ArgsParser } from 'server/common/ArgsParser';
 import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
 import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
@@ -12,10 +16,12 @@ import { TaskCheckRecordModelWrapper } from './dataModels/TaskCheckRecordModelWr
 import { TaskModelWrapper } from './dataModels/TaskModelWrapper';
 import { UserNotificationModelWrapper } from './dataModels/UserNotificationModelWrapper';
 import { keysOfTaskObject } from './dataObjects/TaskObject';
-import { LoggerManagerInitParam } from './libsWrapper/LoggersManagerInitParam';
-import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import { keysOfUserObject } from './dataObjects/UserObject';
-import { TaskDepositImageUploadParam } from 'common/requestParams/TaskDepositImageUploadParam';
+import { LoggerManagerInitParam } from './libsWrapper/LoggersManagerInitParam';
+import { RequestUtils } from 'server/requestHandlers/RequestUtils';
+import { AppConfigs } from 'server/common/AppConfigs';
+import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
+import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
 /**
  * Event listener for HTTP server "error" event.
  */
@@ -106,14 +112,17 @@ function reqParamValidationAgainstUser(reqParams: any[]): void {
 
 function reqParamValidation(): void {
     const reqParamsForTask: any[] = [
-        new TaskExecutorReceiptUploadParam(true),
+        new TaskBasicInfoEditParam(true),
+        new TaskCreateParam(true),
         new TaskDepositImageUploadParam(true),
+        new TaskExecutorReceiptUploadParam(true),
     ];
     reqParamValidationAgainstTask(reqParamsForTask);
 
 
     const reqParamsForUser: any[] = [
-        new UserBasicInfoEditParam(true)
+        new UserBasicInfoEditParam(true),
+        new UserAccountInfoEditParam(true),
     ];
     reqParamValidationAgainstUser(reqParamsForUser);
 }
@@ -129,6 +138,8 @@ const logInitParam: LoggerManagerInitParam = {
 };
 LoggerManager.initialize(logInitParam);
 LoggerManager.info('starting ...');
+LoggerManager.info('App Configs:',
+    RequestUtils.pickUpPropsByModel(process.env, new AppConfigs(true)));
 
 // Schema Validation
 if (ArgsParser.isDebugMode()) {
@@ -141,6 +152,14 @@ let httpServer: http.Server;
 (async () => {
     LoggerManager.info('initializing DB ...');
     await $$databaseWarmUp();
+    LoggerManager.info('starting schedule job ...');
+    cron.schedule('*/5 * * * *', () => {
+        (async () => {
+            // release the executor applying who does not pay the margin on time
+            await TaskModelWrapper.$$releaseTasksWithoutMargin();
+        })();
+    },
+    );
     LoggerManager.info('starting HTTP Server ...');
     startServer();
     // monitor the quit code of SIGINT

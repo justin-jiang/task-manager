@@ -7,7 +7,7 @@ import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { CommonUtils } from 'common/CommonUtils';
-import { NOTIFICATION_PULL_INTERVAL } from 'common/Config';
+import { NOTIFICATION_PULL_INTERVAL } from 'common/Constants';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';

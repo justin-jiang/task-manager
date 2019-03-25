@@ -5,16 +5,17 @@ import SingleImageUploaderVue from 'client/components/SingleImageUploaderVue.vue
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { FeeCalculator } from 'common/FeeCalculator';
 import { FileAPIScenario } from 'common/FileAPIScenario';
+import { ReceiptState } from 'common/ReceiptState';
 import { RefundScenario } from 'common/RefundScenario';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
-import { TaskPayToExecutorImageUploadParam } from 'common/requestParams/TaskPayToExecutorImageUploadParam';
+import { TaskRefundImageUploadParam } from 'common/requestParams/TaskRefundImageUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { TaskView } from 'common/responseResults/TaskView';
 import { UserView } from 'common/responseResults/UserView';
+import { UserType } from 'common/UserTypes';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { TaskRefundImageUploadParam } from 'common/requestParams/TaskRefundImageUploadParam';
-import { CommonUtils } from 'common/CommonUtils';
+import { StoreUtils } from 'client/common/StoreUtils';
 
 const compToBeRegistered: any = {
     SingleImageUploaderVue,
@@ -53,7 +54,9 @@ export class RefundDialogTS extends Vue {
 
     private get refundSum(): number {
         if (this.refundScenarioProp === RefundScenario.DepositRefund) {
-            return FeeCalculator.calcPublisherDeposit(this.taskProp);
+            return FeeCalculator.calcPublisherDeposit(
+                this.taskProp.reward as number,
+                this.taskProp.publisherReceiptRequired as ReceiptState);
         } else {
             return this.taskProp.proposedMargin as number;
         }
@@ -71,7 +74,7 @@ export class RefundDialogTS extends Vue {
 
     }
     private get bankName(): string {
-        return this.userProp.bankAccountName || '';
+        return this.userProp.bankName || '';
     }
     private get bankAccountName(): string {
         return this.userProp.bankAccountName || '';
@@ -83,7 +86,7 @@ export class RefundDialogTS extends Vue {
         return this.userProp.linkBankAccountNumber || '';
     }
     private get contactName(): string {
-        if (CommonUtils.isExecutor(this.userProp)) {
+        if (this.userProp.type === UserType.Individual) {
             return this.userProp.realName || '';
         } else {
             return this.userProp.principalName || '';
@@ -106,13 +109,18 @@ export class RefundDialogTS extends Vue {
         this.$emit(EventNames.Cancel);
     }
     private onImageChanged(): void {
-        this.isImageChanged = true;
+        this.isImageChanged = (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).isChanged();
     }
     private onImageReset(): void {
         this.isImageChanged = false;
     }
     private onUploadSuccess(apiResult: ApiResult) {
         this.isImageChanged = false;
+        if (this.refundScenarioProp === RefundScenario.DepositRefund) {
+            StoreUtils.deleteFromArray(this.storeState.taskObjs, apiResult.data);
+        } else {
+            StoreUtils.replaceFromArray(this.storeState.taskObjs, apiResult.data);
+        }
         this.$emit(EventNames.Success, apiResult);
     }
     private onUploadFailure(apiResult: ApiResult): void {

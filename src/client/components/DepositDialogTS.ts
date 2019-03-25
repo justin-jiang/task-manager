@@ -1,21 +1,17 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
+import { EventNames } from 'client/common/EventNames';
 import { ISingleImageUploaderTS } from 'client/components/SingleImageUploaderTS';
 import SingleImageUploaderVue from 'client/components/SingleImageUploaderVue.vue';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { FeeCalculator } from 'common/FeeCalculator';
 import { FileAPIScenario } from 'common/FileAPIScenario';
+import { ReceiptState } from 'common/ReceiptState';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { TaskDepositImageUploadParam } from 'common/requestParams/TaskDepositImageUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { TaskView } from 'common/responseResults/TaskView';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { timingSafeEqual } from 'crypto';
-import { ReceiptState } from 'common/ReceiptState';
-import { FeeCalculator } from 'common/FeeCalculator';
-enum EventNames {
-    success = 'success',
-    cancelled = 'cancelled',
-}
 
 
 const compToBeRegistered: any = {
@@ -34,7 +30,7 @@ export class DepositDialogTS extends Vue {
     // #endregion
 
     // #region -- referred props and methods by page template
-    private readonly depositUploaderRefName: string = 'depositUploader';
+    private readonly imageUploaderRefName: string = 'depositUploader';
     private readonly LABEL_NO_RECEIPT: number = ReceiptState.NotRequired;
     private readonly LABEL_RECEIPT: number = ReceiptState.Required;
     private targetTaskView: TaskView = {};
@@ -78,20 +74,21 @@ export class DepositDialogTS extends Vue {
             uid: this.targetTaskView.uid,
             publisherReceiptRequired: this.receiptRequired,
         } as TaskDepositImageUploadParam;
-        (this.$refs[this.depositUploaderRefName] as any as ISingleImageUploaderTS).submit();
+        (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).submit();
     }
-    private onCancelled(): void {
-        this.$emit(EventNames.cancelled);
+    private onCancel(): void {
+        this.$emit(EventNames.Cancel);
     }
     private onDepositImageChanged(): void {
-        this.isDepositImageChanged = true;
+        this.isDepositImageChanged =
+            (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).isChanged();
     }
     private onDepositImageReset(): void {
         this.isDepositImageChanged = false;
     }
     private onDepositUploadSuccess(apiResult: ApiResult) {
         this.isDepositImageChanged = false;
-        this.$emit(EventNames.success, apiResult);
+        this.$emit(EventNames.Success, apiResult);
     }
     private onDepositUploadFailure(apiResult: ApiResult): void {
         this.isDepositImageChanged = false;
@@ -101,7 +98,6 @@ export class DepositDialogTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.targetTaskView = this.taskProp || {};
     }
     // #endregion
 
@@ -110,10 +106,10 @@ export class DepositDialogTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     @Watch('taskProp', { immediate: true })
     private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
-        this.targetTaskView = currentValue || {};
+        this.targetTaskView = Object.assign({}, currentValue);
         this.receiptRequired = this.LABEL_NO_RECEIPT;
-        if (this.$refs[this.depositUploaderRefName] != null) {
-            (this.$refs[this.depositUploaderRefName] as any as ISingleImageUploaderTS).reset();
+        if (this.$refs[this.imageUploaderRefName] != null) {
+            (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).reset();
         }
     }
     // #endregion

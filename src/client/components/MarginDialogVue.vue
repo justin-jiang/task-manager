@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    width="30%"
+    width="430px"
     custom-class="dialog-margin"
     :show-close="false"
     :close-on-click-modal="false"
@@ -8,14 +8,20 @@
     :visible.sync="visibleProp"
   >
     <el-row
-      class="row-item-no-margin"
+      class="row-item row-item-icon"
       slot="title"
     >
-      <el-col :span="24">
+      <el-col :span="10">
         <img
           class="img-logo-cash"
           src="../assets/logo_cashRegister.png"
         />
+      </el-col>
+      <el-col
+        :span="14"
+        class="col-title"
+      >
+        托管金支付
       </el-col>
     </el-row>
     <el-row
@@ -30,17 +36,29 @@
       </el-col>
     </el-row>
     <el-row class="row-item">
-      <el-col :span="6">
-        保证金￥：
+      <el-col
+        :span="6"
+        class="col-money-same-row"
+      >
+        保证金：
       </el-col>
-      <el-col :span="4">
-        {{proposedMargin}}
+      <el-col
+        :span="4"
+        class="col-money-same-row"
+      >
+        ￥{{proposedMargin}}
       </el-col>
-      <el-col :span="6">
-        应付金额￥：
+      <el-col
+        :span="6"
+        class="col-money-same-row"
+      >
+        应付金额：
       </el-col>
-      <el-col :span="4">
-        {{proposedMargin}}
+      <el-col
+        :span="4"
+        class="col-money"
+      >
+        ￥{{proposedMargin}}
       </el-col>
     </el-row>
     <el-row class="row-item row-item-border">
@@ -129,16 +147,17 @@
     <el-row>
       <el-col :span="24">
         <el-button
+          type="primary"
+          plain
+          size="small"
+          @click="onCancel()"
+        >取消</el-button>
+        <el-button
           size="small"
           type="primary"
           :disabled="!isMarginImageReady"
           @click="onSubmit()"
         >支付完毕</el-button>
-
-        <el-button
-          size="small"
-          @click="onCancelled()"
-        >取消</el-button>
       </el-col>
     </el-row>
   </el-dialog>
@@ -154,6 +173,20 @@ export default class MarginDialogVue extends MarginDialogTS {}
 .row-item {
   margin-bottom: 15px;
   text-align: left;
+  .col-title {
+    margin-top: 7px;
+    font-size: 20px;
+  }
+  .col-money {
+    color: red;
+    font-size: 18px;
+  }
+  .col-money-same-row {
+    margin-top: 3px;
+  }
+}
+.row-item-icon {
+  margin-bottom: 10px;
 }
 .row-item-no-margin {
   text-align: left;

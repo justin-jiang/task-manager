@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { LoggerManager } from 'client/LoggerManager';
 import { HttpUtils } from 'client/VuexOperations/HttpUtils';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
@@ -10,7 +11,6 @@ import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
 import { Commit } from 'vuex';
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 async function commonUpdate(
     { commit }: { commit: Commit, state: IStoreState },
     url: string, args: any): Promise<ApiResult> {
@@ -34,12 +34,12 @@ async function commonUpdate(
 export const actions = {
 
     // #region -- create, query and remove
-    async [StoreActionNames.taskCreation](
+    async [StoreActionNames.taskCreate](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
         let apiResult: ApiResult = { code: ApiResultCode.ConnectionError };
         try {
             const response = await axios.post(
-                `${HttpPathItem.Api}/${HttpPathItem.Task}`, args.data || {});
+                `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Create}`, args.data || {});
             apiResult = HttpUtils.getApiResultFromResponse(response);
             if (apiResult.code === ApiResultCode.Success) {
                 if (apiResult.data != null) {
@@ -208,7 +208,7 @@ export const actions = {
      * @param param0 
      * @param args 
      */
-    async [StoreActionNames.taskReceiptDeny](
+    async [StoreActionNames.taskExecutorReceiptNotRequired](
         { commit, state }: { commit: Commit, state: IStoreState }, args: IStoreActionArgs) {
         return await commonUpdate({ commit, state },
             `${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Receipt}/${HttpPathItem.Deny}`,

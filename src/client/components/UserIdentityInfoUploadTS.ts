@@ -422,6 +422,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     }
     private onLogoUploadSuccess(apiResult: ApiResult) {
         // do nothing
+        this.isLogoImageChanged = false;
+        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onLogoUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -439,6 +441,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     }
     private onFrontIdUploadSuccess(apiResult: ApiResult) {
         // do nothing
+        this.isFrontIdImageChanged = false;
+        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onFrontIdUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -456,6 +460,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     }
     private onBackIdUploadSuccess(apiResult: ApiResult) {
         // do nothing
+        this.isBackIdImageChanged = false;
+        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onBackIdUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -473,6 +479,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     }
     private onLicenseUploadSuccess(apiResult: ApiResult) {
         // do nothing
+        this.isLicenseImageChanged = false;
+        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onLicenseUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -490,6 +498,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     }
     private onLicenseWithPersonUploadSuccess(apiResult: ApiResult) {
         // do nothing
+        this.isLicenseWithPersonImageChanged = false;
+        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onLicenseWithPersonUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
@@ -506,6 +516,8 @@ export class UserIdentityInfoUploadTS extends Vue {
     }
     private onAuthLetterUploadSuccess(apiResult: ApiResult) {
         // do nothing
+        this.isAuthLetterImageChanged = false;
+        this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onAuthLetterUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
