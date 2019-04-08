@@ -1,6 +1,34 @@
 <template>
   <div v-loading="isLoading">
     <el-row>
+      <el-col :span=24>
+        <el-alert
+          v-if="!isQualitationTemplateReady"
+          type="error"
+          center
+          show-icon
+          :closable="false"
+        >
+          <span
+            slot="title"
+            style="font-size:15px;"
+          ><b>请上传资质模板</b></span>
+        </el-alert>
+        <el-alert
+        v-if="!isRegisterProtocolReady"
+          type="error"
+          center
+          show-icon
+          :closable="false"
+        >
+          <span
+            slot="title"
+            style="font-size:15px;"
+          ><b>请上传注册协议</b></span>
+        </el-alert>
+      </el-col>
+    </el-row>
+    <el-row>
       <el-col :span="24">
         <el-menu
           class="el-menu-view-page"
@@ -35,7 +63,7 @@
 </template>
 
 <script lang="ts">
-import { AdminTS } from "./AdminTS";
+import { AdminTS } from './AdminTS';
 export default class AdminManagementVue extends AdminTS {}
 </script>
 

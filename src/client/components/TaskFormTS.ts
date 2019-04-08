@@ -22,6 +22,7 @@ import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { EventNames } from 'client/common/EventNames';
 import { getPropKeys } from 'common/commonDataObjects/CommonObject';
+import moment from 'moment';
 const compToBeRegistered: any = {
 };
 /**
@@ -72,6 +73,7 @@ export class TaskFormTS extends Vue {
 
     // #region -- reference by template
     private readonly taskFormRefName: string = 'taskForm';
+    private readonly deadlineDefaultTime: string[] = ['23:59:59', '"23:59:59"'];
     private orignTaskData: TaskView = {};
     private isSubmitting: boolean = false;
     private nullFormData: IFormTaskData = {
@@ -187,14 +189,14 @@ export class TaskFormTS extends Vue {
     };
     private readonly pickerOptions = {
         disabledDate(time: Date) {
-            return time.getTime() < Date.now();
+            return time.getTime() < moment().startOf('day').valueOf();
         },
         shortcuts: [
             {
                 text: '一周后',
                 onClick(picker: any) {
                     const date = new Date();
-                    date.setTime(date.getTime() + 3600 * 1000 * 24 * 7);
+                    date.setTime(moment().endOf('day').valueOf() + 7 * 24 * 3600 * 1000);
                     picker.$emit('pick', date);
                 },
             }],
@@ -393,7 +395,9 @@ export class TaskFormTS extends Vue {
     }
 
     private getTaskCreateParam(): TaskCreateParam {
-        return ComponentUtils.pickUpKeysByModel(this.formData, new TaskCreateParam(true));
+        const reqParam: TaskCreateParam = ComponentUtils.pickUpKeysByModel(this.formData, new TaskCreateParam(true));
+        reqParam.deadline = moment(reqParam.deadline).endOf('day').valueOf();
+        return reqParam;
     }
     private getTaskEditParam(): TaskBasicInfoEditParam {
         const reqParam = new TaskBasicInfoEditParam();
@@ -405,6 +409,9 @@ export class TaskFormTS extends Vue {
         });
         if (Object.keys(reqParam).length > 0) {
             reqParam.uid = this.orignTaskData.uid;
+            if (reqParam.deadline != null) {
+                reqParam.deadline = moment(reqParam.deadline).endOf('day').valueOf();
+            }
         }
         return reqParam;
     }

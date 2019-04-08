@@ -97,7 +97,7 @@ export class TemplateFormTS extends Vue {
             if (valid) {
                 if (CommonUtils.isNullOrEmpty(this.templateView.uid)) {
                     // invoke the file upload api with TemplateCreate Scenario
-                    this.uploadParam.scenario = FileAPIScenario.CreateTemplate;
+                    this.uploadParam.scenario = FileAPIScenario.CreateTaskTemplate;
                     this.uploadParam.optionData = ComponentUtils.pickUpKeysByModel(
                         this.formData, new TemplateCreateParam(true));
                     const uploader: ISingleFileUploadTS =

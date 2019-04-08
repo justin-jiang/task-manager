@@ -47,12 +47,15 @@
         :description="checkAlertDesc"
       >
       </el-alert>
-      <el-row class="row-title">
+      <el-row class="row-align-form row-title">
         <el-col :span=24>
           <span>{{title()}}</span>
         </el-col>
       </el-row>
-      <el-row v-if="isBasicUserRegister()">
+      <el-row
+        class="row-align-form"
+        v-if="isBasicUserRegister()"
+      >
         <el-col :span=24>
           <BasicUserRegisterVue
             :roleProp="userRole"
@@ -61,16 +64,32 @@
           />
         </el-col>
       </el-row>
-      <el-row v-else-if="isIdUpload()">
+      <el-row
+        class="row-align-form"
+        v-else-if="isIdUpload()"
+      >
         <el-col :span=24>
           <UserIdentityInfoUploadVue @success="onIdUploadSuccess" />
         </el-col>
       </el-row>
-      <el-row v-else-if="isQualificationUpload()">
+      <el-row
+        class="row-align-form"
+        v-else-if="isQualificationUpload()"
+      >
         <el-col :span=24>
           <el-row style="margin-bottom:10px">
             <el-col :span=24>
-              请参照模板中的资料，上传您或贵公司的资质材料，该材料将作为我们对您或贵公司等级评定的重要依据
+              <el-alert
+                type="info"
+                center
+                show-icon
+                :closable="false"
+              >
+                <span
+                  slot="title"
+                  style="font-size:15px;"
+                ><b>请参照模板中的资料，上传您或贵公司的资质材料，该材料将作为我们对您或贵公司等级评定的重要依据</b></span>
+              </el-alert>
             </el-col>
           </el-row>
           <el-row style="margin-bottom:10px">
@@ -94,12 +113,28 @@
           </el-row>
         </el-col>
       </el-row>
-      <el-row v-else-if="isQualificationChecking()">
+      <el-row
+        class="row-align-form"
+        v-else-if="isQualificationChecking()"
+      >
         <el-col :span=24>
-          资质审查中，请耐心等待。。。
+          <el-alert
+            type="info"
+            center
+            show-icon
+            :closable="false"
+          >
+            <span
+              slot="title"
+              style="font-size:15px;"
+            ><b>资质审查中，请耐心等待。。。</b></span>
+          </el-alert>
         </el-col>
       </el-row>
-      <el-row v-else-if="isDone()">
+      <el-row
+        class="row-align-form"
+        v-else-if="isDone()"
+      >
         <el-col :span=24>
           恭喜你，审查通过，{{countdown}} 秒后自动跳转到首页 。。。
         </el-col>
@@ -111,17 +146,20 @@
 </template>
 
 <script lang="ts">
-import { UserRegisterTS } from "./UserRegisterTS";
+import { UserRegisterTS } from './UserRegisterTS';
 export default class UserRegisterVue extends UserRegisterTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
-.el-main {
-  padding: 0px;
-}
-.row-title {
-  padding-bottom: 20px;
-  font-size: 20px;
+.el-container {
+  margin-top: 20px;
+  .el-main {
+    padding: 0px;
+  }
+  .row-title {
+    padding-bottom: 20px;
+    font-size: 20px;
+  }
 }
 </style>

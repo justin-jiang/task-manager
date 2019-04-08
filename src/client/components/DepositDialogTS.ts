@@ -23,6 +23,9 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
+/**
+ * Deposit upload Dialog
+ */
 export class DepositDialogTS extends Vue {
     // #region -- component props and methods
     @Prop() public visibleProp!: boolean;
@@ -33,7 +36,7 @@ export class DepositDialogTS extends Vue {
     private readonly imageUploaderRefName: string = 'depositUploader';
     private readonly LABEL_NO_RECEIPT: number = ReceiptState.NotRequired;
     private readonly LABEL_RECEIPT: number = ReceiptState.Required;
-    private targetTaskView: TaskView = {};
+    private taskPropCopy: TaskView = {};
     private receiptRequired: number = this.LABEL_RECEIPT;
     private onlinePayType: number = 0;
     private depositUploadParam: FileUploadParam = {
@@ -42,10 +45,10 @@ export class DepositDialogTS extends Vue {
     private depositUid: string = '';
     private isDepositImageChanged: boolean = false;
     private get taskName(): string {
-        return this.targetTaskView.name as string;
+        return this.taskPropCopy.name as string;
     }
     private get taskReward(): number {
-        return this.targetTaskView.reward || 0;
+        return this.taskPropCopy.reward || 0;
     }
     private get taskAgentFee(): number {
         return FeeCalculator.calcAgentFee(this.taskReward);
@@ -68,10 +71,11 @@ export class DepositDialogTS extends Vue {
     }
     private onSubmit(): void {
         if (!this.isDepositImageChanged) {
-            this.$message.warning('请上传支付');
+            this.$message.warning('请上传支付凭证');
+            return;
         }
         this.depositUploadParam.optionData = {
-            uid: this.targetTaskView.uid,
+            uid: this.taskPropCopy.uid,
             publisherReceiptRequired: this.receiptRequired,
         } as TaskDepositImageUploadParam;
         (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).submit();
@@ -106,7 +110,7 @@ export class DepositDialogTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     @Watch('taskProp', { immediate: true })
     private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
-        this.targetTaskView = Object.assign({}, currentValue);
+        this.taskPropCopy = Object.assign({}, currentValue);
         this.receiptRequired = this.LABEL_NO_RECEIPT;
         if (this.$refs[this.imageUploaderRefName] != null) {
             (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).reset();

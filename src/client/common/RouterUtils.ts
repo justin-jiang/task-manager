@@ -177,4 +177,9 @@ export class RouterUtils {
         const urlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Publisher}\/?$`, 'i');
         return urlPattern.test(window.location.href);
     }
+
+    public static isExecutorRoot(): boolean {
+        const urlPattern: RegExp = new RegExp(`\/#\/${RoutePathItem.Executor}\/?$`, 'i');
+        return urlPattern.test(window.location.href);
+    }
 }

@@ -31,20 +31,21 @@
         :span="4"
         class="col-avatar"
       >
+        <!-- user specified logo -->
         <avatar
           v-if='isLogoUidReady'
           :image="logoUrlProp"
         ></avatar>
+        <!-- default logo -->
         <img
           class="img-avatar"
           v-else
-          src="../assets/logo.png"
+          src="../assets/logo.jpg"
         />
       </el-col>
       <el-col
         :span="8"
         class="col-name"
-        style="margin-top:18px;padding-left:8px"
       >
         <span>{{nameProp}}</span>
       </el-col>
@@ -54,7 +55,7 @@
 </template>
 
 <script lang="ts">
-import { AvatarWithNameTS } from "./AvatarWithNameTS";
+import { AvatarWithNameTS } from './AvatarWithNameTS';
 export default class AvatarWithNameVue extends AvatarWithNameTS {}
 </script>
 

@@ -7,6 +7,10 @@ export class ArgsParser {
         return ValueParser.parseBoolean((process.env as any).debugMode, false);
     }
 
+    public static getApiPublicPath(): string {
+        return (process.env as AppConfigs).apiPublicPath || '/';
+    }
+
     public static getPort(): number {
         return ValueParser.parseNumber((process.env as AppConfigs).appPort, 8999);
     }
@@ -24,7 +28,9 @@ export class ArgsParser {
     public static getReplicaSetName(): string | undefined {
         return (process.env as AppConfigs).replicaSetName;
     }
-
+    public static getStaticPublicPath(): string {
+        return (process.env as AppConfigs).staticPublicPath || '/';
+    }
     public static getDBUser(): string | undefined {
         return (process.env as AppConfigs).dbUser;
     }

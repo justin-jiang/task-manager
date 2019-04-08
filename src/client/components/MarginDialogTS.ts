@@ -30,7 +30,7 @@ export class MarginDialogTS extends Vue {
     // #region -- referred props and methods by page template
     private readonly marginUploaderRefName: string = 'marginUploader';
 
-    private targetTaskView: TaskView = {};
+    private taskPropCopy: TaskView = {};
 
     private onlinePayType: number = 0;
     private marginUploadParam: FileUploadParam = {
@@ -39,11 +39,11 @@ export class MarginDialogTS extends Vue {
     private marginUid: string = '';
     private isMarginImageChanged: boolean = false;
     private get taskName(): string {
-        return this.targetTaskView.name as string;
+        return this.taskPropCopy.name as string;
     }
 
     private get proposedMargin(): number {
-        return this.targetTaskView.proposedMargin || 0;
+        return this.taskPropCopy.proposedMargin || 0;
     }
     private get isAliPay(): boolean {
         return this.onlinePayType === 1;
@@ -54,9 +54,10 @@ export class MarginDialogTS extends Vue {
     private onSubmit(): void {
         if (!this.isMarginImageChanged) {
             this.$message.warning('请上传支付凭证');
+            return;
         }
         this.marginUploadParam.optionData = {
-            uid: this.targetTaskView.uid,
+            uid: this.taskPropCopy.uid,
         } as TaskMarginImageUploadParam;
         (this.$refs[this.marginUploaderRefName] as any as ISingleImageUploaderTS).submit();
     }
@@ -82,7 +83,6 @@ export class MarginDialogTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.targetTaskView = this.taskProp || {};
     }
     // #endregion
 
@@ -91,7 +91,7 @@ export class MarginDialogTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     @Watch('taskProp', { immediate: true })
     private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
-        this.targetTaskView = currentValue || {};
+        this.taskPropCopy = Object.assign({}, currentValue);
         if (this.$refs[this.marginUploaderRefName] != null) {
             (this.$refs[this.marginUploaderRefName] as any as ISingleImageUploaderTS).reset();
         }

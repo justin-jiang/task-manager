@@ -3,7 +3,9 @@ import { EventNames } from 'client/common/EventNames';
 import { ISingleImageUploaderTS } from 'client/components/SingleImageUploaderTS';
 import SingleImageUploaderVue from 'client/components/SingleImageUploaderVue.vue';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { FeeCalculator } from 'common/FeeCalculator';
 import { FileAPIScenario } from 'common/FileAPIScenario';
+import { ReceiptState } from 'common/ReceiptState';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { TaskPayToExecutorImageUploadParam } from 'common/requestParams/TaskPayToExecutorImageUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
@@ -12,8 +14,6 @@ import { UserView } from 'common/responseResults/UserView';
 import { UserType } from 'common/UserTypes';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { ReceiptState } from 'common/ReceiptState';
-import { FeeCalculator } from 'common/FeeCalculator';
 
 
 const compToBeRegistered: any = {
@@ -27,15 +27,15 @@ export class PayToExecutorDialogTS extends Vue {
     // #region -- component props and methods
     @Prop() public visibleProp!: boolean;
     @Prop() public taskProp!: TaskView;
-    @Prop() public targetTaskExecutorProp!: UserView;
+    @Prop() public taskExecutorProp!: UserView;
     // #endregion
 
     // #region -- referred props and methods by page template
     private readonly imageUploaderRefName: string = 'imageUploader';
     private readonly labelOfNoReceipt: number = ReceiptState.NotRequired;
     private readonly labelOfReceipt: number = ReceiptState.Required;
-    private targetTaskView: TaskView = {};
-    private targetTaskExecutorView: UserView = {};
+    private taskPropCopy: TaskView = {};
+    private taskExecutorPropCopy: UserView = {};
     private receiptRequired: number = this.labelOfNoReceipt;
     private uploadParam: FileUploadParam = {
         scenario: FileAPIScenario.UploadTaskExecutorPay,
@@ -43,21 +43,21 @@ export class PayToExecutorDialogTS extends Vue {
     private imageUid: string = '';
     private isImageChanged: boolean = false;
     private get taskName(): string {
-        return this.targetTaskView.name as string;
+        return this.taskPropCopy.name as string;
     }
     private get taskReward(): number {
-        return this.targetTaskView.reward || 0;
+        return this.taskPropCopy.reward || 0;
     }
     private get taskAgentFee(): number {
         return FeeCalculator.calcAgentFee(this.taskReward);
     }
     private get taskMargin(): number {
-        return this.targetTaskView.proposedMargin || 0;
+        return this.taskPropCopy.proposedMargin || 0;
     }
     private get payableFee(): number {
         return FeeCalculator.calcPaymentToExecutor(
-            this.targetTaskView.reward as number,
-            this.targetTaskView.proposedMargin as number,
+            this.taskPropCopy.reward as number,
+            this.taskPropCopy.proposedMargin as number,
             this.receiptRequired as ReceiptState);
     }
 
@@ -65,40 +65,40 @@ export class PayToExecutorDialogTS extends Vue {
         return this.isImageChanged;
     }
     private get executorName(): string {
-        return this.targetTaskExecutorView.realName || '';
+        return this.taskExecutorPropCopy.realName || '';
     }
     private get bankName(): string {
-        return this.targetTaskExecutorView.bankAccountName || '';
+        return this.taskExecutorPropCopy.bankAccountName || '';
     }
     private get bankAccountName(): string {
-        return this.targetTaskExecutorView.bankAccountName || '';
+        return this.taskExecutorPropCopy.bankAccountName || '';
     }
     private get bankAccountNumber(): string {
-        return this.targetTaskExecutorView.bankAccountNumber || '';
+        return this.taskExecutorPropCopy.bankAccountNumber || '';
     }
     private get linkBankAccountNumber(): string {
-        return this.targetTaskExecutorView.linkBankAccountNumber || '';
+        return this.taskExecutorPropCopy.linkBankAccountNumber || '';
     }
     private get contactName(): string {
-        if (this.targetTaskExecutorView.type === UserType.Individual) {
+        if (this.taskExecutorPropCopy.type === UserType.Individual) {
             return this.executorName;
         } else {
-            return this.targetTaskExecutorView.principalName || '';
+            return this.taskExecutorPropCopy.principalName || '';
         }
     }
     private get contactTelephone(): string {
-        return this.targetTaskExecutorView.telephone || '';
+        return this.taskExecutorPropCopy.telephone || '';
     }
     private get contactEmail(): string {
-        return this.targetTaskExecutorView.email || '';
+        return this.taskExecutorPropCopy.email || '';
     }
     private get isReceiptStatNone(): boolean {
-        return this.targetTaskView.executorReceiptRequired == null ||
-            this.targetTaskView.executorReceiptRequired === ReceiptState.None;
+        return this.taskPropCopy.executorReceiptRequired == null ||
+            this.taskPropCopy.executorReceiptRequired === ReceiptState.None;
     }
     private onSubmit(): void {
         const reqOptionParam = new TaskPayToExecutorImageUploadParam();
-        reqOptionParam.uid = this.targetTaskView.uid;
+        reqOptionParam.uid = this.taskPropCopy.uid;
         reqOptionParam.executorReceiptRequired = this.receiptRequired;
         this.uploadParam.optionData = reqOptionParam;
         (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).submit();
@@ -107,7 +107,7 @@ export class PayToExecutorDialogTS extends Vue {
         this.$emit(EventNames.Cancel);
     }
     private onImageChanged(): void {
-        this.isImageChanged = (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).isChanged();;
+        this.isImageChanged = (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).isChanged();
     }
     private onImageReset(): void {
         this.isImageChanged = false;
@@ -124,8 +124,8 @@ export class PayToExecutorDialogTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.targetTaskView = this.taskProp || {};
-        this.targetTaskExecutorView = this.targetTaskExecutorProp || {};
+        this.taskPropCopy = this.taskProp || {};
+        this.taskExecutorPropCopy = this.taskExecutorProp || {};
     }
     // #endregion
 
@@ -134,15 +134,15 @@ export class PayToExecutorDialogTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     @Watch('taskProp', { immediate: true })
     private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
-        this.targetTaskView = currentValue || {};
+        this.taskPropCopy = Object.assign({}, currentValue);
         this.receiptRequired = currentValue.executorReceiptRequired || this.labelOfNoReceipt;
         if (this.$refs[this.imageUploaderRefName] != null) {
             (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).reset();
         }
     }
-    @Watch('targetTaskExecutorProp', { immediate: true })
+    @Watch('taskExecutorProp', { immediate: true })
     private onTargetTaskExecutorChanged(currentValue: UserView, previousValue: UserView) {
-        this.targetTaskExecutorView = currentValue || {};
+        this.taskExecutorPropCopy = Object.assign({}, currentValue);
     }
     // #endregion
 }

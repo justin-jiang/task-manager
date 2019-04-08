@@ -21,8 +21,10 @@
     <el-row>
       <el-col :span="24">
         <el-table
+          :ref="userTableRefName"
           :data="filterUserObjs"
           stripe
+          @row-click="onRowClick"
         >
           <el-table-column type="expand">
             <template slot-scope="props">
@@ -48,6 +50,9 @@
           <el-table-column
             label="角色"
             width="110px"
+            prop="type"
+            :filters="typeFilter"
+            :filter-method="typeFilterHandler"
           >
             <template slot-scope="scope">
               <span class="span-in-col">{{ getUserRole(scope.row) }}</span>
@@ -83,20 +88,20 @@
                 type="primary"
                 size="mini"
                 plain
-                @click="onIdCheck(scope.$index, scope.row)"
+                @click.stop="onIdCheck(scope.$index, scope.row)"
               >主体审核</el-button>
               <el-button
                 v-if="isQualificationToBeChecked(scope.row)"
                 type="primary"
                 size="mini"
                 plain
-                @click="onQualificationCheck(scope.$index, scope.row)"
+                @click.stop="onQualificationCheck(scope.$index, scope.row)"
               >资质审核</el-button>
               <el-button
                 type="warning"
                 size="mini"
                 plain
-                @click="onUserPasswordReset(scope.$index, scope.row)"
+                @click.stop="onUserPasswordReset(scope.$index, scope.row)"
               >重置口令</el-button>
 
               <el-button
@@ -104,20 +109,20 @@
                 type="success"
                 size="mini"
                 plain
-                @click="onUserDisableOrEnable(scope.$index, scope.row)"
+                @click.stop="onUserDisableOrEnable(scope.$index, scope.row)"
               >启用</el-button>
               <el-button
                 v-else
                 type="warning"
                 size="mini"
                 plain
-                @click="onUserDisableOrEnable(scope.$index, scope.row)"
+                @click.stop="onUserDisableOrEnable(scope.$index, scope.row)"
               >禁用</el-button>
 
               <el-button
                 size="mini"
                 type="danger"
-                @click="onUserDelete(scope.$index, scope.row)"
+                @click.stop="onUserDelete(scope.$index, scope.row)"
               >删除</el-button>
             </template>
           </el-table-column>
@@ -137,8 +142,8 @@
       :scenarioProp="1"
       :targetUserProp="selectedUser.qualificationUid"
       :visibleProp="qualificationCheckDialogVisible"
-      @submitted="onQualificationCheckSubmit"
-      @cancelled="onQualificationCheckCancel"
+      @submit="onQualificationCheckSubmit"
+      @cancel="onQualificationCheckCancel"
       @download="onQualificationDownload"
     >
     </FileCheckDialogVue>
@@ -146,7 +151,7 @@
 </template>
 
 <script lang="ts">
-import { UserManagementTS } from "./UserManagementTS";
+import { UserManagementTS } from './UserManagementTS';
 export default class UserManagementVue extends UserManagementTS {}
 </script>
 

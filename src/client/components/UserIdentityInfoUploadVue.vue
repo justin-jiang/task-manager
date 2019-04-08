@@ -48,6 +48,13 @@
             <el-input v-model="formData.principalName"></el-input>
           </el-form-item>
           <el-form-item
+            v-if="isCorpUser"
+            label="负责人身份证号码"
+            prop="principalName"
+          >
+            <el-input v-model="formData.principalIDNumber"></el-input>
+          </el-form-item>
+          <el-form-item
             :label="labelOfArea"
             prop="area"
           >
@@ -251,7 +258,7 @@
 </template>
 
 <script lang="ts">
-import { UserIdentityInfoUploadTS } from "./UserIdentityInfoUploadTS";
+import { UserIdentityInfoUploadTS } from './UserIdentityInfoUploadTS';
 export default class UserIdentityInfoUploadVue extends UserIdentityInfoUploadTS {}
 </script>
 

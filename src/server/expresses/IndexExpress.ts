@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as path from 'path';
+import { ArgsParser } from 'server/common/ArgsParser';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
 import { ApiRouter } from '../routers/ApiRouter';
 import { BaseExpress } from './BaseExpress';
@@ -23,7 +24,7 @@ export class IndexExpress extends BaseExpress {
         // add static paths
         const clientDir: string = path.join(__dirname, 'client');
         LoggerManager.info(`clientDir:${clientDir}`);
-        this.expressApp.use(express.static(clientDir));
+        this.expressApp.use(ArgsParser.getStaticPublicPath(), express.static(clientDir));
     }
 
     /**

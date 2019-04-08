@@ -1,4 +1,6 @@
 export class AppConfigs {
+    public apiPublicPath?: string;
+
     public appPort?: number;
     public applyingDeadline?: number;
     public authSource?: string;
@@ -9,10 +11,11 @@ export class AppConfigs {
     public mongoDbUrls?: string;
     public poolSize?: number;
     public replicaSetName?: string;
-
+    public staticPublicPath?: string;
 
     constructor(withFullProps?: boolean) {
         if (withFullProps) {
+            this.apiPublicPath = '/';
             this.appPort = 0;
             this.authSource = '';
             this.dbPassword = '';
@@ -20,6 +23,7 @@ export class AppConfigs {
             this.healthCheckHost = '';
             this.mongoDbUrls = '';
             this.poolSize = 0;
+            this.staticPublicPath = '/';
             this.replicaSetName = '';
         }
     }

@@ -87,7 +87,7 @@ export abstract class BaseExpress {
 
         // create router middleware to express application,
         // which must be after the cookie/json/urlencoded middlewares
-        this.expressApp.use(this.expressRouter);
+        this.expressApp.use(ArgsParser.getApiPublicPath(), this.expressRouter);
     }
 
     /**

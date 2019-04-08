@@ -1,4 +1,5 @@
 <template>
+  <!-- used to do general audit, e.g. deposit and margin audit and so on -->
   <el-dialog
     custom-class="dialog-audit"
     :width="width"
@@ -10,6 +11,7 @@
   >
     <el-row class="row-item">
       <el-col :span="24">
+        <!-- used to insert the custom template which need to be auditted -->
         <slot></slot>
       </el-col>
     </el-row>
@@ -68,7 +70,7 @@
 </template>
 
 <script lang="ts">
-import { AuditDialogTS } from "./AuditDialogTS";
+import { AuditDialogTS } from './AuditDialogTS';
 export default class AuditDialogVue extends AuditDialogTS {}
 </script>
 

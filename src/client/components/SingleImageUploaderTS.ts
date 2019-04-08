@@ -181,6 +181,7 @@ export class SingleImageUploaderTS extends Vue implements ISingleImageUploaderTS
         if (apiResult.code === ApiResultCode.Success) {
             this.$emit(EventNames.Success, apiResult);
         } else {
+            this.reset();
             this.$emit(EventNames.Failure, apiResult);
         }
         this.isSubmitting = false;

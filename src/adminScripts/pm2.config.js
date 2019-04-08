@@ -87,33 +87,36 @@ module.exports = {
             out_file: APP_LOG,
             // default environment loaded by pm2 and transfer to App
             env: {
+                apiPublicPath: '/',
+                staticPublicPath: '/',
+                // the timespan in which the executor must pay the margin after applying
+                applyingDeadline: 30 * 60 * 1000,
+
+
+                // the http port which used by App
+                appPort: '8081',
+
+                // whether start App in debug mode
+                debugMode: false,
+
                 // the host in request which can get the health data
                 // which is used to protect the health data that only the
                 // specified host can get the data
                 // e.g. if you only allow 127.0.0.1 host to get health data
                 // the value of HealthCheckHost should be '127\.0\.0\.1'
                 healthCheckHost: '.*',
-                
-                // the http port which used by App
-                appPort: '8081',
-                
-                // whether start App in debug mode
-                debugMode: false,
-               
+
                 // Mongoose poolsize
                 poolSize: 5,
-                
+
                 // Mongodb connection address
                 mongoDBURLs: '127.0.0.1:27017',
-               
-                // whether the logger uses UTC time
-                utcLogTime: false,
-                
+
+
                 // Mongodb replicaSet Name which is required if target mongodb support ReplicaSet
                 // ReplicaSetName:'rs',
-                
-                // the timespan in which the executor must pay the margin after applying
-                applyingDeadline: 30 * 60 * 1000,
+
+
             },
         },
     ]

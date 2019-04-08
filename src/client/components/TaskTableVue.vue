@@ -9,7 +9,7 @@
   >
     <el-table-column type="expand">
       <template slot-scope="props">
-        <TaskDetailInTableVue :dataProp="props.row"></TaskDetailInTableVue>
+        <TaskSpecificInTableVue :dataProp="props.row"></TaskSpecificInTableVue>
       </template>
     </el-table-column>
 
@@ -45,7 +45,6 @@
       :sortMethod="deadlineSort"
       label="截止时间"
       width="100px"
-      style="background:red;"
     >
       <template slot-scope="scope">
         <span>{{timestampToDate(scope.row.deadline)}}</span>
@@ -59,7 +58,7 @@
       width="100px"
     >
       <template slot-scope="scope">
-        <span>{{getRemainingDays(scope.row.deadline)}}</span>
+        <span>{{getRemainingDaysText(scope.row)}}</span>
       </template>
     </el-table-column>
 
@@ -116,7 +115,7 @@
 </template>
 
 <script lang="ts">
-import { TaskTableTS } from "./TaskTableTS";
+import { TaskTableTS } from './TaskTableTS';
 export default class TaskTableVue extends TaskTableTS {}
 </script>
 

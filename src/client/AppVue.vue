@@ -10,7 +10,7 @@
       <el-row>
         <el-col
           :span="16"
-          style="text-align:left;"
+          class="col-header-logo"
         >
           <img
             class="img-logo"
@@ -19,7 +19,7 @@
         </el-col>
         <el-col
           :span="8"
-          style="text-align:right;padding-right:10px;"
+          class="col-header-avatar"
         >
           <el-dropdown
             style="width:250px"
@@ -48,42 +48,27 @@
   </el-container>
 </template>
 <script lang="ts">
-import { AppTS } from "./AppTS";
+import { AppTS } from './AppTS';
 export default class AppVue extends AppTS {}
 </script>
+
 <style lang="less">
-@headerPaddingTop: 20px;
-@headerHeight: @headerPaddingTop + 60px;
+// global style
+@maxMainFormWidth: 800px;
+@minMainFormWidth: 300px;
+@dialogBodyPaddingTop: 10px;
+@dialogBodyPaddingBottom: 20px;
 
-.container-app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+body {
+  margin: 2px;
 }
-.header-app {
-  height: @headerHeight !important;
-  position: fixed;
-  background-color: white;
-  width: 100%;
-  left: 0;
-  top: 0;
-  z-index: 1000;
-  padding-top: @headerPaddingTop;
-}
-.main-app {
-  margin-top: @headerHeight;
-  padding: 0px;
-}
-
 .form-main {
-  max-width: 800px;
-  min-width: 300px;
+  max-width: @maxMainFormWidth;
+  min-width: @minMainFormWidth;
 }
 .row-align-form {
-  max-width: 800px;
-  min-width: 300px;
+  max-width: @maxMainFormWidth;
+  min-width: @minMainFormWidth;
 }
 
 .el-form-item {
@@ -103,6 +88,11 @@ export default class AppVue extends AppTS {}
 // dialog
 .el-dialog {
   border-radius: 8px;
+  .col-dialog-title {
+    margin-top: 7px;
+    font-size: 20px;
+    font-weight: 800;
+  }
 }
 
 .dialog-deposit .el-dialog__header {
@@ -110,6 +100,20 @@ export default class AppVue extends AppTS {}
 }
 .dialog-deposit .el-dialog__body {
   padding-top: 0px;
+}
+
+.dialog-publisher-visit .el-dialog__body {
+  padding-top: @dialogBodyPaddingTop;
+  padding-bottom: @dialogBodyPaddingBottom;
+}
+
+.dialog-task-result-upload .el-dialog__body {
+  padding-top: @dialogBodyPaddingTop;
+  padding-bottom: @dialogBodyPaddingBottom;
+}
+.dialog-file-audit .el-dialog__body {
+  padding-top: @dialogBodyPaddingTop;
+  padding-bottom: @dialogBodyPaddingBottom;
 }
 
 .dialog-margin .el-dialog__header {
@@ -121,6 +125,7 @@ export default class AppVue extends AppTS {}
 
 .dialog-audit .el-dialog__body {
   padding-top: 0px;
+  padding-bottom: 10px;
 }
 
 .dialog-task-form .el-dialog__body {
@@ -130,8 +135,6 @@ export default class AppVue extends AppTS {}
 .dialog-progress .el-dialog__body {
   padding-top: 15px;
 }
-
-//
 
 .avatar-uploader .el-upload {
   border: 1px dashed #d9d9d9;
@@ -173,6 +176,40 @@ export default class AppVue extends AppTS {}
 }
 </style>
 <style scoped lang="less">
+// scoped style
+@headerPaddingTop: 20px;
+@headerHeight: @headerPaddingTop + 60px;
+
+.container-app {
+  font-family: "Avenir", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+  .header-app {
+    height: @headerHeight !important;
+    position: fixed;
+    background-color: white;
+    width: 100%;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    padding-top: @headerPaddingTop;
+    .col-header-avatar {
+      text-align: right;
+      padding-right: 10px;
+    }
+  }
+  .main-app {
+    margin-top: @headerHeight;
+    padding: 0px;
+  }
+
+  .col-header-logo {
+    text-align: left;
+  }
+}
+
 .img-logo {
   height: 60px;
   width: 500px;

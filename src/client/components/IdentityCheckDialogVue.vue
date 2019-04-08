@@ -1,4 +1,5 @@
 <template>
+<!-- all user id info audit -->
   <el-dialog
     width="600px"
     title="主体认证审核"
@@ -364,7 +365,7 @@
 </template>
 
 <script lang="ts">
-import { IdentityCheckDialogTS } from "./IdentityCheckDialogTS";
+import { IdentityCheckDialogTS } from './IdentityCheckDialogTS';
 export default class IdentityCheckDialogVue extends IdentityCheckDialogTS {}
 </script>
 

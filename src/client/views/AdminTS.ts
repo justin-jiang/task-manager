@@ -22,6 +22,12 @@ export class AdminTS extends Vue {
     private readonly taskIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Task}`;
     private readonly templateIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`;
     private readonly registerProtocolIndex: string = `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Protocol}`;
+    private get isQualitationTemplateReady(): boolean {
+        return !CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.qualificationUid);
+    }
+    private get isRegisterProtocolReady(): boolean {
+        return !CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.registerProtocolUid);
+    }
     private onMenuSelected(key: string, keyPath: string): void {
         LoggerManager.debug('selectedMenu:', key, keyPath);
     }

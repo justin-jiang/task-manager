@@ -4,10 +4,10 @@ import { RouterUtils } from 'client/common/RouterUtils';
 import { ComponentUtils } from 'client/components/ComponentUtils';
 import DepositDialogVue from 'client/components/DepositDialogVue.vue';
 import FileCheckDialogVue from 'client/components/FileCheckDialogVue.vue';
-import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import { UsageScenario } from 'client/components/TaskFormTS';
 import TaskFormVue from 'client/components/TaskFormVue.vue';
 import TaskProgressDialogVue from 'client/components/TaskProgressDialogVue.vue';
+import TaskSpecificInTableVue from 'client/components/TaskSpecificInTableVue.vue';
 import TaskTableVue from 'client/components/TaskTableVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
@@ -27,14 +27,16 @@ import { UserView } from 'common/responseResults/UserView';
 import { TaskState } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { StoreUtils } from 'client/common/StoreUtils';
+
 export const taskListTabName: string = 'taskListTab';
 
 const compToBeRegistered: any = {
     DepositDialogVue,
     FileCheckDialogVue,
-    TaskDetailInTableVue,
-    TaskFormVue,
     TaskProgressDialogVue,
+    TaskSpecificInTableVue,
+    TaskFormVue,
     TaskTableVue,
 };
 
@@ -205,7 +207,7 @@ export class PublisherTaskTS extends Vue {
     private readonly completedTasksLab: TaskState = TaskState.ExecutorPaid;
     private get completedTasks(): TaskView[] {
         return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.ExecutorPaid;
+            return CommonUtils.isTaskCompleted(item);
         });
     }
     private get completedTasksCount(): number {
@@ -352,27 +354,17 @@ export class PublisherTaskTS extends Vue {
                 let apiResult: ApiResult = { code: ApiResultCode.Success };
                 // #region -- init for task creation
                 // get Template Objs
-                apiResult = await this.store.dispatch(StoreActionNames.templateQuery,
-                    {
-                        notUseLocalData: true,
-                    } as IStoreActionArgs);
+                apiResult = await StoreUtils.$$pullTemplates(this.store);
                 if (apiResult.code !== ApiResultCode.Success) {
-                    RouterUtils.goToErrorView(this.$router,
-                        this.storeState,
-                        `获取模板列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+                    this.$message.error(`获取模板列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                     return;
                 }
                 // #endregion
 
                 // #region -- init for task edit
-                apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
-                    {
-                        notUseLocalData: true,
-                    } as IStoreActionArgs);
+                apiResult = await StoreUtils.$$pullTasks(this.store);
                 if (apiResult.code !== ApiResultCode.Success) {
-                    RouterUtils.goToErrorView(this.$router,
-                        this.storeState,
-                        `获取模任务列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+                    this.$message.error(`获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                     return;
                 }
                 // #endregion

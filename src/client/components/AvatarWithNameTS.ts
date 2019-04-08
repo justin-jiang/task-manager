@@ -19,6 +19,7 @@ export class AvatarWithNameTS extends Vue {
     // #endregion
 
     // #region -- refered by this Vue Template
+    // copy of qualificationStarProp
     private qualificationStar: number = 0;
     private get qualificationScore(): number {
         return this.qualificationScoreProp as number;

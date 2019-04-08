@@ -15,12 +15,12 @@
       <el-col :span="10">
         <img
           class="img-logo-cash"
-          src="../assets/logo_cashRegister.png"
+          src="../assets/logo_cashRegister.jpg"
         />
       </el-col>
       <el-col
         :span="14"
-        class="col-title"
+        class="col-dialog-title"
       >
         托管金支付
       </el-col>
@@ -178,7 +178,7 @@
 </template>
 
 <script lang="ts">
-import { DepositDialogTS } from "./DepositDialogTS";
+import { DepositDialogTS } from './DepositDialogTS';
 export default class DepositDialogVue extends DepositDialogTS {}
 </script>
 
@@ -187,10 +187,7 @@ export default class DepositDialogVue extends DepositDialogTS {}
 .row-item {
   margin-bottom: 15px;
   text-align: left;
-  .col-title {
-    margin-top: 7px;
-    font-size: 20px;
-  }
+
   .col-payment {
     color: red;
     font-size: 18px;

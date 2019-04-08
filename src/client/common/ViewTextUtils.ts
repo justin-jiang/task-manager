@@ -1,8 +1,12 @@
+import { CheckState } from 'common/CheckState';
+import { CommonUtils } from 'common/CommonUtils';
 import { NotificationType } from 'common/NotificationType';
+import { UserView } from 'common/responseResults/UserView';
 import { TaskState } from 'common/TaskState';
 import { UserRole } from 'common/UserRole';
+import { UserState } from 'common/UserState';
 import { UserType } from 'common/UserTypes';
-import * as moment from 'moment';
+import moment from 'moment';
 
 export class ViewTextUtils {
     public static getUserRoleText(role: UserRole): string {
@@ -119,13 +123,39 @@ export class ViewTextUtils {
         return title;
     }
 
+    public static getUserStateText(userView: UserView): string {
+        if (!CommonUtils.isAllRequiredIdsUploaded(userView) ||
+            CommonUtils.isNullOrEmpty(userView.qualificationUid)) {
+            return '信息缺失';
+        }
+
+        if (userView.idState === CheckState.FailedToCheck ||
+            userView.qualificationState === CheckState.FailedToCheck) {
+            return '审核失败';
+        }
+
+        if (userView.idState === CheckState.ToBeChecked ||
+            userView.qualificationState === CheckState.ToBeChecked) {
+            return '审核中';
+        }
+
+        switch (userView.state) {
+            case UserState.Enabled:
+                return '已启用';
+            case UserState.Disabled:
+                return '已禁用';
+            default:
+                return '错误状态';
+        }
+    }
+
     public static convertTimeStampToDatetime(timestamp: number): string {
-        return (moment as any)(timestamp).format('YYYY-MM-DD HH:mm:ss');
+        return (moment)(timestamp).format('YYYY-MM-DD HH:mm:ss');
     }
     public static convertTimeStampToDate(timestamp: number): string {
-        return (moment as any)(timestamp).format('YYYY-MM-DD');
+        return (moment)(timestamp).format('YYYY-MM-DD');
     }
     public static convertTimeStampToTime(timestamp: number): string {
-        return (moment as any)(timestamp).format('HH:mm:ss');
+        return (moment)(timestamp).format('HH:mm:ss');
     }
 }

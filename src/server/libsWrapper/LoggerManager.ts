@@ -21,6 +21,7 @@ export class LoggerManager {
     public static initialize(initParam: LoggerManagerInitParam) {
         this.initParam = initParam || {};
         const { printf } = format;
+        const procIndex: string = process.env.NODE_APP_INSTANCE == null ? '0' : (process.env.NODE_APP_INSTANCE);
         const myFormat = printf((info: any) => {
             const timestamp: string = (moment as any)(new Date()).format('YYYY-MM-DD hh:mm:ss:SSS');
             let metadataJSON: string | undefined;
@@ -41,12 +42,13 @@ export class LoggerManager {
         const customTransports: any = [];
         if (!this.initParam.isDebug) {
             const rollingFaleTransport = new DailyRotateFile({
-                dirname: './logs',
-                filename: `${LoggerManager.filePrefix}_%DATE%_${process.pid}.log`,
+                dirname: `./logs/${procIndex}`,
+                filename: `${LoggerManager.filePrefix}_%DATE%.log`,
                 datePattern: 'YYYY-MM-DD',
                 maxFiles: '10',
                 maxsize: '100m',
                 level: 'info',
+                auditFile: `./logs/${procIndex}/log_audit.json`,
                 format: format.combine(
                     format.metadata(),
                     myFormat,
@@ -116,6 +118,6 @@ export class LoggerManager {
 
 
     private static loggerInst: Logger;
-    private static filePrefix: string = 'log';
+    private static filePrefix: string = 'TM';
     private static initParam: LoggerManagerInitParam;
 }

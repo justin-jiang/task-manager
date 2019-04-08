@@ -78,18 +78,42 @@ export class StoreUtils {
     }
 
     public static async $$pullAllUsers(store: Store<IStoreState>, notUseLocalData?: boolean): Promise<ApiResult> {
-        if (notUseLocalData == null) {
-            notUseLocalData = false;
-        }
+        notUseLocalData = notUseLocalData == null ? true : notUseLocalData;
+        let apiResult: ApiResult = { code: ApiResultCode.AuthForbidden } as ApiResult;
         if (CommonUtils.isAdmin(store.state.sessionInfo)) {
-            return await store.dispatch(StoreActionNames.userQuery,
+            apiResult = await store.dispatch(StoreActionNames.userQuery,
                 {
                     notUseLocalData,
                 } as IStoreActionArgs);
-        } else {
-            const apiResult: ApiResult = new ApiResult();
-            apiResult.code = ApiResultCode.AuthForbidden;
-            return apiResult;
         }
+        return apiResult;
+    }
+
+    /**
+     * used by publisher to retrieve owned template list
+     * @param store 
+     * @param notUseLocalData 
+     */
+    public static async $$pullTemplates(store: Store<IStoreState>, notUseLocalData?: boolean): Promise<ApiResult> {
+        notUseLocalData = notUseLocalData == null ? true : notUseLocalData;
+        const storeState = store.state as IStoreState;
+        let apiResult: ApiResult = { code: ApiResultCode.AuthForbidden } as ApiResult;
+        if (CommonUtils.isReadyPublisher(storeState.sessionInfo)) {
+            apiResult = await store.dispatch(
+                StoreActionNames.templateQuery, { notUseLocalData } as IStoreActionArgs);
+        }
+        return apiResult;
+    }
+
+    public static async $$pullTasks(store: Store<IStoreState>, notUseLocalData?: boolean): Promise<ApiResult> {
+        notUseLocalData = notUseLocalData == null ? true : notUseLocalData;
+        const storeState = store.state as IStoreState;
+        let apiResult: ApiResult = { code: ApiResultCode.AuthForbidden } as ApiResult;
+        if (!CommonUtils.isNullOrEmpty(storeState.sessionInfo.uid)) {
+            apiResult = await store.dispatch(
+                StoreActionNames.taskQuery, { notUseLocalData } as IStoreActionArgs);
+        }
+        return apiResult;
     }
 }
+

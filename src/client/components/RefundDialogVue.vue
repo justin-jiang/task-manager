@@ -14,12 +14,12 @@
       <el-col :span="10">
         <img
           class="img-logo-cash"
-          src="../assets/logo_cashRegister.png"
+          src="../assets/logo_cashRegister.jpg"
         />
       </el-col>
       <el-col
         :span="14"
-        class="col-title"
+        class="col-dialog-title"
       >
         {{title}}
       </el-col>
@@ -134,7 +134,7 @@
 </template>
 
 <script lang="ts">
-import { RefundDialogTS } from "./RefundDialogTS";
+import { RefundDialogTS } from './RefundDialogTS';
 export default class RefundDialogTSVue extends RefundDialogTS {}
 </script>
 
@@ -143,10 +143,6 @@ export default class RefundDialogTSVue extends RefundDialogTS {}
 .row-item {
   margin-bottom: 15px;
   text-align: left;
-  .col-title {
-    margin-top: 7px;
-    font-size: 20px;
-  }
   .col-money-label {
     margin-top: 2px;
   }

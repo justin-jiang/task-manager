@@ -21,6 +21,7 @@ export const config: webpack.Configuration = {
     output: {
         path: resolve('./dist'),
         filename: '[name].js',
+        publicPath: '/task/',
     },
     plugins: [
         new (CleanWebpackPlugin as any)(

@@ -1,9 +1,18 @@
 import { FileAPIScenario } from 'common/FileAPIScenario';
-import { IRequestParam } from './IRequestParam';
 
-export class FileDownloadParam implements IRequestParam {
+export class FileDownloadParam {
     public fileId?: string;
-    public version?: number;
+
     public metadata?: any;
     public scenario?: FileAPIScenario;
+
+    public version?: number;
+    constructor(withFullProps?: boolean) {
+        if (withFullProps === true) {
+            this.fileId = '';
+            this.version = -1;
+            this.metadata = null;
+            this.scenario = FileAPIScenario.None;
+        }
+    }
 }

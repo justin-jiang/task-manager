@@ -22,7 +22,7 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
-export class TaskDetailInTableTS extends Vue {
+export class TaskSpecificInTableTS extends Vue {
     // #region -- component props and methods
     @Prop() public dataProp!: TaskView;
     // #endregion
@@ -85,11 +85,30 @@ export class TaskDetailInTableTS extends Vue {
     private get averageScore(): string {
         return (this.averageStar / 5 * 100).toFixed(1);
     }
-    private paymentToExecutor(): number {
+    private get paymentToExecutor(): number {
         return FeeCalculator.calcPaymentToExecutor(
             this.targetTask.reward as number,
             this.targetTask.proposedMargin as number,
             this.targetTask.executorReceiptRequired as ReceiptState);
+    }
+    private get executorReceiptFee(): number | string {
+        if (this.targetTask.executorReceiptRequired === ReceiptState.Required) {
+            return FeeCalculator.calcExecutorReceiptFee(this.targetTask.reward as number);
+        } else if (this.targetTask.executorReceiptRequired === ReceiptState.NotRequired) {
+            return 0;
+        } else {
+            return '未入账';
+        }
+    }
+
+    private get publisherReceiptFee(): number | string {
+        if (this.targetTask.publisherReceiptRequired === ReceiptState.Required) {
+            return FeeCalculator.calcPublisherReceiptFee(this.targetTask.reward as number);
+        } else if (this.targetTask.publisherReceiptRequired === ReceiptState.NotRequired) {
+            return 0;
+        } else {
+            return '未支付';
+        }
     }
     private get isTaskExecutor(): boolean {
         return this.dataProp.executorUid === this.storeState.sessionInfo.uid;

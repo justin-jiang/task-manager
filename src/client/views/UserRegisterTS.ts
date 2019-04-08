@@ -83,7 +83,6 @@ export class UserRegisterTS extends Vue {
     private onBasicUserSuccess(user: UserView): void {
         this.store.commit(StoreMutationNames.sessionInfoUpdate, user);
         this.calculateRegisterStep();
-        this.$message.success('提交成功');
     }
     private onBasicUserFailure(apiResult: ApiResult): void {
         this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
@@ -286,9 +285,7 @@ export class UserRegisterTS extends Vue {
             return;
         }
 
-        if (sessionInfo.idState == null ||
-            sessionInfo.idState === CheckState.NONE ||
-            sessionInfo.idState === CheckState.Missed) {
+        if (!CommonUtils.isAllRequiredIdsUploaded(sessionInfo)) {
             this.currentStep = RegisterStep.IdentityInfo;
             return;
         }

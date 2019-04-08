@@ -475,7 +475,7 @@ export class AdminTaskTS extends Vue {
             `${this.selectedTask.name}.zip`);
     }
 
-    private onResultAuditSubmitted(fileCheckParam: FileCheckParam): void {
+    private onResultAuditSubmit(fileCheckParam: FileCheckParam): void {
         (async () => {
             const store = (this.$store as Store<IStoreState>);
             const apiResult: ApiResult = await store.dispatch(
@@ -498,7 +498,7 @@ export class AdminTaskTS extends Vue {
         });
     }
 
-    private onResultAuditCancelled(): void {
+    private onResultAuditCancel(): void {
         this.selectedTask = {};
         this.resultAuditDialogVisible = false;
     }
@@ -605,18 +605,12 @@ export class AdminTaskTS extends Vue {
 
     @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
-        const sessionInfo = currentValue;
-        this.initialize();
-    }
-    private initialize() {
-        const sessionInfo = this.storeState.sessionInfo;
-        if (this.isInitialized === false) {
+        previousValue = previousValue || {};
+        currentValue = currentValue || {};
+        if (CommonUtils.isAdmin(currentValue) && previousValue.uid !== currentValue.uid) {
             (async () => {
                 let apiResult: ApiResult = { code: ApiResultCode.NONE };
-                apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
-                    {
-                        notUseLocalData: true,
-                    } as IStoreActionArgs);
+                apiResult = await StoreUtils.$$pullTasks(this.store);
                 if (apiResult.code !== ApiResultCode.Success) {
                     this.$message.error(`获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                 }

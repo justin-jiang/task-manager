@@ -1,6 +1,5 @@
-import { IRequestParam } from 'common/requestParams/IRequestParam';
 
-export class TaskPublisherVisitParam implements IRequestParam {
+export class TaskPublisherVisitParam {
     /**
      * NOTE: keep the prop same consistant with TaskObject, because server
      * will read the available props from param according the matched props with the ones in TaskObject

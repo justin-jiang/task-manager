@@ -16,6 +16,7 @@ import { UserRole } from 'common/UserRole';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { StoreMutationNames } from './VuexOperations/StoreMutationNames';
+import * as Bowser from 'bowser';
 
 const compToBeRegistered: any = {
     AvatarWithNameVue,
@@ -72,15 +73,28 @@ export class AppTS extends Vue {
     // #endregion
 
     // #region -- vue life-circle events
+    private created(): void {
+        this.interval = setInterval(() => {
+            ComponentUtils.pullNotification(this, true);
+        }, NOTIFICATION_PULL_INTERVAL) as any as number;
+    }
     private mounted(): void {
+        const browser = Bowser.getParser(window.navigator.userAgent);
+        const isValidBrowser = browser.satisfies({
+            // or in general
+            chrome: '>=60',
+            firefox: '>=60',
+        });
+        if (!isValidBrowser) {
+            RouterUtils.goToErrorView(this.$router, this.storeState, '目前只支持Chrome(V>=60)和Firefox(V>=60)浏览器');
+            return;
+        }
+
         (async () => {
             const apiResult: ApiResult = await this.store.dispatch(
                 StoreActionNames.sessionQuery, { notUseLocalData: true } as IStoreActionArgs);
-            ComponentUtils.pullNotification(this, false);
-            this.interval = setInterval(() => {
-                ComponentUtils.pullNotification(this, true);
-            }, NOTIFICATION_PULL_INTERVAL) as any as number;
             if (apiResult.code === ApiResultCode.Success) {
+                ComponentUtils.pullNotification(this, false);
                 await this.$$getLogoUrl();
                 if (!CommonUtils.isUserReady(this.storeState.sessionInfo)) {
                     RouterUtils.goToUserRegisterView(
@@ -138,13 +152,16 @@ export class AppTS extends Vue {
                 !RouterUtils.isLoginUrl() &&
                 !RouterUtils.isErrorUrl()) {
                 this.store.commit(StoreMutationNames.sessionRedirectUrlUpdate, window.location.href);
+                RouterUtils.goToLoginView(this.$router);
             }
-        } else if (RouterUtils.isAdminRoot()) {
-            RouterUtils.goToAdminUserManagementView(this.$router);
         } else if (RouterUtils.isHomeUrl()) {
             RouterUtils.goToUserHomePage(this.$router, this.storeState.sessionInfo);
+        } else if (RouterUtils.isAdminRoot()) {
+            RouterUtils.goToAdminUserManagementView(this.$router);
         } else if (RouterUtils.isPublishRoot()) {
             RouterUtils.goToPublisherDefaultView(this.$router);
+        } else if (RouterUtils.isExecutorRoot()) {
+            RouterUtils.goToExecutorDefaultView(this.$router);
         }
     }
 
@@ -157,11 +174,10 @@ export class AppTS extends Vue {
     }
 
     private async $$getLogoUrl(): Promise<void> {
-        const sessionInfo = this.storeState.sessionInfo;
-        if (!CommonUtils.isNullOrEmpty(sessionInfo.logoUid) &&
-            CommonUtils.isNullOrEmpty(sessionInfo.logoUrl)) {
+        if (!CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.logoUid) &&
+            CommonUtils.isNullOrEmpty(this.storeState.sessionInfo.logoUrl)) {
             const logoUrl: string | undefined = await ComponentUtils.$$getImageUrl(
-                this, sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
+                this, this.storeState.sessionInfo.logoUid as string, FileAPIScenario.DownloadUserLogo);
             if (logoUrl != null) {
                 this.store.commit(StoreMutationNames.sessionInfoPropUpdate, { logoUrl } as UserView);
             }

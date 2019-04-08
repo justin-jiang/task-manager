@@ -2,10 +2,19 @@
   <el-dialog
     width="550px"
     custom-class="dialog-progress"
-    :title="dialogTitle"
     :visible.sync="show"
     @closed="onClosed"
   >
+    <el-row
+      slot="title"
+    >
+      <el-col
+        :span="24"
+        class="col-dialog-title"
+      >
+        {{dialogTitle}}
+      </el-col>
+    </el-row>
     <el-row>
       <el-col :span="24">
         <el-steps
@@ -62,12 +71,13 @@
 </template>
 
 <script lang="ts">
-import { TaskProgressDialogTS } from "./TaskProgressDialogTS";
+import { TaskProgressDialogTS } from './TaskProgressDialogTS';
 export default class TaskProgressDialogVue extends TaskProgressDialogTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less" >
+
 .col-step-datetime {
   min-height: 50px;
 }

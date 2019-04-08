@@ -1,4 +1,3 @@
-import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { EventNames } from 'client/common/EventNames';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
@@ -39,6 +38,10 @@ export class PublisherVisitDialogTS extends Vue {
         }
     }
 
+    private get isReadyToSubmit(): boolean {
+        return (this.reqParam.publisherVisitStar as number) > 0;
+    }
+
     private onSubmit(): void {
         (async () => {
             const store = (this.$store as Store<IStoreState>);
@@ -56,14 +59,13 @@ export class PublisherVisitDialogTS extends Vue {
     }
     private onCancel(): void {
         this.$emit(EventNames.Cancel);
+        this.reqParam = new TaskPublisherVisitParam(true);
     }
 
     // #endregion
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.targetTaskView = this.taskProp || {};
-        this.targetTaskPublisherView = this.targetTaskPublisherProp || {};
     }
     // #endregion
 

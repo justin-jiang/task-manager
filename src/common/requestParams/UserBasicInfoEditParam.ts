@@ -17,8 +17,9 @@ export class UserBasicInfoEditParam {
 
     public identityNumber?: string;
 
-    public province?: string;
+    public principalIDNumber?: string;
     public principalName?: string;
+    public province?: string;
 
     public realName?: string;
 
@@ -34,6 +35,7 @@ export class UserBasicInfoEditParam {
             this.district = '';
             this.identityNumber = '';
             this.linkBankAccountNumber = '';
+            this.principalIDNumber = '';
             this.principalName = '';
             this.province = '';
             this.realName = '';

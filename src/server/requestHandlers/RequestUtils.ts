@@ -9,8 +9,12 @@ import { TaskObject } from 'server/dataObjects/TaskObject';
 import { UserObject } from 'server/dataObjects/UserObject';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
+import { TemplateObject } from 'server/dataObjects/TemplateObject';
+import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
+import { UserState } from 'common/UserState';
 
 export class RequestUtils {
+    //#region -- general
     /**
      * according the param model to pick up the matched props from client request
      */
@@ -34,6 +38,14 @@ export class RequestUtils {
         return result;
     }
 
+    public static replaceNullWithObject(reqParam: any): any {
+        if (reqParam == null) {
+            reqParam = {};
+        }
+        return reqParam;
+    }
+    //#endregion
+
     // #region -- user related
     public static readyPublisherCheck(currentUser: UserObject): void {
         if (!CommonUtils.isReadyPublisher(currentUser)) {
@@ -50,6 +62,14 @@ export class RequestUtils {
             throw new ApiError(ApiResultCode.AuthForbidden, `User(${currentUser.name}) is not admin`);
         }
     }
+    public static readyUserCheck(currentUser: UserObject): void {
+        if (currentUser == null) {
+            throw new ApiError(ApiResultCode.AuthUnauthorized);
+        }
+        if (currentUser.state === UserState.Disabled) {
+            throw new ApiError(ApiResultCode.AuthForbidden, `user:${currentUser.uid} disabled`);
+        }
+    }
 
     public static async $$getCurrentUser(req: Request): Promise<UserObject> {
         const loginUserInCookie: ILoginUserInfoInCookie =
@@ -61,6 +81,15 @@ export class RequestUtils {
             throw new ApiError(ApiResultCode.DbNotFound, `UserID:${loginUserInCookie.uid}`);
         }
         return dbUsers[0];
+    }
+
+    public static async $$userExistenceCheck(uid: string): Promise<UserObject> {
+        const targetUser: UserObject = await UserModelWrapper.$$findOne(
+            { uid } as UserObject) as UserObject;
+        if (targetUser == null) {
+            throw new ApiError(ApiResultCode.DbNotFound_User, `UserUid:${uid}`);
+        }
+        return targetUser;
     }
     // #endregion
 
@@ -80,4 +109,14 @@ export class RequestUtils {
     }
     // #endregion
 
+    //#region -- template related
+    public static async $$templateExistenceCheck(uid: string): Promise<TemplateObject> {
+        const dbObj: TemplateObject = await TemplateModelWrapper.$$findOne(
+            { uid } as TemplateObject) as TemplateObject;
+        if (dbObj == null) {
+            throw new ApiError(ApiResultCode.DbNotFound);
+        }
+        return dbObj;
+    }
+    //#endregion
 }

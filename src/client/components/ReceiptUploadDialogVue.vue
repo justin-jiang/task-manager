@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-    width="430px"
+    width="450px"
     custom-class="dialog-deposit"
     :show-close="false"
     :close-on-click-modal="false"
@@ -14,12 +14,12 @@
       <el-col :span="10">
         <img
           class="img-logo-cash"
-          src="../assets/logo_cashRegister.png"
+          src="../assets/logo_cashRegister.jpg"
         />
       </el-col>
       <el-col
         :span="14"
-        class="col-title"
+        class="col-dialog-title"
       >
         发票入账
       </el-col>
@@ -32,7 +32,7 @@
       >
         <el-radio-group
           :disabled="!isReceiptStateNone"
-          v-model="uploadOptionParam.executorReceiptRequired"
+          v-model="executorReceiptRequired"
           size="mini"
         >
           <el-radio :label="labelOfReceipt">开具发票</el-radio>
@@ -43,10 +43,10 @@
     <el-row class="row-item">
       <div v-if="isReceiptRequired">
         <el-row class="row-item">
-          <el-col :span="6">
+          <el-col :span="5">
             发票号码
           </el-col>
-          <el-col :span="18">
+          <el-col :span="19">
             <el-input
               placeholder="不能为空"
               v-model="uploadOptionParam.executorReceiptNumber"
@@ -54,10 +54,10 @@
           </el-col>
         </el-row>
         <el-row class="row-item">
-          <el-col :span="6">
+          <el-col :span="5">
             开票日期
           </el-col>
-          <el-col :span="18">
+          <el-col :span="19">
             <el-date-picker
               v-model="uploadOptionParam.executorReceiptDatetime"
               type="date"
@@ -68,10 +68,10 @@
           </el-col>
         </el-row>
         <el-row class="row-item">
-          <el-col :span="6">
+          <el-col :span="5">
             发票上传
           </el-col>
-          <el-col :span="18">
+          <el-col :span="19">
             <SingleImageUploaderVue
               :ref="imageUploaderRefName"
               :filePostParamProp="uploadParam"
@@ -86,14 +86,14 @@
       </div>
       <div v-else>
         <el-row class="row-item">
-          <el-col :span="6">
+          <el-col :span="5">
             不开票理由
           </el-col>
-          <el-col :span="18">
+          <el-col :span="19">
             <el-input
               type="textarea"
               placeholder="不能为空"
-              v-model="uploadOptionParam.executorReceiptNote"
+              v-model="notRequiredOptionParam.executorReceiptNote"
               :autosize="{ minRows: 2, maxRows: 4}"
             >
             </el-input>
@@ -122,7 +122,7 @@
 </template>
 
 <script lang="ts">
-import { ReceiptUploadDialogTS } from "./ReceiptUploadDialogTS";
+import { ReceiptUploadDialogTS } from './ReceiptUploadDialogTS';
 export default class ReceiptUploadDialogVue extends ReceiptUploadDialogTS {}
 </script>
 
@@ -132,10 +132,7 @@ export default class ReceiptUploadDialogVue extends ReceiptUploadDialogTS {}
   margin-bottom: 15px;
   text-align: left;
 }
-.col-title {
-  margin-top: 7px;
-  font-size: 20px;
-}
+
 .row-item-no-margin {
   text-align: left;
 }

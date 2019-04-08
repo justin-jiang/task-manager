@@ -33,9 +33,7 @@
           <el-col :span="2">
             <b>截止日期:</b>
           </el-col>
-          <el-col
-            :span="3"
-          >
+          <el-col :span="3">
             {{ timestampToText(targetTask.deadline) }}
           </el-col>
         </el-row>
@@ -350,7 +348,7 @@
             </el-radio-group>
           </el-col>
           <el-col :span="4">
-            <b>发票入账：</b><span>￥{{targetTask.paymentToExecutor}}</span>
+            <b>发票入账：</b><span>￥{{executorReceiptFee}}</span>
           </el-col>
           <el-col :span="3">
             <b>雇主:</b>
@@ -366,7 +364,7 @@
             </el-radio-group>
           </el-col>
           <el-col :span="4">
-            <b>开具发票：</b><span>￥{{targetTask.reward}}</span>
+            <b>开具发票：</b><span>￥{{publisherReceiptFee}}</span>
           </el-col>
         </el-row>
       </el-col>
@@ -377,8 +375,8 @@
 </template>
 
 <script lang="ts">
-import { TaskDetailInTableTS } from "./TaskDetailInTableTS";
-export default class TaskDetailInTableVue extends TaskDetailInTableTS {}
+import { TaskSpecificInTableTS } from './TaskSpecificInTableTS';
+export default class TaskSpecificInTableVue extends TaskSpecificInTableTS {}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -400,6 +398,9 @@ export default class TaskDetailInTableVue extends TaskDetailInTableTS {}
     .col-sub-item-date {
       margin-top: 12px;
     }
+    .col-center {
+      text-align: center;
+    }
   }
 }
 .row-titile {
@@ -408,9 +409,5 @@ export default class TaskDetailInTableVue extends TaskDetailInTableTS {}
   font-size: 16px;
   background: white !important;
   color: darkgray;
-}
-
-.col-center {
-  text-align: center;
 }
 </style>

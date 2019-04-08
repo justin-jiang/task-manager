@@ -1,8 +1,9 @@
 import { Schema, SchemaOptions, SchemaTypeOpts } from 'mongoose';
 import { BaseSchemaDef, IModel } from 'server/dataModels/mongoDB/IModel';
-import { keysOfITemplateObject as KeysOfIDBObject } from 'server/dataObjects/TemplateObject';
+import { keysOfTemplateObject } from 'server/dataObjects/TemplateObject';
 import { ApiError } from 'server/common/ApiError';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
+import { ArgsParser } from 'server/common/ArgsParser';
 export const schemaName: string = 'templates';
 
 const schemaOptions: SchemaOptions = {
@@ -31,8 +32,11 @@ export interface ITemplateModel extends IModel {
 export const keysOfSchema: string[] = Object.keys(schemaDef);
 
 // do the prop check that all props in IXXXObject must be in keysOfSchema
-KeysOfIDBObject.forEach((item) => {
-    if (!keysOfSchema.includes(item)) {
-        throw new ApiError(ApiResultCode.DbSchemaPropMissed, `${item} missed in Template Schema`);
-    }
-});
+if (ArgsParser.isDebugMode()) {
+    keysOfTemplateObject.forEach((item) => {
+        if (!keysOfSchema.includes(item)) {
+            throw new ApiError(ApiResultCode.DbSchemaPropMissed, `${item} missed in Template Schema`);
+        }
+    });
+}
+

@@ -1,6 +1,7 @@
 <template>
   <el-dialog
-    width="30%"
+    width="400px"
+    custom-class="dialog-file-audit"
     :title="titleProp"
     :show-close="false"
     :close-on-click-modal="false"
@@ -93,7 +94,7 @@
           size="small"
           type="primary"
           plain
-          @click="onCancelled()"
+          @click="onCancel()"
         >取消</el-button>
       </el-col>
       <el-col :span="12">
@@ -109,7 +110,7 @@
 </template>
 
 <script lang="ts">
-import { FileCheckDialogTS } from "./FileCheckDialogTS";
+import { FileCheckDialogTS } from './FileCheckDialogTS';
 export default class FileCheckDialogVue extends FileCheckDialogTS {}
 </script>
 

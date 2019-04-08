@@ -21,11 +21,10 @@ import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
 import { TemplateView } from 'common/responseResults/TemplateView';
 import { UserView } from 'common/responseResults/UserView';
-import { TaskHistoryItem } from 'common/TaskHistoryItem';
 import { TaskState } from 'common/TaskState';
-import { UserState } from 'common/UserState';
 import { Request, Response } from 'express';
 import { ApiError } from 'server/common/ApiError';
+import { TaskApplicationModelWrapper } from 'server/dataModels/TaskApplicationModelWrapper';
 import { TaskModelWrapper } from 'server/dataModels/TaskModelWrapper';
 import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
 import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
@@ -38,8 +37,6 @@ import { TemplateRequestHandler } from 'server/requestHandlers/TemplateRequestHa
 import { UserRequestHandler } from 'server/requestHandlers/UserRequestHandler';
 import { RequestUtils } from './RequestUtils';
 import { TaskRequestHandler } from './TaskRequestHandler';
-import { TaskApplicationModelWrapper } from 'server/dataModels/TaskApplicationModelWrapper';
-import { UserType } from 'common/UserTypes';
 export class FileRequestHandler {
     // #region -- template related methods
     /**
@@ -146,95 +143,93 @@ export class FileRequestHandler {
     }
 
     /**
-     * Update user Identity related images which will cause user to go into Id ToBoChecked state
+     * upload user Identity related images which will cause user to go into Id ToBoChecked state
      * @param fileData 
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$updateUserIdImages(
+    public static async $$uploadUserIdImages(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<UserView> {
-        if (currentUser.state === UserState.Disabled) {
-            throw new ApiError(ApiResultCode.AuthForbidden, `user:${currentUser.uid} disabled`);
-        }
+        RequestUtils.readyUserCheck(currentUser);
         this.checkImageFileSize(fileData);
         let fileIdToCreate: string;
         let fileType: FileType;
-        const updatedProps: UserObject = {};
-
+        const allUpdatedProps: UserObject = {};
+        allUpdatedProps.idState = CheckState.ToBeChecked;
         switch (reqParam.scenario) {
             case FileAPIScenario.UploadUserLogo:
                 if (CommonUtils.isNullOrEmpty(currentUser.logoUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.logoUid = fileIdToCreate;
+                    allUpdatedProps.logoUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.logoUid as string;
                     // remove existing one
                     await FileStorage.$$deleteEntry(fileIdToCreate, 0);
                 }
                 fileType = FileType.UserLogo;
-                updatedProps.logoState = CheckState.ToBeChecked;
+                allUpdatedProps.logoState = CheckState.ToBeChecked;
                 break;
             case FileAPIScenario.UploadUserFrontId:
                 if (CommonUtils.isNullOrEmpty(currentUser.frontIdUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.frontIdUid = fileIdToCreate;
+                    allUpdatedProps.frontIdUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.frontIdUid as string;
                     // remove existing one
                     await FileStorage.$$deleteEntry(fileIdToCreate, 0);
                 }
                 fileType = FileType.FrontId;
-                updatedProps.frontIdState = CheckState.ToBeChecked;
+                allUpdatedProps.frontIdState = CheckState.ToBeChecked;
                 break;
             case FileAPIScenario.UploadUserBackId:
                 if (CommonUtils.isNullOrEmpty(currentUser.backIdUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.backIdUid = fileIdToCreate;
+                    allUpdatedProps.backIdUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.backIdUid as string;
                     // remove existing one
                     await FileStorage.$$deleteEntry(fileIdToCreate, 0);
                 }
                 fileType = FileType.BackId;
-                updatedProps.backIdState = CheckState.ToBeChecked;
+                allUpdatedProps.backIdState = CheckState.ToBeChecked;
                 break;
             case FileAPIScenario.UploadLicense:
                 if (CommonUtils.isNullOrEmpty(currentUser.licenseUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.licenseUid = fileIdToCreate;
+                    allUpdatedProps.licenseUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.licenseUid as string;
                     // remove existing one
                     await FileStorage.$$deleteEntry(fileIdToCreate, 0);
                 }
                 fileType = FileType.License;
-                updatedProps.licenseState = CheckState.ToBeChecked;
+                allUpdatedProps.licenseState = CheckState.ToBeChecked;
                 break;
             case FileAPIScenario.UploadLicenseWithPerson:
                 if (CommonUtils.isNullOrEmpty(currentUser.licenseWithPersonUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.licenseWithPersonUid = fileIdToCreate;
+                    allUpdatedProps.licenseWithPersonUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.licenseWithPersonUid as string;
                     // remove existing one
                     await FileStorage.$$deleteEntry(fileIdToCreate, 0);
                 }
                 fileType = FileType.LicenseWithPerson;
-                updatedProps.licenseWidthPersonState = CheckState.ToBeChecked;
+                allUpdatedProps.licenseWidthPersonState = CheckState.ToBeChecked;
                 break;
             case FileAPIScenario.UploadAuthLetter:
                 if (CommonUtils.isNullOrEmpty(currentUser.authLetterUid)) {
                     fileIdToCreate = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.authLetterUid = fileIdToCreate;
+                    allUpdatedProps.authLetterUid = fileIdToCreate;
                 } else {
                     fileIdToCreate = currentUser.authLetterUid as string;
                     // remove existing one
                     await FileStorage.$$deleteEntry(fileIdToCreate, 0);
                 }
                 fileType = FileType.AuthLetter;
-                updatedProps.authLetterState = CheckState.ToBeChecked;
+                allUpdatedProps.authLetterState = CheckState.ToBeChecked;
                 break;
             default:
                 throw new ApiError(ApiResultCode.InputInvalidFileScenario, JSON.stringify(reqParam));
@@ -249,35 +244,12 @@ export class FileRequestHandler {
                 originalFileName: fileData.originalname,
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
-        Object.assign(currentUser, updatedProps);
-        // only all the required id ready, we can set the idState to ToBeChecked
-        if (currentUser.type === UserType.Corp) {
-            if ((currentUser.authLetterState === CheckState.ToBeChecked ||
-                currentUser.authLetterState === CheckState.Checked) &&
-                (currentUser.licenseWidthPersonState === CheckState.ToBeChecked ||
-                    currentUser.licenseWidthPersonState === CheckState.Checked) &&
-                (currentUser.licenseState === CheckState.ToBeChecked ||
-                    currentUser.licenseState === CheckState.Checked) &&
-                (currentUser.backIdState === CheckState.ToBeChecked ||
-                    currentUser.backIdState === CheckState.Checked) &&
-                (currentUser.frontIdState === CheckState.ToBeChecked ||
-                    currentUser.frontIdState === CheckState.Checked)) {
-                updatedProps.idState = CheckState.ToBeChecked;
-                currentUser.idState = CheckState.ToBeChecked;
-            }
-        } else {
-            if ((currentUser.backIdState === CheckState.ToBeChecked ||
-                currentUser.backIdState === CheckState.Checked) &&
-                (currentUser.frontIdState === CheckState.ToBeChecked ||
-                    currentUser.frontIdState === CheckState.Checked)) {
-                updatedProps.idState = CheckState.ToBeChecked;
-                currentUser.idState = CheckState.ToBeChecked;
-            }
-        }
+
 
         await UserModelWrapper.$$updateOne(
             { uid: currentUser.uid } as UserObject,
-            updatedProps);
+            allUpdatedProps);
+        Object.assign(currentUser, allUpdatedProps);
 
         return UserRequestHandler.$$convertToDBView(currentUser);
     }
@@ -296,9 +268,12 @@ export class FileRequestHandler {
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
         // param check
-        const metadata: TaskDepositImageUploadParam = JSON.parse(reqParam.optionData as string);
-        if (CommonUtils.isNullOrEmpty(metadata.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam, 'uid should not be null');
+        if (reqParam.optionData == null) {
+            reqParam.optionData = '{}';
+        }
+        const optionData: TaskDepositImageUploadParam = JSON.parse(reqParam.optionData as string);
+        if (CommonUtils.isNullOrEmpty(optionData.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, reqParam.optionData as string);
         }
         this.checkImageFileSize(fileData);
 
@@ -306,27 +281,27 @@ export class FileRequestHandler {
         RequestUtils.readyPublisherCheck(currentUser);
 
         // task check
-        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Submitted);
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(optionData.uid as string, TaskState.Submitted);
         if (dbObj.publisherUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.Auth_Not_Task_Publisher_Onwer,
                 `User:${currentUser.name} is not owner of task:${dbObj.uid}`);
         }
-        const updatedProps: TaskObject = new TaskObject();
-        updatedProps.state = TaskState.DepositUploaded;
+        const allUpdatedProps: TaskObject = new TaskObject();
+        allUpdatedProps.state = TaskState.DepositUploaded;
         // pick up the props in param and assign to updatedProps object
-        Object.assign(updatedProps, RequestUtils.pickUpPropsByModel(
-            metadata, new TaskDepositImageUploadParam(true)), true);
+        Object.assign(allUpdatedProps, RequestUtils.pickUpPropsByModel(
+            optionData, new TaskDepositImageUploadParam(true)), true);
 
         if (CommonUtils.isNullOrEmpty(dbObj.depositImageUid)) {
-            updatedProps.depositImageUid = CommonUtils.getUUIDForMongoDB();
+            allUpdatedProps.depositImageUid = CommonUtils.getUUIDForMongoDB();
         } else {
             // remove existing one
             await FileStorage.$$deleteEntry(dbObj.depositImageUid as string, 0);
+            allUpdatedProps.depositImageUid = dbObj.depositImageUid;
         }
 
-        Object.assign(dbObj, updatedProps);
         await FileStorage.$$saveEntry(
-            dbObj.depositImageUid as string,
+            allUpdatedProps.depositImageUid as string,
             0,
             {
                 type: FileType.Deposit,
@@ -335,14 +310,15 @@ export class FileRequestHandler {
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
-        // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
-
         // add history item
         await TaskModelWrapper.$$addHistoryItem(
             dbObj.uid as string,
             TaskState.DepositUploaded,
             CommonUtils.getStepTitleByTaskState(TaskState.DepositUploaded));
+
+        // update object
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+        Object.assign(dbObj, allUpdatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
@@ -357,33 +333,35 @@ export class FileRequestHandler {
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
+        if (reqParam.optionData == null) {
+            reqParam.optionData = '{}';
+        }
         RequestUtils.readyExecutorCheck(currentUser);
         this.checkImageFileSize(fileData);
-        const metadata: TaskMarginImageUploadParam = JSON.parse(reqParam.optionData as string);
-        if (CommonUtils.isNullOrEmpty(metadata.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'uid should not be null');
+        const optionData: TaskMarginImageUploadParam = JSON.parse(reqParam.optionData as string);
+        if (CommonUtils.isNullOrEmpty(optionData.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, reqParam.optionData as string);
         }
-        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Applying);
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(optionData.uid as string, TaskState.Applying);
 
         if (dbObj.applicantUid !== currentUser.uid) {
-            throw new ApiError(ApiResultCode.AuthForbidden,
+            throw new ApiError(ApiResultCode.Auth_Not_Task_Applicant,
                 `User:${currentUser.name} is not applicant of task:${dbObj.uid}`);
         }
 
-        const updatedProps: TaskObject = new TaskObject();
-        updatedProps.marginAditState = CheckState.ToBeChecked;
-        updatedProps.state = TaskState.MarginUploaded;
+        const allUpdatedProps: TaskObject = new TaskObject();
+        allUpdatedProps.marginAditState = CheckState.ToBeChecked;
+        allUpdatedProps.state = TaskState.MarginUploaded;
         if (CommonUtils.isNullOrEmpty(dbObj.marginImageUid)) {
-            updatedProps.marginImageUid = CommonUtils.getUUIDForMongoDB();
+            allUpdatedProps.marginImageUid = CommonUtils.getUUIDForMongoDB();
         } else {
             // remove existing one
             await FileStorage.$$deleteEntry(dbObj.marginImageUid as string, 0);
+            allUpdatedProps.marginImageUid = dbObj.marginImageUid;
         }
 
-        Object.assign(dbObj, updatedProps);
         await FileStorage.$$saveEntry(
-            dbObj.marginImageUid as string,
+            allUpdatedProps.marginImageUid as string,
             0,
             {
                 type: FileType.Margin,
@@ -392,13 +370,15 @@ export class FileRequestHandler {
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
-        // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
         await TaskModelWrapper.$$addHistoryItem(
             dbObj.uid as string,
             TaskState.MarginUploaded,
             CommonUtils.getStepTitleByTaskState(TaskState.MarginUploaded));
         await TaskApplicationModelWrapper.$$deleteByTaskId(dbObj.uid as string);
+
+        // update object
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+        Object.assign(dbObj, allUpdatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
@@ -413,11 +393,13 @@ export class FileRequestHandler {
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
         // param check
+        if (reqParam.optionData == null) {
+            reqParam.optionData = '{}';
+        }
         this.checkImageFileSize(fileData);
         const metadata: TaskRefundImageUploadParam = JSON.parse(reqParam.optionData as string);
         if (CommonUtils.isNullOrEmpty(metadata.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'uid should not be null');
+            throw new ApiError(ApiResultCode.InputInvalidParam, reqParam.optionData as string);
         }
 
         // use check
@@ -454,7 +436,7 @@ export class FileRequestHandler {
             historyItemState = TaskState.MarginRefund;
         }
 
-        Object.assign(dbObj, allUpdatedProps);
+
         await FileStorage.$$saveEntry(
             fileId,
             0,
@@ -465,59 +447,62 @@ export class FileRequestHandler {
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
-        // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+
         await TaskModelWrapper.$$addHistoryItem(
             dbObj.uid as string, historyItemState, CommonUtils.getStepTitleByTaskState(historyItemState));
+
+        // update object
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+        Object.assign(dbObj, allUpdatedProps);
+
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
     /**
-     * update Task Result file which will cause Task to go into ResultUploaded state
+     * upload Task Result file which will cause Task to go into ResultUploaded state
      * used by assigned executor
      * @param fileData 
      * @param reqParam 
      * @param currentUser 
      */
-    public static async $$updateTaskResultFile(
+    public static async $$uploadTaskResult(
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
-        // only task executor can update Result file
-        RequestUtils.readyExecutorCheck(currentUser);
-        this.checkFileSize(fileData);
-        const metadata: TaskResultFileUploadParam = JSON.parse(reqParam.optionData as string);
-        if (CommonUtils.isNullOrEmpty(metadata.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TaskResultFileUploadParam.uid should not be null');
+        // param check
+        if (reqParam.optionData == null) {
+            reqParam.optionData = '{}';
         }
-        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(metadata.uid as string, TaskState.Assigned);
+        this.checkFileSize(fileData);
+        const optionData: TaskResultFileUploadParam = JSON.parse(reqParam.optionData as string);
+        if (CommonUtils.isNullOrEmpty(optionData.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, reqParam.optionData as string);
+        }
+        // user check
+        RequestUtils.readyExecutorCheck(currentUser);
+
+        // task check
+        const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(optionData.uid as string, TaskState.Assigned);
         if (dbObj.executorUid !== currentUser.uid) {
-            throw new ApiError(ApiResultCode.AuthForbidden,
+            throw new ApiError(ApiResultCode.Auth_Not_Task_Assigned_Executor,
                 `Task:${dbObj.name} is not assigned to Executor:${currentUser.name}`);
         }
 
-        const updatedProps: TaskObject = new TaskObject();
-        updatedProps.state = TaskState.ResultUploaded;
-        updatedProps.resultTime = Date.now();
+        const allUpdatedProps: TaskObject = new TaskObject();
+        allUpdatedProps.state = TaskState.ResultUploaded;
+        allUpdatedProps.resultTime = Date.now();
         if (CommonUtils.isNullOrEmpty(dbObj.resultFileUid)) {
-            updatedProps.resultFileUid = CommonUtils.getUUIDForMongoDB();
-            updatedProps.resultFileversion = 0;
+            allUpdatedProps.resultFileUid = CommonUtils.getUUIDForMongoDB();
+            allUpdatedProps.resultFileversion = 0;
         } else {
-            updatedProps.resultFileversion = dbObj.resultFileversion as number + 1;
+            allUpdatedProps.resultFileUid = dbObj.resultFileUid;
+            allUpdatedProps.resultFileversion = dbObj.resultFileversion as number + 1;
         }
-        updatedProps.histories = dbObj.histories;
-        (updatedProps.histories as TaskHistoryItem[]).push({
-            uid: CommonUtils.getUUIDForMongoDB(),
-            createTime: Date.now(),
-            state: TaskState.ResultUploaded,
-            description: '',
-        } as TaskHistoryItem);
 
-        Object.assign(dbObj, updatedProps);
+
         await FileStorage.$$saveEntry(
-            dbObj.resultFileUid as string,
-            dbObj.resultFileversion as number,
+            allUpdatedProps.resultFileUid as string,
+            allUpdatedProps.resultFileversion as number,
             {
                 type: FileType.TaskResult,
                 checked: true,
@@ -525,8 +510,16 @@ export class FileRequestHandler {
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
 
+
+        await TaskModelWrapper.$$addHistoryItem(
+            dbObj.uid as string,
+            TaskState.ResultUploaded,
+            CommonUtils.getStepTitleByTaskState(TaskState.ResultUploaded));
+
         // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, updatedProps);
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+
+        Object.assign(dbObj, allUpdatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
@@ -542,11 +535,13 @@ export class FileRequestHandler {
         fileData: Express.Multer.File,
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
-        const metadata: TaskPayToExecutorImageUploadParam = JSON.parse(reqParam.optionData as string);
+        if (reqParam.optionData == null) {
+            reqParam.optionData = '{}';
+        }
+        const optionData: TaskPayToExecutorImageUploadParam = JSON.parse(reqParam.optionData as string);
         // param check
-        if (CommonUtils.isNullOrEmpty(metadata.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'uid should not be null');
+        if (CommonUtils.isNullOrEmpty(optionData.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, reqParam.optionData as string);
         }
         this.checkImageFileSize(fileData);
 
@@ -555,12 +550,12 @@ export class FileRequestHandler {
 
         // task check
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
-            metadata.uid as string, TaskState.PublisherVisited);
+            optionData.uid as string, TaskState.PublisherVisited);
 
         const allUpdatedProps: TaskObject = new TaskObject();
         // pick up the props in param and assign to updatedProps object
         Object.assign(allUpdatedProps, RequestUtils.pickUpPropsByModel(
-            metadata, new TaskPayToExecutorImageUploadParam(true)), true);
+            optionData, new TaskPayToExecutorImageUploadParam(true)), true);
         // if receipt state has been set in receipt upload or NotRequire set, we should keep the state consistence
         if (dbObj.executorReceiptRequired != null &&
             dbObj.executorReceiptRequired !== ReceiptState.None &&
@@ -568,10 +563,13 @@ export class FileRequestHandler {
             throw new ApiError(ApiResultCode.Logic_Receipt_State_Not_Matched);
         }
 
-        // here only both receipt upload(or NotRequired) and executor payment done, 
-        // we can set the TaskState.ExecutorPaid
-        if (!CommonUtils.isNullOrEmpty(dbObj.executorReceiptImageUid) ||
-            !CommonUtils.isNullOrEmpty(dbObj.executorReceiptNote)) {
+        // only both receipt upload(or NotRequired) and executor payment done, 
+        // we can set the TaskState.ExecutorPaid. 
+        // so we should check the receipt state here
+        if ((!CommonUtils.isNullOrEmpty(dbObj.executorReceiptImageUid) &&
+            dbObj.executorReceiptRequired === ReceiptState.Required) ||
+            (!CommonUtils.isNullOrEmpty(dbObj.executorReceiptNote &&
+                dbObj.executorReceiptRequired === ReceiptState.Required))) {
             allUpdatedProps.state = TaskState.ExecutorPaid;
         }
 
@@ -587,7 +585,6 @@ export class FileRequestHandler {
             dbObj.proposedMargin as number,
             dbObj.executorReceiptRequired as ReceiptState);
 
-        Object.assign(dbObj, allUpdatedProps);
         await FileStorage.$$saveEntry(
             allUpdatedProps.payToExecutorImageUid as string,
             0,
@@ -597,9 +594,6 @@ export class FileRequestHandler {
                 originalFileName: fileData.originalname,
             } as IFileMetaData,
             (fileData as Express.Multer.File).buffer);
-
-        // update object
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
         // add history item
         if (allUpdatedProps.state === TaskState.ExecutorPaid) {
             await TaskModelWrapper.$$addHistoryItem(
@@ -607,6 +601,9 @@ export class FileRequestHandler {
                 TaskState.ExecutorPaid,
                 CommonUtils.getStepTitleByTaskState(TaskState.ExecutorPaid));
         }
+        // update object
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+        Object.assign(dbObj, allUpdatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
 
@@ -622,9 +619,12 @@ export class FileRequestHandler {
         reqParam: FileUploadParam,
         currentUser: UserObject): Promise<TaskView> {
         // parameter check
-        const metadata: TaskExecutorReceiptUploadParam = JSON.parse(reqParam.optionData as string);
-        if (CommonUtils.isNullOrEmpty(metadata.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(metadata));
+        if (reqParam.optionData == null) {
+            reqParam.optionData = '{}';
+        }
+        const optionData: TaskExecutorReceiptUploadParam = JSON.parse(reqParam.optionData as string);
+        if (CommonUtils.isNullOrEmpty(optionData.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, reqParam.optionData as string);
         }
         this.checkImageFileSize(fileData);
 
@@ -633,18 +633,24 @@ export class FileRequestHandler {
 
         // task check
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
-            metadata.uid as string, TaskState.PublisherVisited);
+            optionData.uid as string, TaskState.PublisherVisited);
+        // here we should make sure the executorReceiptRequired keeps consistent
+        if (dbObj.executorReceiptRequired === ReceiptState.NotRequired) {
+            throw new ApiError(ApiResultCode.Logic_Receipt_State_Not_Matched);
+        }
 
         const allUpdatedProps: TaskObject = new TaskObject();
+        allUpdatedProps.executorReceiptRequired = ReceiptState.Required;
         // pick up the props in param and assign to updatedProps object
         Object.assign(allUpdatedProps, RequestUtils.pickUpPropsByModel(
-            metadata, new TaskExecutorReceiptUploadParam(true)), true);
+            optionData, new TaskExecutorReceiptUploadParam(true)), true);
 
         if (CommonUtils.isNullOrEmpty(dbObj.executorReceiptImageUid)) {
             allUpdatedProps.executorReceiptImageUid = CommonUtils.getUUIDForMongoDB();
         } else {
             // remove existing one
             await FileStorage.$$deleteEntry(dbObj.executorReceiptImageUid as string, 0);
+            allUpdatedProps.executorReceiptImageUid = dbObj.executorReceiptImageUid;
         }
 
         // only update the state when both executor receipt and executor payment done
@@ -653,7 +659,7 @@ export class FileRequestHandler {
         }
 
         await FileStorage.$$saveEntry(
-            dbObj.executorReceiptImageUid as string,
+            allUpdatedProps.executorReceiptImageUid as string,
             0,
             {
                 type: FileType.TaskReceipt,
@@ -672,6 +678,7 @@ export class FileRequestHandler {
 
         // update object
         await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
+        Object.assign(dbObj, allUpdatedProps);
         return TaskRequestHandler.$$convertToDBView(dbObj);
     }
     // #endregion
@@ -683,14 +690,9 @@ export class FileRequestHandler {
      * @param res 
      */
     public static async $$download(req: Request, res: Response): Promise<void> {
-        const reqParam: FileDownloadParam = req.body as FileDownloadParam;
-        if (reqParam == null) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'FileDownloadParam should not be null');
-        }
+        const reqParam: FileDownloadParam = RequestUtils.replaceNullWithObject(req.body) as FileDownloadParam;
         if (reqParam.scenario == null) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'FileDownloadParam.scenario should not be null');
+            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
         }
 
         let fileId: string = '';
@@ -726,7 +728,7 @@ export class FileRequestHandler {
                 // everyone can download template file
                 break;
             case FileAPIScenario.DownloadUserLogo:
-                // only admin or owner can download logo
+                // only admin or owner can download
                 currentUser = await RequestUtils.$$getCurrentUser(req);
                 if (!CommonUtils.isAdmin(currentUser) &&
                     currentUser.logoUid !== reqParam.fileId) {
@@ -734,7 +736,7 @@ export class FileRequestHandler {
                 }
                 break;
             case FileAPIScenario.DownloadBackId:
-                // only admin or owner can download logo
+                // only admin or owner can download
                 currentUser = await RequestUtils.$$getCurrentUser(req);
                 if (!CommonUtils.isAdmin(currentUser) &&
                     currentUser.backIdUid !== reqParam.fileId) {
@@ -742,7 +744,7 @@ export class FileRequestHandler {
                 }
                 break;
             case FileAPIScenario.DownloadFrontId:
-                // only admin or owner can download logo
+                // only admin or owner can download
                 currentUser = await RequestUtils.$$getCurrentUser(req);
                 if (!CommonUtils.isAdmin(currentUser) &&
                     currentUser.frontIdUid !== reqParam.fileId) {
@@ -750,15 +752,7 @@ export class FileRequestHandler {
                 }
                 break;
             case FileAPIScenario.DownloadAuthLetter:
-                // only admin or owner can download logo
-                currentUser = await RequestUtils.$$getCurrentUser(req);
-                if (!CommonUtils.isAdmin(currentUser) &&
-                    currentUser.authLetterUid !== reqParam.fileId) {
-                    throw new ApiError(ApiResultCode.AuthForbidden);
-                }
-                break;
-            case FileAPIScenario.DownloadAuthLetter:
-                // only admin or owner can download logo
+                // only admin or owner can download
                 currentUser = await RequestUtils.$$getCurrentUser(req);
                 if (!CommonUtils.isAdmin(currentUser) &&
                     currentUser.authLetterUid !== reqParam.fileId) {
@@ -782,6 +776,7 @@ export class FileRequestHandler {
                 }
                 break;
             case FileAPIScenario.DownloadTaskResultFile:
+                // only admin or task publisher owner can download result file
                 currentUser = await RequestUtils.$$getCurrentUser(req);
                 taskObj = await TaskModelWrapper.$$findOne(
                     { resultFileUid: reqParam.fileId } as TaskObject) as TaskObject;
@@ -794,15 +789,17 @@ export class FileRequestHandler {
                 }
                 break;
             case FileAPIScenario.DownloadQualificationTemplate:
+                // everyone can download 
                 admin = await UserModelWrapper.$$findOne(
                     { uid: UserModelWrapper.adminUID } as UserObject) as UserObject;
                 if (CommonUtils.isNullOrEmpty(admin.qualificationUid)) {
-                    throw new ApiError(ApiResultCode.DbNotFound);
+                    throw new ApiError(ApiResultCode.Db_Qualification_Template_Missed);
                 }
                 fileId = admin.qualificationUid as string;
                 version = admin.qualificationVersion as number;
                 break;
             case FileAPIScenario.DownloadRegisterProtocol:
+                // every can download
                 admin = await UserModelWrapper.$$findOne(
                     { uid: UserModelWrapper.adminUID } as UserObject) as UserObject;
                 if (CommonUtils.isNullOrEmpty(admin.registerProtocolUid)) {
@@ -812,26 +809,28 @@ export class FileRequestHandler {
                 version = admin.registerProtocolVersion as number;
                 break;
             case FileAPIScenario.DownloadTaskDepositImage:
+                // only admin or owner can download
                 currentUser = await RequestUtils.$$getCurrentUser(req);
                 taskObj = await TaskModelWrapper.$$findOne(
                     { depositImageUid: reqParam.fileId } as TaskObject) as TaskObject;
                 if (taskObj == null) {
                     throw new ApiError(ApiResultCode.DbNotFound, `depositImageUid:${reqParam.fileId}`);
                 }
-                // only admin or owner can download
+
                 if (!CommonUtils.isAdmin(currentUser) &&
                     currentUser.uid !== taskObj.publisherUid) {
                     throw new ApiError(ApiResultCode.AuthForbidden);
                 }
                 break;
             case FileAPIScenario.DownloadTaskMarginImage:
+                // only admin or task publisher owner can download
                 currentUser = await RequestUtils.$$getCurrentUser(req);
                 taskObj = await TaskModelWrapper.$$findOne(
                     { marginImageUid: reqParam.fileId } as TaskObject) as TaskObject;
                 if (taskObj == null) {
                     throw new ApiError(ApiResultCode.DbNotFound, `marginImageUid:${reqParam.fileId}`);
                 }
-                // only admin or owner can download
+
                 if (!CommonUtils.isAdmin(currentUser) &&
                     currentUser.uid !== taskObj.publisherUid) {
                     throw new ApiError(ApiResultCode.AuthForbidden);
@@ -841,8 +840,7 @@ export class FileRequestHandler {
                 throw new ApiError(ApiResultCode.InputInvalidFileScenario);
         }
         if (CommonUtils.isNullOrEmpty(fileId) || version === -1) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'fileId and version should not be null');
+            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
         }
         const metadata = await FileStorage.$$getEntryMetaData(`${fileId}_${version}`);
         if (metadata != null && metadata.originalFileName != null) {
@@ -861,20 +859,23 @@ export class FileRequestHandler {
     }
 
     // #region -- inner props and methods
+    /**
+     * 
+     * @param reqParam 
+     * @param currentUser 
+     * @param fileData 
+     */
     private static async $$createTemplateObject(
         reqParam: TemplateCreateParam,
         currentUser: UserObject,
         fileData: Express.Multer.File): Promise<TemplateView> {
         if (CommonUtils.isNullOrEmpty(reqParam.name)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TemplateCreateParam.name should not be null');
+            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
         }
         let dbObj: TemplateObject = new TemplateObject();
         dbObj.uid = CommonUtils.getUUIDForMongoDB();
         dbObj.name = reqParam.name;
-        if (reqParam.note !== undefined) {
-            dbObj.note = reqParam.note;
-        }
+        dbObj.note = reqParam.note || '';
         dbObj.version = 0;
         dbObj.templateFileUid = CommonUtils.getUUIDForMongoDB();
         dbObj.publisherUid = currentUser.uid;
@@ -921,38 +922,39 @@ export class FileRequestHandler {
         fileType: FileType): Promise<UserView> {
         let fileEntryId: string = '';
         let fileVersion: number = 0;
-        const updatedProps: UserObject = {};
-        if (currentUser.state === UserState.Disabled) {
-            throw new ApiError(ApiResultCode.AuthForbidden, `user:${currentUser.uid} disabled`);
-        }
+        const allUpdatedProps: UserObject = {};
+        // user check
+        RequestUtils.readyUserCheck(currentUser);
+
+        // param check
         this.checkFileSize(fileData);
 
         switch (fileType) {
             case FileType.Qualification:
                 if (CommonUtils.isNullOrEmpty(currentUser.qualificationUid)) {
                     fileEntryId = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.qualificationUid = fileEntryId;
-                    updatedProps.qualificationVersion = 0;
+                    allUpdatedProps.qualificationUid = fileEntryId;
+                    allUpdatedProps.qualificationVersion = 0;
                 } else {
                     fileEntryId = currentUser.qualificationUid as string;
-                    updatedProps.qualificationVersion = currentUser.qualificationVersion as number + 1;
+                    allUpdatedProps.qualificationVersion = currentUser.qualificationVersion as number + 1;
                 }
-                updatedProps.qualificationState = CheckState.ToBeChecked;
-                fileVersion = updatedProps.qualificationVersion;
+                allUpdatedProps.qualificationState = CheckState.ToBeChecked;
+                fileVersion = allUpdatedProps.qualificationVersion;
                 break;
             case FileType.RegisterProtocol:
                 if (CommonUtils.isNullOrEmpty(currentUser.registerProtocolUid)) {
                     fileEntryId = CommonUtils.getUUIDForMongoDB();
-                    updatedProps.registerProtocolUid = fileEntryId;
-                    updatedProps.registerProtocolVersion = 0;
+                    allUpdatedProps.registerProtocolUid = fileEntryId;
+                    allUpdatedProps.registerProtocolVersion = 0;
                 } else {
                     fileEntryId = currentUser.registerProtocolUid as string;
-                    updatedProps.registerProtocolVersion = currentUser.registerProtocolVersion as number + 1;
+                    allUpdatedProps.registerProtocolVersion = currentUser.registerProtocolVersion as number + 1;
                 }
-                fileVersion = updatedProps.registerProtocolVersion;
+                fileVersion = allUpdatedProps.registerProtocolVersion;
                 break;
             default:
-                throw new ApiError(ApiResultCode.FileFailedUpload, `NotSupportedFileType:${fileType}`);
+                throw new ApiError(ApiResultCode.MethodNotImplemented, `NotSupportedFileType:${fileType}`);
         }
 
         await FileStorage.$$saveEntry(
@@ -969,8 +971,8 @@ export class FileRequestHandler {
         // NOTE: for concurrent action, the above file save will be failed because of duplicated id
         await UserModelWrapper.$$updateOne(
             { uid: currentUser.uid } as UserObject,
-            updatedProps);
-        Object.assign(currentUser, updatedProps);
+            allUpdatedProps);
+        Object.assign(currentUser, allUpdatedProps);
         return await UserRequestHandler.$$convertToDBView(currentUser);
     }
     // #endregion

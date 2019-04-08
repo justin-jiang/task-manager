@@ -1,14 +1,15 @@
+import { ViewTextUtils } from 'client/common/ViewTextUtils';
+import TaskSpecificInTableVue from 'client/components/TaskSpecificInTableVue.vue';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
+import { CommonUtils } from 'common/CommonUtils';
+import { TaskView } from 'common/responseResults/TaskView';
+import { TaskState } from 'common/TaskState';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
-import { TaskView } from 'common/responseResults/TaskView';
-import { ViewTextUtils } from 'client/common/ViewTextUtils';
-import { TaskState } from 'common/TaskState';
-import { CommonUtils } from 'common/CommonUtils';
+import { timingSafeEqual } from 'crypto';
 
 const compToBeRegistered: any = {
-    TaskDetailInTableVue,
+    TaskSpecificInTableVue,
 };
 
 @Component({
@@ -43,13 +44,20 @@ export class TaskTableTS extends Vue {    // #region -- component props and meth
     private isSearchReady(): boolean {
         return true;
     }
-    private getRemainingDays(deadline: number): number {
-        return Math.round((deadline - Date.now()) / (24 * 3600 * 1000));
+
+    private getRemainingDaysText(task: TaskView): string {
+        if (CommonUtils.isTaskCompleted(task)) {
+            return '';
+        } else {
+            return this.getRemainingDays(task.deadline as number).toString();
+        }
+
     }
+
     private getDeadlineColStyle(row: { row: TaskView, column: { label: string } }): any {
         if (row.column.label === this.labelOfRemainingDays) {
             const remainingDays: number = this.getRemainingDays(row.row.deadline as number);
-            if (remainingDays > 5) {
+            if (CommonUtils.isTaskCompleted(row.row) || remainingDays > 5) {
                 return {};
             } else if (remainingDays <= 5 && remainingDays > 3) {
                 return { background: '#cdcd16' };
@@ -106,7 +114,9 @@ export class TaskTableTS extends Vue {    // #region -- component props and meth
     // region -- internal props and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
-
+    private getRemainingDays(deadline: number): number {
+        return Math.round((deadline - Date.now()) / (24 * 3600 * 1000));
+    }
     // #endregion
 
 }

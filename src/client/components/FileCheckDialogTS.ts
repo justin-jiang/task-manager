@@ -4,19 +4,13 @@ import { CommonUtils } from 'common/CommonUtils';
 import { FileCheckParam } from 'common/requestParams/FileCheckParam';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { EventNames } from 'client/common/EventNames';
 export enum FileCheckScenario {
     None = 0,
     Qualification = 1,
     TaskResultAudit = 2,
     TaskResultCheck = 3,
 }
-enum EventNames {
-    submitted = 'submitted',
-    cancelled = 'cancelled',
-    download = 'download',
-
-}
-
 
 const compToBeRegistered: any = {
 };
@@ -26,6 +20,9 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
+/**
+ * used to do all kinds of File Check or Audit
+ */
 export class FileCheckDialogTS extends Vue {
     // #region -- component props and methods
     @Prop() public titleProp!: string;
@@ -48,7 +45,7 @@ export class FileCheckDialogTS extends Vue {
         return this.checkState === CheckState.FailedToCheck;
     }
     private get isReadySubmit(): boolean {
-        return this.checkState === CheckState.Checked ||
+        return (this.checkState === CheckState.Checked && this.rateStar > 0) ||
             (this.checkState === CheckState.FailedToCheck && !CommonUtils.isNullOrEmpty(this.checkNote));
     }
     private get isQualificationCheck(): boolean {
@@ -85,23 +82,23 @@ export class FileCheckDialogTS extends Vue {
 
     private onSubmit(): void {
         if (this.checkState === CheckState.Checked) {
-            this.$emit(EventNames.submitted, {
+            this.$emit(EventNames.Submit, {
                 state: CheckState.Checked,
                 star: this.rateStar,
                 score: this.rateScore,
             } as FileCheckParam);
         } else {
-            this.$emit(EventNames.submitted, {
+            this.$emit(EventNames.Submit, {
                 state: CheckState.FailedToCheck,
                 note: this.checkNote,
             } as FileCheckParam);
         }
     }
-    private onCancelled(): void {
-        this.$emit(EventNames.cancelled);
+    private onCancel(): void {
+        this.$emit(EventNames.Cancel);
     }
     private onDownload(): void {
-        this.$emit(EventNames.download);
+        this.$emit(EventNames.Download);
     }
     // #endregion
 

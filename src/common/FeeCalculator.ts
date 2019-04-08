@@ -9,7 +9,12 @@ export class FeeCalculator {
         }
         return Math.round(fee);
     }
-
+    public static calcExecutorReceiptFee(reward: number): number {
+        return Math.round(reward * (1 - this.agentFeeRate));
+    }
+    public static calcPublisherReceiptFee(reward: number): number {
+        return Math.round(reward * (1 + this.receiptRate));
+    }
     public static calcPublisherDeposit(taskReward: number, receiptRate: ReceiptState) {
         let fee: number = taskReward;
         if (receiptRate === ReceiptState.Required) {

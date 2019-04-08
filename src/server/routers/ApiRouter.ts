@@ -1,7 +1,6 @@
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { HttpPathItem } from 'common/HttpPathItem';
-import { IQueryConditions } from 'common/IQueryConditions';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
 import { NotificationReadParam } from 'common/requestParams/NotificationReadParam';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
@@ -10,7 +9,7 @@ import { TaskApplyRemoveParam } from 'common/requestParams/TaskApplyRemoveParam'
 import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
 import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
-import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
+import { TaskExecutorReceiptNotRequiredParam } from 'common/requestParams/TaskExecutorReceiptNotRequiredParam';
 import { TaskHistoryQueryParam } from 'common/requestParams/TaskHistoryQueryParam';
 import { TaskPublisherVisitParam } from 'common/requestParams/TaskPublisherVisitParam';
 import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
@@ -22,20 +21,21 @@ import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditPa
 import { UserCreateParam } from 'common/requestParams/UserCreateParam';
 import { UserDisableParam } from 'common/requestParams/UserDisableParam';
 import { UserEnableParam } from 'common/requestParams/UserEnableParam';
+import { UserIdCheckParam } from 'common/requestParams/UserIdCheckParam';
 import { UserPasswordEditParam } from 'common/requestParams/UserPasswordEditParam';
+import { UserPasswordRecoverParam } from 'common/requestParams/UserPasswordRecoverParam';
 import { UserPasswordResetParam } from 'common/requestParams/UserPasswordResetParam';
+import { UserQualificationCheckParam } from 'common/requestParams/UserQualificationCheckParam';
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
-import { TemplateView } from 'common/responseResults/TemplateView';
 import { UserNotificationView } from 'common/responseResults/UserNotificationView';
 import { UserView } from 'common/responseResults/UserView';
 import { TaskHistoryItem } from 'common/TaskHistoryItem';
 import { UserState } from 'common/UserState';
 import { NextFunction, Request, Response, Router } from 'express';
 import { ApiError } from 'server/common/ApiError';
-import { TemplateObject } from 'server/dataObjects/TemplateObject';
 import { UserObject } from 'server/dataObjects/UserObject';
 import { CookieUtils, ILoginUserInfoInCookie } from 'server/expresses/CookieUtils';
 import { NotificationRequestHandler } from 'server/requestHandlers/NotificationRequestHandler';
@@ -48,7 +48,6 @@ import { TemplateRequestHandler } from '../requestHandlers/TemplateRequestHandle
 import { UserRequestHandler } from '../requestHandlers/UserRequestHandler';
 import { BaseRouter } from './BaseRouter';
 import { ApiBuilder, IApiHandlers, UploadType } from './builders/ApiBuilder';
-import { UserPasswordRecoverParam } from 'common/requestParams/UserPasswordRecoverParam';
 /**
  * API Router for all the /api/* RESTful URI
  *
@@ -151,34 +150,61 @@ export class ApiRouter extends BaseRouter {
         // #endregion
 
         // #region -- build template API
+        /**
+         * used by publisher to query owned templates
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Template}/${HttpPathItem.Query}`, {
             post: this.$$templateQuery.bind(this),
         } as IApiHandlers);
+
+        /**
+         * used by publisher to remove owned template
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Template}/${HttpPathItem.Remove}`, {
             post: this.$$templateRemove.bind(this),
         } as IApiHandlers);
+
+        /**
+         * used by publisher owner to update temlate
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Template}/${HttpPathItem.Edit}`, {
             post: this.$$templateBasicInfoEdit.bind(this),
         } as IApiHandlers);
         // #endregion
 
         // #region -- build file API
+        /**
+         * used by executor and publisher and admin to upload very kind of files(images)
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.File}`, {
             post: this.$$fileUpload.bind(this),
         } as IApiHandlers,
             UploadType.File);
+
+        /**
+         * used by executor and publisher and admin to download very kind of files(images)
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.File}/${HttpPathItem.Download}`, {
             post: this.$$fileDownload.bind(this),
         } as IApiHandlers);
         // #endregion
 
         // #region -- build session API
+        /**
+         * used to login
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Session}`, {
             post: this.$$sessionCreate.bind(this),
         } as IApiHandlers);
+        /**
+         * used to check whether it is in login state
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Session}/${HttpPathItem.Query}`, {
             post: this.$$sessionQuery.bind(this),
         } as IApiHandlers);
+        /**
+         * used to do logout
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Session}/${HttpPathItem.Remove}`, {
             post: this.$$sessionRemove.bind(this),
         } as IApiHandlers);
@@ -187,23 +213,32 @@ export class ApiRouter extends BaseRouter {
         // #region -- build Task Api
         // #region [SubRegion] -- -- Apply
 
-        // api for executor to apply a task
+        /**
+         * used by executor to apply a task
+         */
         apiBuilder.buildApiForPath(`/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}`, {
             post: this.$$taskApply.bind(this),
         } as IApiHandlers);
 
+        /**
+         * used by executor to release apply
+         */
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Apply}/${HttpPathItem.Remove}`, {
                 post: this.$$taskApplyRemove.bind(this),
             } as IApiHandlers);
 
-        // api for admin to audit task executor
+        /**
+         * used by admin to audit task executor info
+         */
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Executor}/${HttpPathItem.Audit}`, {
                 post: this.$$taskExecutorAudit.bind(this),
             } as IApiHandlers);
 
-        // api for admin to audit margin from executor
+        /**
+         * used by admin to audit executor margin 
+         */
         apiBuilder.buildApiForPath(
             `/${HttpPathItem.Api}/${HttpPathItem.Task}/${HttpPathItem.Margin}/${HttpPathItem.Audit}`, {
                 post: this.$$taskMarginAudit.bind(this),
@@ -296,7 +331,7 @@ export class ApiRouter extends BaseRouter {
     // #region -- User relative API entry
     private async $$userCreate(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserCreateParam = req.body as UserCreateParam;
+        const reqParam: UserCreateParam = RequestUtils.replaceNullWithObject(req.body) as UserCreateParam;
         const view: UserView = await UserRequestHandler.$$create(reqParam);
         apiResult.data = view;
         CookieUtils.setUserToCookie(
@@ -318,53 +353,85 @@ export class ApiRouter extends BaseRouter {
     }
 
     /**
-     * 
+     * user business props which need to be audited
      * @param req 
      * @param res 
      * @param next 
      */
     private async $$userBasicInfoEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserBasicInfoEditParam = req.body as UserBasicInfoEditParam;
+        const reqParam: UserBasicInfoEditParam = RequestUtils.replaceNullWithObject(req.body) as UserBasicInfoEditParam;
         // only admin or self user can update himself
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await UserRequestHandler.$$basicInfoEdit(reqParam, currentUser);
         res.json(apiResult).end();
     }
+
+    /**
+     * user system account props which don't need to be audited
+     */
     private async $$userAccountInfoEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserAccountInfoEditParam = req.body as UserAccountInfoEditParam;
+        const reqParam: UserAccountInfoEditParam = RequestUtils.replaceNullWithObject(
+            req.body) as UserAccountInfoEditParam;
         // only admin or self user can update himself
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await UserRequestHandler.$$accountInfoEdit(reqParam, currentUser);
         res.json(apiResult).end();
     }
+    /**
+     * password change
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$userPasswordEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserPasswordEditParam = req.body as UserPasswordEditParam;
+        const reqParam: UserPasswordEditParam = RequestUtils.replaceNullWithObject(req.body) as UserPasswordEditParam;
         // only admin or self user can update himself
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         await UserRequestHandler.$$passwordEdit(reqParam, currentUser);
         res.json(apiResult).end();
     }
+
+    /**
+     * user password reset by admin
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$userPasswordReset(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserPasswordResetParam = req.body as UserPasswordResetParam;
+        const reqParam: UserPasswordResetParam = RequestUtils.replaceNullWithObject(req.body) as UserPasswordResetParam;
         // only admin or self user can update himself
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        await UserRequestHandler.$$passwordReset(reqParam, currentUser);
+        apiResult.data = await UserRequestHandler.$$passwordReset(reqParam, currentUser);
         res.json(apiResult).end();
     }
+
+    /**
+     * password reset by userself
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$userPasswordRecover(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserPasswordRecoverParam = req.body as UserPasswordRecoverParam;
+        const reqParam: UserPasswordRecoverParam = RequestUtils.replaceNullWithObject(
+            req.body) as UserPasswordRecoverParam;
         await UserRequestHandler.$$passwordRecover(reqParam);
         res.json(apiResult).end();
     }
 
+    /**
+     * user removed by admin
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$userRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserRemoveParam = req.body as UserRemoveParam;
+        const reqParam: UserRemoveParam = RequestUtils.replaceNullWithObject(req.body) as UserRemoveParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const view: UserView | null = await UserRequestHandler.$$remove(reqParam, currentUser);
         if (view != null) {
@@ -374,22 +441,44 @@ export class ApiRouter extends BaseRouter {
         }
         res.json(apiResult).end();
     }
+    /**
+     * user info or qualification check
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$userCheck(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        apiResult.data = await UserRequestHandler.$$check(req.body, currentUser);
+        const reqParam: UserQualificationCheckParam | UserIdCheckParam =
+            RequestUtils.replaceNullWithObject(req.body);
+        apiResult.data = await UserRequestHandler.$$check(reqParam, currentUser);
         res.json(apiResult).end();
     }
+
+    /**
+     * enable user by admin
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$userEnable(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserEnableParam = req.body as UserEnableParam;
+        const reqParam: UserEnableParam = RequestUtils.replaceNullWithObject(req.body) as UserEnableParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await UserRequestHandler.$$enableOrDisable(reqParam.uid, UserState.Enabled, currentUser);
         res.json(apiResult).end();
     }
+
+    /**
+     * disable user by admin
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$userDisable(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: UserDisableParam = req.body as UserDisableParam;
+        const reqParam: UserDisableParam = RequestUtils.replaceNullWithObject(req.body) as UserDisableParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await UserRequestHandler.$$enableOrDisable(reqParam.uid, UserState.Disabled, currentUser);
         res.json(apiResult).end();
@@ -398,42 +487,40 @@ export class ApiRouter extends BaseRouter {
 
     // #region -- Template relative API entry
     /**
-     * used by publisher to query all owned template
+     * used by publisher to query all owned templates
      * @param req 
      * @param res 
      * @param next 
      */
     private async $$templateQuery(req: Request, res: Response, next: NextFunction) {
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        let views: TemplateView[] = [];
-        if (CommonUtils.isAdmin(currentUser)) {
-            views = await TemplateRequestHandler.$$find({} as IQueryConditions);
-        } else {
-            views = await TemplateRequestHandler.$$find(
-                { publisherUid: currentUser.uid } as TemplateObject);
-        }
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        apiResult.data = views;
+        apiResult.data = await TemplateRequestHandler.$$query(currentUser);
         res.json(apiResult).end();
     }
+    /**
+     * used by template owner to remove template
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$templateRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TemplateRemoveParam = req.body as TemplateRemoveParam;
-        // only admin can remove template
+        const reqParam: TemplateRemoveParam = RequestUtils.replaceNullWithObject(req.body) as TemplateRemoveParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const dbView: TemplateView | null = await TemplateRequestHandler.$$remove(reqParam, currentUser);
-        if (dbView != null) {
-            apiResult.data = dbView;
-        } else {
-            apiResult.code = ApiResultCode.DbNotFound;
-        }
+        apiResult.data = await TemplateRequestHandler.$$remove(reqParam, currentUser);
         res.json(apiResult).end();
     }
 
+    /**
+     * used by publisher owner to update temlate
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$templateBasicInfoEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TemplateEditParam = req.body as TemplateEditParam;
-        // only admin can edit template
+        const reqParam: TemplateEditParam = RequestUtils.replaceNullWithObject(req.body) as TemplateEditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await TemplateRequestHandler.$$basicInfoEdit(reqParam, currentUser);
         res.json(apiResult).end();
@@ -442,36 +529,35 @@ export class ApiRouter extends BaseRouter {
 
     // #region -- File relative API entry
     /**
-     * upload file with or without DBObject, e.g. 
-     * 1, logo image with a new user to register a new user
-     * 2, template file with a new template to create a new template
-     * 3, log image without user object to update the crrent user log
-     * 4, template file without template object to update the template file
+     * upload file with or without optional datas(i.e. corresponding DBObjects), e.g. 
+     * #, template file with a new template to create a new template
+     * #, template file without template object to update the template file
      * @param req 
      * @param res 
      * @param next 
      */
     private async $$fileUpload(req: Request, res: Response, next: NextFunction): Promise<void> {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: FileUploadParam = req.body as FileUploadParam;
+        const reqParam: FileUploadParam = RequestUtils.replaceNullWithObject(req.body) as FileUploadParam;
         if (req.file == null) {
             throw new ApiError(ApiResultCode.InputInvalidParam, 'No file prop in Request');
         }
-        if (reqParam == null) {
-            throw new ApiError(ApiResultCode.InputInvalidParam, 'No FileUploadParam in Request.Body');
-        }
+
         if (reqParam.scenario == null || isNaN(reqParam.scenario)) {
             throw new ApiError(ApiResultCode.InputInvalidFileScenario, JSON.stringify(reqParam));
         }
         reqParam.scenario = Number.parseInt(reqParam.scenario as any, 10);
-        let currentDBUser: UserObject | undefined;
+        let currentDBUser: UserObject;
         switch (reqParam.scenario) {
+            case FileAPIScenario.UploadQualificationTemplate:
             case FileAPIScenario.UploadQualification:
-                // don't need to check permission, every user can upload his owned qualification file
+                // for admin to upload the qualification as template
+                // for executor and publisher to upload themself qualification file
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$uploadQualificationFile(req.file, reqParam, currentDBUser);
                 break;
-            case FileAPIScenario.CreateTemplate:
+            case FileAPIScenario.CreateTaskTemplate:
+                //  used by publisher to create template
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$createTaskTemplate(req.file, reqParam, currentDBUser);
                 break;
@@ -487,32 +573,39 @@ export class ApiRouter extends BaseRouter {
             case FileAPIScenario.UploadAuthLetter:
             case FileAPIScenario.UploadLicense:
             case FileAPIScenario.UploadLicenseWithPerson:
+                // user register related image files upload
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateUserIdImages(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$uploadUserIdImages(req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadTaskResult:
+                // used by executor to upload task result
                 currentDBUser = await this.$$getCurrentUser(req);
-                apiResult.data = await FileRequestHandler.$$updateTaskResultFile(req.file, reqParam, currentDBUser);
+                apiResult.data = await FileRequestHandler.$$uploadTaskResult(req.file, reqParam, currentDBUser);
                 break;
+            // used by publisher to upload the task deposit
             case FileAPIScenario.UploadTaskDeposit:
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$uploadTaskDepositImage(req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadTaskMargin:
+                //  used by executor to upload task margin
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$uploadTaskMarginImage(req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadTaskExecutorPay:
+                // used by admin to upload the Executor payment image
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$uploadTaskExecutorPaymentImage(
                     req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadExecutorTaskReceipt:
+                //  used by admin to upload the executor receipt
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$uploadExecutorReceiptImage(
                     req.file, reqParam, currentDBUser);
                 break;
             case FileAPIScenario.UploadTaskRefund:
+                // used by admin to upload the task deposit or margin refund
                 currentDBUser = await this.$$getCurrentUser(req);
                 apiResult.data = await FileRequestHandler.$$uploadRefundImage(
                     req.file, reqParam, currentDBUser);
@@ -523,6 +616,12 @@ export class ApiRouter extends BaseRouter {
         res.json(apiResult).end();
     }
 
+    /**
+     * used by user to download every kinds of file(image)
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$fileDownload(req: Request, res: Response, next: NextFunction): Promise<void> {
         await FileRequestHandler.$$download(req, res);
     }
@@ -537,8 +636,8 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$sessionCreate(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.AuthUnauthorized };
-        const reqParam: SessionCreateParam = req.body as SessionCreateParam;
-        const loginUser: UserView | undefined = await SessionRequestHandler.$$sessionCreate(reqParam, res);
+        const reqParam: SessionCreateParam = RequestUtils.replaceNullWithObject(req.body) as SessionCreateParam;
+        const loginUser: UserView = await SessionRequestHandler.$$sessionCreate(reqParam, res) as UserView;
         if (loginUser != null) {
             apiResult.code = ApiResultCode.Success;
             apiResult.data = loginUser;
@@ -585,7 +684,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskCreate(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskCreateParam = req.body as TaskCreateParam;
+        const reqParam: TaskCreateParam = RequestUtils.replaceNullWithObject(req.body) as TaskCreateParam;
         const currentUser = await this.$$getCurrentUser(req);
         const view: TaskView = await TaskRequestHandler.$$create(reqParam, currentUser);
         apiResult.data = view;
@@ -618,7 +717,7 @@ export class ApiRouter extends BaseRouter {
     private async $$taskHistoryQuery(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const reqParam: TaskHistoryQueryParam = req.body as TaskHistoryQueryParam;
+        const reqParam: TaskHistoryQueryParam = RequestUtils.replaceNullWithObject(req.body) as TaskHistoryQueryParam;
         const history: TaskHistoryItem[] = await TaskRequestHandler.$$queryHistory(reqParam, currentUser);
         apiResult.data = history;
         res.json(apiResult).end();
@@ -632,7 +731,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskBasicInfoEdit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskBasicInfoEditParam = req.body as TaskBasicInfoEditParam;
+        const reqParam: TaskBasicInfoEditParam = RequestUtils.replaceNullWithObject(req.body) as TaskBasicInfoEditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const view: TaskView | null = await TaskRequestHandler.$$basicInfoEdit(reqParam, currentUser);
         apiResult.data = view;
@@ -647,7 +746,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskRemoveParam = req.body as TaskRemoveParam;
+        const reqParam: TaskRemoveParam = RequestUtils.replaceNullWithObject(req.body) as TaskRemoveParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         // then delete task item
         const view: TaskView = await TaskRequestHandler.$$remove(reqParam, currentUser);
@@ -663,11 +762,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskApply(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskApplyParam = req.body as TaskApplyParam;
-        if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TaskApplyParam.uid should not be null');
-        }
+        const reqParam: TaskApplyParam = RequestUtils.replaceNullWithObject(req.body) as TaskApplyParam;
         // only ready executor can apply task
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await TaskRequestHandler.$$apply(reqParam, currentUser);
@@ -681,7 +776,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskApplyRemove(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskApplyRemoveParam = req.body as TaskApplyRemoveParam;
+        const reqParam: TaskApplyRemoveParam = RequestUtils.replaceNullWithObject(req.body) as TaskApplyRemoveParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         apiResult.data = await TaskRequestHandler.$$applyRemove(reqParam, currentUser);
         res.json(apiResult).end();
@@ -695,7 +790,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskResultCheck(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskResultCheckParam = req.body as TaskResultCheckParam;
+        const reqParam: TaskResultCheckParam = RequestUtils.replaceNullWithObject(req.body) as TaskResultCheckParam;
         if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'TaskResultCheckParam.uid should not be null');
@@ -714,7 +809,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskResultAudit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const reqParam: TaskAuditParam = RequestUtils.replaceNullWithObject(req.body) as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$resultAudit(reqParam, currentUser);
         apiResult.data = taskView;
@@ -723,7 +818,7 @@ export class ApiRouter extends BaseRouter {
 
     private async $$taskInfoAudit(req: Request, res: Response, next: NextFunction): Promise<void> {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const reqParam: TaskAuditParam = RequestUtils.replaceNullWithObject(req.body) as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$infoAudit(reqParam, currentUser);
         apiResult.data = taskView;
@@ -731,7 +826,7 @@ export class ApiRouter extends BaseRouter {
     }
     private async $$taskDepositAudit(req: Request, res: Response, next: NextFunction): Promise<void> {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const reqParam: TaskAuditParam = RequestUtils.replaceNullWithObject(req.body) as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$depositAudit(reqParam, currentUser);
         apiResult.data = taskView;
@@ -739,17 +834,16 @@ export class ApiRouter extends BaseRouter {
     }
 
     /**
-     * admin to audit the new task apply
+     * used by admin to audit the executor info who is applying the task
      * @param req 
      * @param res 
      * @param next 
      */
     private async $$taskExecutorAudit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const reqParam: TaskAuditParam = RequestUtils.replaceNullWithObject(req.body) as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const taskView: TaskView = await TaskRequestHandler.$$executorAudit(reqParam, currentUser);
-        apiResult.data = taskView;
+        apiResult.data = await TaskRequestHandler.$$executorAudit(reqParam, currentUser);
         res.json(apiResult).end();
     }
 
@@ -761,7 +855,7 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskMarginAudit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const reqParam: TaskAuditParam = RequestUtils.replaceNullWithObject(req.body) as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$marginAudit(reqParam, currentUser);
         apiResult.data = taskView;
@@ -776,24 +870,39 @@ export class ApiRouter extends BaseRouter {
      */
     private async $$taskSubmit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskAuditParam = req.body as TaskAuditParam;
+        const reqParam: TaskAuditParam = RequestUtils.replaceNullWithObject(req.body) as TaskAuditParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$submit(reqParam, currentUser);
         apiResult.data = taskView;
         res.json(apiResult).end();
     }
 
+    /**
+     * used by admin to set publisher visit
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$publisherVisit(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskPublisherVisitParam = req.body as TaskPublisherVisitParam;
+        const reqParam: TaskPublisherVisitParam = RequestUtils.replaceNullWithObject(
+            req.body) as TaskPublisherVisitParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$publisherVisit(reqParam, currentUser);
         apiResult.data = taskView;
         res.json(apiResult).end();
     }
+
+    /**
+     * used by admin to set the executor receipt not required
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$executorReceiptNotRequired(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
-        const reqParam: TaskExecutorReceiptUploadParam = req.body as TaskExecutorReceiptUploadParam;
+        const reqParam: TaskExecutorReceiptNotRequiredParam = RequestUtils.replaceNullWithObject(
+            req.body) as TaskExecutorReceiptNotRequiredParam;
         const currentUser: UserObject = await this.$$getCurrentUser(req);
         const taskView: TaskView = await TaskRequestHandler.$$executorReceiptNotRequired(reqParam, currentUser);
         apiResult.data = taskView;
@@ -802,6 +911,12 @@ export class ApiRouter extends BaseRouter {
     // #endregion
 
     // #region -- notification relative API
+    /**
+     * query all owned notification
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$notificationQuery(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const currentUser: UserObject = await this.$$getCurrentUser(req);
@@ -809,10 +924,17 @@ export class ApiRouter extends BaseRouter {
         apiResult.data = views;
         res.json(apiResult).end();
     }
+
+    /**
+     * set notification as read
+     * @param req 
+     * @param res 
+     * @param next 
+     */
     private async $$notificationRead(req: Request, res: Response, next: NextFunction) {
         const apiResult: ApiResult = { code: ApiResultCode.Success };
         const currentUser: UserObject = await this.$$getCurrentUser(req);
-        const reqParam: NotificationReadParam = req.body as NotificationReadParam;
+        const reqParam: NotificationReadParam = RequestUtils.replaceNullWithObject(req.body) as NotificationReadParam;
         const view: UserNotificationView | null = await NotificationRequestHandler.$$read(reqParam, currentUser);
         apiResult.data = view;
         res.json(apiResult).end();

@@ -9,7 +9,7 @@ import { TaskApplyRemoveParam } from 'common/requestParams/TaskApplyRemoveParam'
 import { TaskAuditParam } from 'common/requestParams/TaskAuditParam';
 import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
 import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
-import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
+import { TaskExecutorReceiptNotRequiredParam } from 'common/requestParams/TaskExecutorReceiptNotRequiredParam';
 import { TaskHistoryQueryParam } from 'common/requestParams/TaskHistoryQueryParam';
 import { TaskPublisherVisitParam } from 'common/requestParams/TaskPublisherVisitParam';
 import { TaskRemoveParam } from 'common/requestParams/TaskRemoveParam';
@@ -232,17 +232,14 @@ export class TaskRequestHandler {
         // update task props
         const allUpdatedProps: TaskObject = new TaskObject();
         allUpdatedProps.uid = reqParam.uid as string;
-        allUpdatedProps.templateFileUid = currentUser.uid;
         allUpdatedProps.state = TaskState.Applying;
         allUpdatedProps.applicantUid = currentUser.uid;
         allUpdatedProps.applyingDatetime = Date.now();
-
-        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
-
         await TaskModelWrapper.$$addHistoryItem(
             dbObj.uid as string,
             allUpdatedProps.state,
             CommonUtils.getStepTitleByTaskState(allUpdatedProps.state));
+        await TaskModelWrapper.$$updateOne({ uid: dbObj.uid } as TaskObject, allUpdatedProps);
         Object.assign(dbObj, allUpdatedProps);
         return await this.$$convertToDBView(dbObj);
     }
@@ -327,11 +324,19 @@ export class TaskRequestHandler {
      * @param currentUser 
      */
     public static async $$executorAudit(reqParam: TaskAuditParam, currentUser: UserObject): Promise<TaskView> {
+        // param check
+        if (reqParam.auditState === CheckState.FailedToCheck &&
+            CommonUtils.isNullOrEmpty(reqParam.note)) {
+            // if deny, the note should not be null
+            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
+        }
+        // user check
         RequestUtils.adminCheck(currentUser);
+
         const dbObj = await this.$$taskAudit(
             reqParam,
             TaskState.MarginUploaded /* expected state */,
-            TaskState.Assigned /* target approve state, decided in method */,
+            TaskState.Assigned /* target approve state, will be decided in method */,
             TaskState.ExecutorAuditDenied /* target deny state */,
             TaskState.ReadyToApply /* go back state*/,
             { executorAuditState: CheckState.Checked } as TaskObject /* updated props after approve*/,
@@ -353,7 +358,7 @@ export class TaskRequestHandler {
         const dbObj = await this.$$taskAudit(
             reqParam,
             TaskState.MarginUploaded /* expected state */,
-            TaskState.Assigned /* target approve state, decided in method */,
+            TaskState.Assigned /* target approve state, will be decided in method */,
             TaskState.MarginAuditDenied /* target deny state */,
             TaskState.Applying /* go back state*/,
             { marginAditState: CheckState.Checked } as TaskObject /* updated props after approve*/,
@@ -465,7 +470,7 @@ export class TaskRequestHandler {
      * @param currentUser 
      */
     public static async $$executorReceiptNotRequired(
-        reqParam: TaskExecutorReceiptUploadParam, currentUser: UserObject) {
+        reqParam: TaskExecutorReceiptNotRequiredParam, currentUser: UserObject) {
         // param check
         if (CommonUtils.isNullOrEmpty(reqParam.executorReceiptNote)) {
             throw new ApiError(ApiResultCode.InputInvalidParam, 'executorReceiptNote cannot be null');
@@ -477,13 +482,14 @@ export class TaskRequestHandler {
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
             reqParam.uid as string, TaskState.PublisherVisited);
         const allUpdatedProps: TaskObject = new TaskObject();
+        allUpdatedProps.executorReceiptRequired = ReceiptState.NotRequired;
 
         // if receipt state has been set in PayToExecutor, we should keep the state consistence
         // here we expect the state should be NotRequired
         if (dbObj.executorReceiptRequired === ReceiptState.Required) {
             throw new ApiError(ApiResultCode.Logic_Receipt_State_Not_Matched);
         }
-        allUpdatedProps.executorReceiptRequired = ReceiptState.NotRequired;
+
         allUpdatedProps.executorReceiptNote = reqParam.executorReceiptNote;
         // here only both receipt upload(or NotRequired) and executor payment done, 
         // we can set the TaskState.ExecutorPaid
@@ -491,8 +497,6 @@ export class TaskRequestHandler {
             allUpdatedProps.state = TaskState.ExecutorPaid;
         }
 
-        await TaskModelWrapper.$$updateOne(
-            { uid: dbObj.uid } as TaskObject, allUpdatedProps);
         // add history item
         if (allUpdatedProps.state === TaskState.ExecutorPaid) {
             await TaskModelWrapper.$$addHistoryItem(
@@ -500,6 +504,8 @@ export class TaskRequestHandler {
                 TaskState.ExecutorPaid,
                 CommonUtils.getStepTitleByTaskState(TaskState.ExecutorPaid));
         }
+        await TaskModelWrapper.$$updateOne(
+            { uid: dbObj.uid } as TaskObject, allUpdatedProps);
         Object.assign(dbObj, allUpdatedProps);
         return await this.$$convertToDBView(dbObj);
     }
@@ -579,7 +585,7 @@ export class TaskRequestHandler {
         updatedPropsAfterApprove?: TaskObject,
         updatedPropsAfterDeny?: TaskObject): Promise<TaskView> {
         if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam, 'TaskAuditParam.uid');
+            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
         }
 
         const dbObj: TaskObject = await RequestUtils.$$taskStateCheck(
@@ -608,6 +614,7 @@ export class TaskRequestHandler {
                         allUpdatedProps.state = TaskState.ReadyToApply;
                         allUpdatedProps.publishTime = Date.now();
                     } else {
+                        // if not, keep the current state
                         allUpdatedProps.state = dbObj.state;
                     }
                     break;
@@ -624,23 +631,30 @@ export class TaskRequestHandler {
                         allUpdatedProps.state = TaskState.Assigned;
                         allUpdatedProps.executorUid = dbObj.applicantUid;
                     } else {
+                        // if not, keep the current state
                         allUpdatedProps.state = dbObj.state;
                     }
                     break;
                 case TaskState.ExecutorPaid:
-                    // only both executor receipt and payment done, we can set the state to be TaskState.ExecutorPaid
-                    if (allUpdatedProps.executorReceiptNumber == null) {
-                        allUpdatedProps.executorReceiptNumber = dbObj.executorReceiptNumber;
-                    }
+
                     if (allUpdatedProps.executorReceiptRequired == null) {
                         allUpdatedProps.executorReceiptRequired = dbObj.executorReceiptRequired;
+                    }
+                    if (allUpdatedProps.executorReceiptNote == null) {
+                        allUpdatedProps.executorReceiptNote = dbObj.executorReceiptNote;
+                    }
+                    if (allUpdatedProps.executorReceiptImageUid == null) {
+                        allUpdatedProps.executorReceiptImageUid = dbObj.executorReceiptImageUid;
                     }
                     if (allUpdatedProps.payToExecutorImageUid == null) {
                         allUpdatedProps.payToExecutorImageUid = dbObj.payToExecutorImageUid;
                     }
-
-                    if ((allUpdatedProps.executorReceiptRequired === ReceiptState.NotRequired ||
-                        !CommonUtils.isNullOrEmpty(allUpdatedProps.executorReceiptNumber)) &&
+                    // only both executor receipt and payment done, we can set the state to be TaskState.ExecutorPaid
+                    if (
+                        ((allUpdatedProps.executorReceiptRequired === ReceiptState.NotRequired &&
+                            !CommonUtils.isNullOrEmpty(allUpdatedProps.executorReceiptNote)) ||
+                            (allUpdatedProps.executorReceiptRequired === ReceiptState.Required &&
+                                !CommonUtils.isNullOrEmpty(allUpdatedProps.executorReceiptImageUid))) &&
                         CommonUtils.isNullOrEmpty(allUpdatedProps.payToExecutorImageUid)) {
                         allUpdatedProps.state = TaskState.ExecutorPaid;
                     } else {
@@ -649,7 +663,7 @@ export class TaskRequestHandler {
                     break;
                 default:
             }
-            if (dbObj.state !== allUpdatedProps.state) {
+            if (allUpdatedProps.state === TaskState.ExecutorPaid) {
                 await TaskModelWrapper.$$addHistoryItem(
                     dbObj.uid as string,
                     targetApproveState,
@@ -682,7 +696,6 @@ export class TaskRequestHandler {
 
         await TaskModelWrapper.$$updateOne(
             { uid: dbObj.uid } as TaskObject, allUpdatedProps);
-
         Object.assign(dbObj, allUpdatedProps);
         return await this.$$convertToDBView(dbObj);
     }

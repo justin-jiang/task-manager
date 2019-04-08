@@ -172,8 +172,8 @@
       :scenarioProp="3"
       :targetFileUidProp="selectedTask.resultFileUid"
       :visibleProp="taskResultCheckDialogVisible"
-      @submitted="onTaskResultCheckSubmit"
-      @cancelled="onTaskResultCheckCancel"
+      @submit="onTaskResultCheckSubmit"
+      @cancel="onTaskResultCheckCancel"
       @download="onTaskResultDownload"
     >
     </FileCheckDialogVue>
@@ -182,7 +182,7 @@
 </template>
 
 <script lang="ts">
-import { PublisherTaskTS } from "./PublisherTaskTS";
+import { PublisherTaskTS } from './PublisherTaskTS';
 export default class PublisherVue extends PublisherTaskTS {}
 </script>
 

@@ -14,12 +14,12 @@
       <el-col :span="10">
         <img
           class="img-logo-cash"
-          src="../assets/logo_cashRegister.png"
+          src="../assets/logo_cashRegister.jpg"
         />
       </el-col>
       <el-col
         :span="14"
-        class="col-title"
+        class="col-dialog-title"
       >
         托管金支付
       </el-col>
@@ -164,7 +164,7 @@
 </template>
 
 <script lang="ts">
-import { MarginDialogTS } from "./MarginDialogTS";
+import { MarginDialogTS } from './MarginDialogTS';
 export default class MarginDialogVue extends MarginDialogTS {}
 </script>
 
@@ -173,10 +173,7 @@ export default class MarginDialogVue extends MarginDialogTS {}
 .row-item {
   margin-bottom: 15px;
   text-align: left;
-  .col-title {
-    margin-top: 7px;
-    font-size: 20px;
-  }
+
   .col-money {
     color: red;
     font-size: 18px;

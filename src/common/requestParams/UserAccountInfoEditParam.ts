@@ -4,9 +4,7 @@
 export class UserAccountInfoEditParam {
     public email?: string;
     public nickName?: string;
-
     public telephone?: string;
-
 
     constructor(withFullProps?: boolean) {
         if (withFullProps) {

@@ -2,7 +2,9 @@ import { CheckState } from 'common/CheckState';
 import { UserCommon } from 'common/commonDataObjects/UserCommon';
 import { TaskState } from 'common/TaskState';
 import { UserRole } from 'common/UserRole';
+import { UserType } from 'common/UserTypes';
 import * as uuidv4 from 'uuid/v4';
+import { TaskView } from 'common/responseResults/TaskView';
 export class CommonUtils {
     //#region -- general methods
     public static getUUIDForMongoDB(): string {
@@ -114,6 +116,10 @@ export class CommonUtils {
                 return '未知步骤';
         }
     }
+
+    public static isTaskCompleted(task: TaskView): boolean {
+        return task.state === TaskState.ExecutorPaid;
+    }
     //#endregion
 
     //#region -- user related
@@ -167,6 +173,9 @@ export class CommonUtils {
         if (this.isAdmin(user)) {
             return true;
         }
+        if (!this.isAllRequiredIdsUploaded(user)) {
+            return false;
+        }
         return user.idState === CheckState.Checked &&
             user.qualificationState === CheckState.Checked;
     }
@@ -177,6 +186,18 @@ export class CommonUtils {
 
     public static isReadyPublisher(user: UserCommon): boolean {
         return user != null && this.isPublisher(user) && this.isUserReady(user);
+    }
+
+    public static isAllRequiredIdsUploaded(userView: UserCommon): boolean {
+        if (userView.type === UserType.Individual) {
+            return !CommonUtils.isNullOrEmpty(userView.backIdUid) &&
+                !CommonUtils.isNullOrEmpty(userView.frontIdUid);
+        } else {
+            return !CommonUtils.isNullOrEmpty(userView.backIdUid) &&
+                !CommonUtils.isNullOrEmpty(userView.frontIdUid) &&
+                !CommonUtils.isNullOrEmpty(userView.licenseUid) &&
+                !CommonUtils.isNullOrEmpty(userView.licenseWithPersonUid);
+        }
     }
     //#endregion
 }

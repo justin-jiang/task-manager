@@ -17,6 +17,9 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
+/**
+ * used to do general audit, e.g. deposit and margin audit and so on
+ */
 export class AuditDialogTS extends Vue {    // #region -- component props and methods
     @Prop() public titleProp!: string;
     @Prop() public visibleProp!: string;

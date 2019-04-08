@@ -5,16 +5,17 @@ import SingleImageUploaderVue from 'client/components/SingleImageUploaderVue.vue
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
+import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { ReceiptState } from 'common/ReceiptState';
 import { FileUploadParam } from 'common/requestParams/FileUploadParam';
+import { TaskExecutorReceiptNotRequiredParam } from 'common/requestParams/TaskExecutorReceiptNotRequiredParam';
 import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { TaskView } from 'common/responseResults/TaskView';
 import { Component, Prop, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import { CommonUtils } from 'common/CommonUtils';
 
 
 const compToBeRegistered: any = {
@@ -24,6 +25,9 @@ const compToBeRegistered: any = {
 @Component({
     components: compToBeRegistered,
 })
+/**
+ * used to upload executor receipt or set executor receipt not required
+ */
 export class ReceiptUploadDialogTS extends Vue {
     // #region -- component props and methods
     @Prop() public visibleProp!: boolean;
@@ -32,67 +36,55 @@ export class ReceiptUploadDialogTS extends Vue {
 
     // #region -- referred props and methods by page template
     private readonly imageUploaderRefName: string = 'imageUploader';
+    // the following 2 lables are used by el-radio
     private readonly labelOfNoReceipt: ReceiptState = ReceiptState.NotRequired;
     private readonly labelOfReceipt: ReceiptState = ReceiptState.Required;
-    private targetTaskView: TaskView = {};
+    // task data copy whose update will not impact the real data
+    private taskPropCopy: TaskView = {};
+    // bind to el-radio group
+    private executorReceiptRequired: ReceiptState = ReceiptState.NotRequired;
+
+    // request param of receipt file upload
     private uploadParam: FileUploadParam = {
         scenario: FileAPIScenario.UploadExecutorTaskReceipt,
     };
+
     private uploadOptionParam: TaskExecutorReceiptUploadParam = new TaskExecutorReceiptUploadParam(true);
-    private imageUid: string = '';
+    private notRequiredOptionParam: TaskExecutorReceiptNotRequiredParam = new TaskExecutorReceiptNotRequiredParam(true);
+
     private isImageChanged: boolean = false;
-    private get taskName(): string {
-        return this.targetTaskView.name as string;
-    }
-    private get taskReward(): number {
-        return this.targetTaskView.reward || 0;
-    }
-    private get taskAgentFee(): number {
-        return Math.round(this.taskReward * 0.1);
-    }
-    private get taskMargin(): number {
-        return this.targetTaskView.proposedMargin || 0;
-    }
-    private get payableFee(): number {
-        return this.taskReward - this.taskAgentFee + this.taskMargin;
-    }
 
     private get isImageReady(): boolean {
         return this.isImageChanged;
     }
-
+    // bind to submit button disabled prop
     private get isReadyToSubmit(): boolean {
-        if (this.uploadOptionParam.executorReceiptRequired === ReceiptState.Required) {
+        if (this.executorReceiptRequired === ReceiptState.Required) {
             return this.isImageReady;
         } else {
-            return !CommonUtils.isNullOrEmpty(this.uploadOptionParam.executorReceiptNote);
+            return !CommonUtils.isNullOrEmpty(this.notRequiredOptionParam.executorReceiptNote);
         }
     }
 
     private get isReceiptStateNone(): boolean {
-        return this.targetTaskView.executorReceiptRequired == null ||
-            this.targetTaskView.executorReceiptRequired === ReceiptState.None;
+        return this.taskPropCopy.executorReceiptRequired == null ||
+            this.taskPropCopy.executorReceiptRequired === ReceiptState.None;
     }
 
     private get isReceiptRequired(): boolean {
-        return this.uploadOptionParam.executorReceiptRequired === ReceiptState.Required;
+        return this.executorReceiptRequired === ReceiptState.Required;
     }
 
     private onSubmit(): void {
-        this.uploadParam.optionData = this.uploadOptionParam;
-        this.uploadParam.optionData.uid = this.targetTaskView.uid;
-        if (this.uploadOptionParam.executorReceiptRequired === ReceiptState.Required) {
+        if (this.executorReceiptRequired === ReceiptState.Required) {
+            this.uploadParam.optionData = this.uploadOptionParam;
             (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).submit();
         } else {
             (async () => {
                 const apiResult: ApiResult = await this.store.dispatch(
                     StoreActionNames.taskExecutorReceiptNotRequired,
                     {
-                        data: {
-                            uid: this.taskProp.uid,
-                            executorReceiptNote: this.uploadOptionParam.executorReceiptNote,
-                            executorReceiptRequired: ReceiptState.NotRequired,
-                        } as TaskExecutorReceiptUploadParam,
+                        data: this.notRequiredOptionParam,
                     } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success) {
                     this.$emit(EventNames.Success, apiResult);
@@ -118,12 +110,12 @@ export class ReceiptUploadDialogTS extends Vue {
     private onUploadFailure(apiResult: ApiResult): void {
         this.isImageChanged = false;
         this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
+        this.$emit(EventNames.Failure, apiResult);
     }
     // #endregion
 
     // #region -- vue life-circle methods
     private mounted(): void {
-        this.targetTaskView = this.taskProp || {};
     }
     // #endregion
 
@@ -132,9 +124,11 @@ export class ReceiptUploadDialogTS extends Vue {
     private readonly storeState = (this.$store.state as IStoreState);
     @Watch('taskProp', { immediate: true })
     private onTaskPropChanged(currentValue: TaskView, previousValue: TaskView) {
-        this.targetTaskView = currentValue || {};
-        this.uploadOptionParam.executorReceiptRequired =
+        this.taskPropCopy = Object.assign({}, currentValue);
+        this.executorReceiptRequired =
             currentValue.executorReceiptRequired || ReceiptState.NotRequired;
+        this.notRequiredOptionParam.uid = this.taskPropCopy.uid;
+        this.uploadOptionParam.uid = this.taskPropCopy.uid;
         if (this.$refs[this.imageUploaderRefName] != null) {
             (this.$refs[this.imageUploaderRefName] as any as ISingleImageUploaderTS).reset();
         }

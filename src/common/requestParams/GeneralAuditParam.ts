@@ -1,8 +1,8 @@
 import { CheckState } from 'common/CheckState';
-import { IRequestParam } from 'common/requestParams/IRequestParam';
 
-export class GeneralAuditParam implements IRequestParam {
+export class GeneralAuditParam {
     public state: CheckState = CheckState.Checked;
+    // note if it is denied
     public note: string = '';
     constructor(withFullProps?: boolean) {
         if (withFullProps) {

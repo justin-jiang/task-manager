@@ -1,23 +1,24 @@
 import { AxiosResponse } from 'axios';
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
-import { msgConnectionIssue } from 'client/common/Constants';
-import { RouterUtils } from 'client/common/RouterUtils';
+import { StoreUtils } from 'client/common/StoreUtils';
 import { LoggerManager } from 'client/LoggerManager';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
-import { CheckState } from 'common/CheckState';
 import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
-import { UserView } from 'common/responseResults/UserView';
-import { UserState } from 'common/UserState';
-import { UserType } from 'common/UserTypes';
 import { Vue } from 'vue-property-decorator';
 export class ComponentUtils {
     //#region -- actions to get data from server or store
+    /**
+     * download the image by specified image id
+     * @param vue 
+     * @param imageUid 
+     * @param scenario 
+     */
     public static async $$getImageUrl(
         vue: Vue, imageUid: string, scenario: FileAPIScenario): Promise<string | undefined> {
         let logoUrl: string | undefined;
@@ -50,6 +51,12 @@ export class ComponentUtils {
         return logoUrl;
     }
 
+    /**
+     * download file by specified file id
+     * @param vue 
+     * @param reqParam 
+     * @param defaultFileName 
+     */
     public static downloadFile(vue: Vue, reqParam: FileDownloadParam, defaultFileName: string) {
         (async () => {
             let apiResult: ApiResult = await vue.$store.dispatch(
@@ -79,15 +86,22 @@ export class ComponentUtils {
                     link.setAttribute('download', fileName);
                     document.body.appendChild(link);
                     link.click();
+                    vue.$message.success('下载开始');
                 }
             } else {
                 vue.$message.error(`文件下载失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
             }
         })().catch((ex) => {
-            RouterUtils.goToErrorView(vue.$router, vue.$store.state, msgConnectionIssue, ex);
+            LoggerManager.error('Error:', ex);
+            vue.$message.error(`服务异常，文件下载失败`);
         });
     }
 
+    /**
+     * 
+     * @param vue 
+     * @param isBackground 
+     */
     public static pullNotification(vue: Vue, isBackground?: boolean) {
         const store = vue.$store;
         const storeState = store.state as IStoreState;
@@ -106,13 +120,18 @@ export class ComponentUtils {
             })();
         }
     }
+
+    /**
+     * 
+     * @param vue 
+     * @param isBackground 
+     */
     public static pullTemplates(vue: Vue, isBackground?: boolean): void {
         const store = vue.$store;
         const storeState = store.state as IStoreState;
         if (!CommonUtils.isNullOrEmpty(storeState.sessionInfo.uid)) {
             (async () => {
-                const apiResult: ApiResult = await store.dispatch(
-                    StoreActionNames.templateQuery, { notUseLocalData: true } as IStoreActionArgs);
+                const apiResult: ApiResult = await StoreUtils.$$pullTemplates(store);
                 if (apiResult.code !== ApiResultCode.Success) {
                     const errorMessage = `获取模板信息失败：${ApiErrorHandler.getTextByCode(apiResult)}`;
                     if (isBackground) {
@@ -124,41 +143,11 @@ export class ComponentUtils {
             })();
         }
     }
+
     //#endregion
 
-    public static getUserStateText(userView: UserView): string {
-        if (!this.isAllRequiredIdsUploaded(userView) || userView.qualificationState === CheckState.Missed) {
-            return '信息缺失';
-        }
 
-        if (userView.idState === CheckState.FailedToCheck || userView.qualificationState === CheckState.FailedToCheck) {
-            return '审核失败';
-        }
-
-        if (userView.idState === CheckState.ToBeChecked || userView.qualificationState === CheckState.ToBeChecked) {
-            return '审核中';
-        }
-
-        switch (userView.state) {
-            case UserState.Enabled:
-                return '已启用';
-            case UserState.Disabled:
-                return '已禁用';
-            default:
-                return '错误状态';
-        }
-    }
-    public static isAllRequiredIdsUploaded(userView: UserView): boolean {
-        if (userView.type === UserType.Individual) {
-            return !CommonUtils.isNullOrEmpty(userView.backIdUid) &&
-                !CommonUtils.isNullOrEmpty(userView.frontIdUid);
-        } else {
-            return !CommonUtils.isNullOrEmpty(userView.backIdUid) &&
-                !CommonUtils.isNullOrEmpty(userView.frontIdUid) &&
-                !CommonUtils.isNullOrEmpty(userView.licenseUid) &&
-                !CommonUtils.isNullOrEmpty(userView.licenseWithPersonUid);
-        }
-    }
+    //#region -- GUI related
 
     public static scrollToView(elemId: string) {
         const element = document.getElementById(elemId);
@@ -166,6 +155,9 @@ export class ComponentUtils {
             element.scrollIntoView();
         }
     }
+    //#endregion
+
+    //#region -- others
 
     /**
      * according the param model to pick up matched prop from form data
@@ -183,4 +175,25 @@ export class ComponentUtils {
         });
         return result;
     }
+
+    public static copyEmailAddressToClipboard(value: string): void {
+        // Create new element
+        const el = document.createElement('textarea');
+        // Set value (string to be copied)
+        el.value = value;
+        // Set non-editable to avoid focus and move outside of view
+        el.setAttribute('readonly', '');
+
+        el.style.position = 'absolute';
+        el.style.left = '-9999px';
+        document.body.appendChild(el);
+        // Select text inside element
+        el.select();
+        // Copy text to clipboard
+        document.execCommand('copy');
+        // Remove temporary element
+        document.body.removeChild(el);
+    }
+
+    //#endregion
 }

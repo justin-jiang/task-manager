@@ -3,7 +3,7 @@
  */
 export enum FileAPIScenario {
     None = 0,
-    CreateTemplate = 1,
+    CreateTaskTemplate = 1,
 
     DownloadTaskResultFile = 10,
     DownloadUserLogo = 11,

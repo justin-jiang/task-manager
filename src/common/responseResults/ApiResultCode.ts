@@ -15,6 +15,9 @@ export enum ApiResultCode {
     AuthForbidden = 51,
     AuthUserNotReady = 52,
     Auth_Not_Task_Publisher_Onwer = 53,
+    Auth_User_Disabled = 54,
+    Auth_Not_Task_Assigned_Executor = 55,
+    Auth_Not_Task_Applicant = 56,
 
     DbValidationError = 60,
     DbNotFound = 61,
@@ -22,6 +25,8 @@ export enum ApiResultCode {
     DbSchemaPropMissed = 63,
     DbUnexpectedUserState = 64,
     DbNotFound_User = 65,
+    Db_Qualification_Template_Missed = 66,
+    Db_Register_Protocol_Missed = 67,
 
     FileFailedDownload = 80,
     FileFailedUpload = 81,

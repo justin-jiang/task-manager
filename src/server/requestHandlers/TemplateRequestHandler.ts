@@ -1,5 +1,4 @@
 import { CommonUtils } from 'common/CommonUtils';
-import { IQueryConditions } from 'common/IQueryConditions';
 import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
 import { TemplateRemoveParam } from 'common/requestParams/TemplateRemoveParam';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
@@ -13,8 +12,16 @@ import { RequestUtils } from './RequestUtils';
 
 export class TemplateRequestHandler {
 
-    public static async $$find(conditions: IQueryConditions): Promise<TemplateView[]> {
-        const dbObjs: TemplateObject[] = await TemplateModelWrapper.$$find(conditions) as TemplateObject[];
+    /**
+     * used by publisher to query owned template
+     * @param currentUser 
+     */
+    public static async $$query(currentUser: UserObject): Promise<TemplateView[]> {
+        if (!CommonUtils.isReadyPublisher(currentUser)) {
+            throw new ApiError(ApiResultCode.AuthForbidden);
+        }
+        const dbObjs: TemplateObject[] = await TemplateModelWrapper.$$find(
+            { publisherUid: currentUser.uid } as TemplateObject) as TemplateObject[];
         const views: TemplateView[] = [];
         if (dbObjs != null && dbObjs.length > 0) {
             for (const obj of dbObjs) {
@@ -23,17 +30,21 @@ export class TemplateRequestHandler {
         }
         return views;
     }
+
+    /**
+     * used by publisher owner to update temlate
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$basicInfoEdit(
         reqParam: TemplateEditParam, currentUser: UserObject): Promise<TemplateView> {
-        if (reqParam == null || CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TemplateEditParam or TemplateEditParam.uid should not be null');
+        // param check
+        if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
+            throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
         }
-        const dbObj: TemplateObject = await TemplateModelWrapper.$$findOne(
-            { uid: reqParam.uid } as TemplateObject) as TemplateObject;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound);
-        }
+
+        // template check
+        const dbObj: TemplateObject = await RequestUtils.$$templateExistenceCheck(reqParam.uid as string);
         if (dbObj.publisherUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
@@ -48,29 +59,33 @@ export class TemplateRequestHandler {
         return await this.$$convertToDBView(dbObj);
     }
 
+    /**
+     * used by publisher owner to remove template
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$remove(reqParam: TemplateRemoveParam, currentUser: UserObject): Promise<TemplateView> {
-        if (reqParam == null || CommonUtils.isNullOrEmpty(reqParam.uid)) {
-            throw new ApiError(ApiResultCode.InputInvalidParam,
-                'TemplateRemoveParam or TemplateRemoveParam.uid should not be null');
-        }
-        const dbObj: TemplateObject = await TemplateModelWrapper.$$findOne(
-            { uid: reqParam.uid } as TemplateObject) as TemplateObject;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound);
-        }
+        // user check
+        RequestUtils.readyPublisherCheck(currentUser);
 
-        // only admin or owner can remove template
-        if (!CommonUtils.isAdmin(currentUser) && dbObj.publisherUid !== currentUser.uid) {
+        // template check
+        const dbObj: TemplateObject = await RequestUtils.$$templateExistenceCheck(reqParam.uid as string);
+
+        // publisher owner can remove template
+        if (dbObj.publisherUid !== currentUser.uid) {
             throw new ApiError(ApiResultCode.AuthForbidden);
         }
         // remove template file
         await FileStorage.$$deleteEntry(dbObj.templateFileUid as string);
-        // TODO: remove related tasks
 
         await TemplateModelWrapper.$$deleteOne({ uid: reqParam.uid } as TemplateObject);
         return await this.$$convertToDBView(dbObj);
     }
 
+    /**
+     * 
+     * @param dbObj 
+     */
     public static async $$convertToDBView(dbObj: TemplateObject): Promise<TemplateView> {
         const view: TemplateView = new TemplateView();
         keysOfITemplateView.forEach((key: string) => {

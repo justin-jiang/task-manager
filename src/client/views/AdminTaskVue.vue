@@ -232,7 +232,7 @@
     <!-- dialog for executor qualification audit -->
     <AuditDialogVue
       titleProp="雇员资质审核"
-      widthProp="40%"
+      widthProp="400px"
       :visibleProp="executorAuditDialogVisible"
       @submit="onExecutorAuditSubmit"
       @cancel="onExecutorAuditCancel"
@@ -252,8 +252,8 @@
       :scenarioProp="2"
       :targetFileUidProp="selectedTask.resultFileUid"
       :visibleProp="resultAuditDialogVisible"
-      @submitted="onResultAuditSubmitted"
-      @cancelled="onResultAuditCancelled"
+      @submit="onResultAuditSubmit"
+      @cancel="onResultAuditCancel"
       @download="onResultDownload"
     >
     </FileCheckDialogVue>
@@ -273,7 +273,7 @@
     <PayToExecutorDialogVue
       :visibleProp="payToExecutorDialogVisible"
       :taskProp="selectedTask"
-      :targetTaskExecutorProp="executorOfSelectedTask"
+      :taskExecutorProp="executorOfSelectedTask"
       @success="onPayToExecutorSuccess"
       @cancel="onPayToExecutorCancel"
     >
@@ -292,7 +292,7 @@
 </template>
 
 <script lang="ts">
-import { AdminTaskTS } from "./AdminTaskTS";
+import { AdminTaskTS } from './AdminTaskTS';
 export default class AdminTaskVue extends AdminTaskTS {}
 </script>
 

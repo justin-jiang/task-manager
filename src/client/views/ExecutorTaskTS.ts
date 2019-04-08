@@ -3,9 +3,10 @@ import { RouterUtils } from 'client/common/RouterUtils';
 import { ViewTextUtils } from 'client/common/ViewTextUtils';
 import MarginDialogVue from 'client/components/MarginDialogVue.vue';
 import SingleFileUploadVue from 'client/components/SingleFileUploadVue.vue';
-import TaskDetailInTableVue from 'client/components/TaskDetailInTableVue.vue';
 import TaskProgressDialogVue from 'client/components/TaskProgressDialogVue.vue';
 import TaskResultUploadDialogVue from 'client/components/TaskResultUploadDialogVue.vue';
+import TaskSpecificInTableVue from 'client/components/TaskSpecificInTableVue.vue';
+import TaskTableVue from 'client/components/TaskTableVue.vue';
 import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
@@ -21,11 +22,12 @@ import { UserView } from 'common/responseResults/UserView';
 import { TaskState } from 'common/TaskState';
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { Store } from 'vuex';
-import TaskTableVue from 'client/components/TaskTableVue.vue';
+import { StoreUtils } from 'client/common/StoreUtils';
+
 const compToBeRegistered: any = {
-    SingleFileUploadVue,
-    TaskDetailInTableVue,
     MarginDialogVue,
+    SingleFileUploadVue,
+    TaskSpecificInTableVue,
     TaskProgressDialogVue,
     TaskResultUploadDialogVue,
     TaskTableVue,
@@ -224,7 +226,7 @@ export class ExecutorTaskTS extends Vue {
     private readonly completedTasksLab: TaskState = TaskState.ExecutorPaid;
     private get completedTasks(): TaskView[] {
         return this.storeState.taskObjs.filter((item) => {
-            return item.state === TaskState.ExecutorPaid;
+            return CommonUtils.isTaskCompleted(item);
         });
     }
     private get completedTasksCount(): number {
@@ -351,27 +353,23 @@ export class ExecutorTaskTS extends Vue {
 
     @Watch('$store.state.sessionInfo', { immediate: true })
     private onSessionInfoChanged(currentValue: UserView, previousValue: UserView) {
-        const sessionInfo = currentValue;
-        this.initialize();
-
-    }
-    private initialize() {
-        const sessionInfo = this.storeState.sessionInfo;
-        if (CommonUtils.isReadyExecutor(sessionInfo) && this.isInitialized === false) {
+        previousValue = previousValue || {};
+        currentValue = currentValue || {};
+        if (currentValue.uid !== previousValue.uid) {
             (async () => {
-                this.isInitialized = true;
-                const apiResult = await this.store.dispatch(StoreActionNames.taskQuery,
-                    {
-                        notUseLocalData: true,
-                    } as IStoreActionArgs);
+                this.isInitialized = false;
+                const apiResult = await StoreUtils.$$pullTasks(this.store);
                 if (apiResult.code !== ApiResultCode.Success) {
                     RouterUtils.goToErrorView(this.$router,
                         this.storeState,
                         `获取任务列表失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                     return;
                 }
-            })();
+            })().finally(() => {
+                this.isInitialized = true;
+            });
         }
+
     }
     // #endregion
 

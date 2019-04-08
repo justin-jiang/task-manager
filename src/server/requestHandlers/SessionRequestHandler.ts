@@ -29,7 +29,6 @@ export class SessionRequestHandler {
             } else {
                 LoggerManager.error(`Too many duplicated users:${reqParam.name}`);
             }
-
         } else {
             LoggerManager.error(`user:${reqParam.name} not found`);
         }

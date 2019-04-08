@@ -33,6 +33,8 @@ interface IFormData {
 
     linkBankAccountNumber?: string;
 
+    // the principal id number
+    principalIDNumber?: string;
     // the principal name of corp
     principalName?: string;
     province: string;
@@ -92,6 +94,7 @@ export class UserIdentityInfoUploadTS extends Vue {
         district: '',
         identityNumber: '',
         linkBankAccountNumber: '',
+        principalIDNumber: '',
         principalName: '',
         province: '',
         realName: '',
@@ -199,6 +202,9 @@ export class UserIdentityInfoUploadTS extends Vue {
         principalName: [
             { required: true, message: '请输入负责人名称', trigger: 'blur' },
             { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
+        ],
+        principalIDNumber: [
+            { required: true, message: '此处不能为空', trigger: 'blur' },
         ],
         realName: [
             { required: true, message: '请输入名称', trigger: 'blur' },
@@ -423,11 +429,13 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onLogoUploadSuccess(apiResult: ApiResult) {
         // do nothing
         this.isLogoImageChanged = false;
+        this.isSubmitting = false;
         this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onLogoUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
         this.isLogoImageChanged = false;
+        this.isSubmitting = false;
         this.$message.error(`Logo上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onFrontIdImageChanged(): void {
@@ -442,11 +450,13 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onFrontIdUploadSuccess(apiResult: ApiResult) {
         // do nothing
         this.isFrontIdImageChanged = false;
+        this.isSubmitting = false;
         this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onFrontIdUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
         this.isFrontIdImageChanged = false;
+        this.isSubmitting = false;
         this.$message.error(`身份证正面上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onBackIdImageChanged(): void {
@@ -461,11 +471,13 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onBackIdUploadSuccess(apiResult: ApiResult) {
         // do nothing
         this.isBackIdImageChanged = false;
+        this.isSubmitting = false;
         this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onBackIdUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
         this.isBackIdImageChanged = false;
+        this.isSubmitting = false;
         this.$message.error(`身份证背面上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onLicenseImageChanged(): void {
@@ -480,11 +492,13 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onLicenseUploadSuccess(apiResult: ApiResult) {
         // do nothing
         this.isLicenseImageChanged = false;
+        this.isSubmitting = false;
         this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onLicenseUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
         this.isLicenseImageChanged = false;
+        this.isSubmitting = false;
         this.$message.error(`营业执照上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onLicenseWithPersonImageChanged(): void {
@@ -499,11 +513,13 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onLicenseWithPersonUploadSuccess(apiResult: ApiResult) {
         // do nothing
         this.isLicenseWithPersonImageChanged = false;
+        this.isSubmitting = false;
         this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onLicenseWithPersonUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
         this.isLicenseWithPersonImageChanged = false;
+        this.isSubmitting = false;
         this.$message.error(`负责人手持营业执照上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     private onAuthLetterImageChanged(): void {
@@ -517,11 +533,13 @@ export class UserIdentityInfoUploadTS extends Vue {
     private onAuthLetterUploadSuccess(apiResult: ApiResult) {
         // do nothing
         this.isAuthLetterImageChanged = false;
+        this.isSubmitting = false;
         this.store.commit(StoreMutationNames.sessionInfoPropUpdate, apiResult.data);
     }
     private onAuthLetterUploadFailure(apiResult: ApiResult): void {
         this.hasSubmitError = true;
         this.isAuthLetterImageChanged = false;
+        this.isSubmitting = false;
         this.$message.error(`授权文件上传失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
     }
     // #endregion

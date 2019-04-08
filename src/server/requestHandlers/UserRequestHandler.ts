@@ -18,6 +18,7 @@ import { UserModelWrapper } from '../dataModels/UserModelWrapper';
 import { UserObject } from '../dataObjects/UserObject';
 import { RequestUtils } from './RequestUtils';
 import { UserPasswordRecoverParam } from 'common/requestParams/UserPasswordRecoverParam';
+import { PasswordResetResult } from 'common/responseResults/PasswordResetResult';
 
 export class UserRequestHandler {
     public static async $$query(currentUser: UserObject): Promise<UserView[]> {
@@ -127,6 +128,11 @@ export class UserRequestHandler {
         return await this.$$convertToDBView(currentUser);
     }
 
+    /**
+     * password change by userself
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$passwordEdit(
         reqParam: UserPasswordEditParam, currentUser: UserObject): Promise<void> {
         if (reqParam.oldPassword !== currentUser.password) {
@@ -136,28 +142,24 @@ export class UserRequestHandler {
 
         await UserModelWrapper.$$updateOne({ uid: currentUser.uid } as UserObject, dbObj);
     }
+
+    /**
+     * password reset by admin
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$passwordReset(
-        reqParam: UserPasswordResetParam, currentUser: UserObject): Promise<void> {
-        if (!CommonUtils.isAdmin(currentUser)) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
-        }
-        const targetUser: UserObject = await UserModelWrapper.$$findOne(
-            { uid: reqParam.uid } as UserObject) as UserObject;
-        if (targetUser == null) {
-            throw new ApiError(ApiResultCode.DbNotFound_User, `UserUid:${reqParam.uid}`);
-        }
+        reqParam: UserPasswordResetParam, currentUser: UserObject): Promise<PasswordResetResult> {
+        RequestUtils.adminCheck(currentUser);
+        const targetUser: UserObject = await RequestUtils.$$userExistenceCheck(reqParam.uid as string);
 
         const randomPassword = CommonUtils.getRandomString(6);
-        const mailOptions: IMailContent = {
-            to: targetUser.email as string,
-            subject: `用户${targetUser.name}密码重置`,
-            html: `新密码：${randomPassword}`,
-        };
 
-        // send mail with defined transport object
-        await EmailUtils.sendEmail(mailOptions);
-        const updatedProps: UserObject = { password: randomPassword } as UserObject;
+        const updatedProps: UserObject = {
+            password: randomPassword,
+        } as UserObject;
         await UserModelWrapper.$$updateOne({ uid: targetUser.uid } as UserObject, updatedProps);
+        return { uid: targetUser.uid, password: randomPassword } as PasswordResetResult;
     }
 
     public static async $$passwordRecover(
@@ -189,9 +191,7 @@ export class UserRequestHandler {
             throw new ApiError(ApiResultCode.AuthForbidden, 'cannot remove default admin');
         }
         // only admin can remove user
-        if (!CommonUtils.isAdmin(currentUser)) {
-            throw new ApiError(ApiResultCode.AuthForbidden);
-        }
+        RequestUtils.adminCheck(currentUser);
         const dbObj: UserObject = await UserModelWrapper.$$findeOneAndDelete(
             { uid: reqParam.uid } as UserObject) as UserObject;
         if (dbObj != null) {
@@ -201,6 +201,11 @@ export class UserRequestHandler {
         }
     }
 
+    /**
+     * user info or qualification check
+     * @param reqParam 
+     * @param currentUser 
+     */
     public static async $$check(
         reqParam: UserQualificationCheckParam | UserIdCheckParam, currentUser: UserObject): Promise<UserView> {
         // only admin can check user register
@@ -209,10 +214,7 @@ export class UserRequestHandler {
         if (CommonUtils.isNullOrEmpty(reqParam.uid)) {
             throw new ApiError(ApiResultCode.InputInvalidParam, JSON.stringify(reqParam));
         }
-        const dbObj: UserObject = await UserModelWrapper.$$findOne({ uid: reqParam.uid } as UserObject) as UserObject;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound, `UserId:${reqParam.uid}`);
-        }
+        const dbObj: UserObject = await await RequestUtils.$$userExistenceCheck(reqParam.uid as string);
         let updatedProps: UserObject = {};
         if ((reqParam as UserIdCheckParam).idState != null) {
             updatedProps = RequestUtils.pickUpPropsByModel(reqParam, new UserIdCheckParam(true), true);
@@ -239,10 +241,7 @@ export class UserRequestHandler {
             throw new ApiError(ApiResultCode.InputInvalidParam,
                 'uid should not be null');
         }
-        const dbObj: UserObject = await UserModelWrapper.$$findOne({ uid } as UserObject) as UserObject;
-        if (dbObj == null) {
-            throw new ApiError(ApiResultCode.DbNotFound, `UserId:${uid}`);
-        }
+        const dbObj: UserObject = await await RequestUtils.$$userExistenceCheck(uid as string);
         dbObj.state = state;
         await UserModelWrapper.$$updateOne({ uid: dbObj.uid } as UserObject, { state } as UserObject);
         return await this.$$convertToDBView(dbObj);

@@ -16,6 +16,7 @@ import { TemplateView } from 'common/responseResults/TemplateView';
 import { Component, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
 import { ComponentUtils } from '../components/ComponentUtils';
+import { StoreUtils } from 'client/common/StoreUtils';
 
 const compToBeRegistered: any = {
     SingleFileUploadVue,
@@ -88,7 +89,7 @@ export class TemplateManagementTS extends Vue {
                     this.$message.success('提交成功');
                 } else if (apiResult.code === ApiResultCode.DbNotFound) {
                     this.$message.warning('所删除模板已经不存在');
-                    await this.$$pullTemplateObjs();
+                    await StoreUtils.$$pullTemplates(this.store);
                 } else {
                     this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                 }
@@ -130,25 +131,12 @@ export class TemplateManagementTS extends Vue {
 
     // #region -- vue life-circle methods
     private mounted() {
-        // init template creation required data
-        (async () => {
-            // init template edit required data
-            this.$$pullTemplateObjs();
-        })();
+        ComponentUtils.pullTemplates(this);
     }
     // #endregion
 
     // region -- internal variables and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
-
-    private async $$pullTemplateObjs(): Promise<void> {
-        const apiResult: ApiResult = await this.store.dispatch(
-            StoreActionNames.templateQuery, { notUseLocalData: true } as IStoreActionArgs);
-        if (apiResult.code !== ApiResultCode.Success) {
-            this.$message.error(`获取模板信息失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-        }
-    }
-
     // #endregion
 }

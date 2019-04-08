@@ -1,27 +1,32 @@
 import { getPropKeys } from 'common/commonDataObjects/CommonObject';
+import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
+import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
 import { TaskDepositImageUploadParam } from 'common/requestParams/TaskDepositImageUploadParam';
+import { TaskExecutorReceiptNotRequiredParam } from 'common/requestParams/TaskExecutorReceiptNotRequiredParam';
 import { TaskExecutorReceiptUploadParam } from 'common/requestParams/TaskExecutorReceiptUploadParam';
+import { TaskPublisherVisitParam } from 'common/requestParams/TaskPublisherVisitParam';
 import { UserAccountInfoEditParam } from 'common/requestParams/UserAccountInfoEditParam';
 import { UserBasicInfoEditParam } from 'common/requestParams/UserBasicInfoEditParam';
 import * as http from 'http';
 import * as cron from 'node-cron';
+import { AppConfigs } from 'server/common/AppConfigs';
 import { ArgsParser } from 'server/common/ArgsParser';
+import { TaskApplicationModelWrapper } from 'server/dataModels/TaskApplicationModelWrapper';
+import { TaskCheckRecordModelWrapper } from 'server/dataModels/TaskCheckRecordModelWrapper';
+import { TaskModelWrapper } from 'server/dataModels/TaskModelWrapper';
 import { TemplateModelWrapper } from 'server/dataModels/TemplateModelWrapper';
 import { UserModelWrapper } from 'server/dataModels/UserModelWrapper';
+import { UserNotificationModelWrapper } from 'server/dataModels/UserNotificationModelWrapper';
+import { keysOfTaskObject } from 'server/dataObjects/TaskObject';
+import { keysOfTemplateObject } from 'server/dataObjects/TemplateObject';
+import { keysOfUserObject } from 'server/dataObjects/UserObject';
 import { FileStorage } from 'server/dbDrivers/mongoDB/FileStorage';
 import { IndexExpress } from 'server/expresses/IndexExpress';
 import { LoggerManager } from 'server/libsWrapper/LoggerManager';
-import { TaskApplicationModelWrapper } from './dataModels/TaskApplicationModelWrapper';
-import { TaskCheckRecordModelWrapper } from './dataModels/TaskCheckRecordModelWrapper';
-import { TaskModelWrapper } from './dataModels/TaskModelWrapper';
-import { UserNotificationModelWrapper } from './dataModels/UserNotificationModelWrapper';
-import { keysOfTaskObject } from './dataObjects/TaskObject';
-import { keysOfUserObject } from './dataObjects/UserObject';
-import { LoggerManagerInitParam } from './libsWrapper/LoggersManagerInitParam';
+import { LoggerManagerInitParam } from 'server/libsWrapper/LoggersManagerInitParam';
 import { RequestUtils } from 'server/requestHandlers/RequestUtils';
-import { AppConfigs } from 'server/common/AppConfigs';
-import { TaskCreateParam } from 'common/requestParams/TaskCreateParam';
-import { TaskBasicInfoEditParam } from 'common/requestParams/TaskBasicInfoEditParam';
+import { TemplateEditParam } from 'common/requestParams/TemplateEditParam';
+import { TaskPayToExecutorImageUploadParam } from 'common/requestParams/TaskPayToExecutorImageUploadParam';
 /**
  * Event listener for HTTP server "error" event.
  */
@@ -109,13 +114,30 @@ function reqParamValidationAgainstUser(reqParams: any[]): void {
         });
     });
 }
+function reqParamValidationAgainstTemplate(reqParams: any[]): void {
+    reqParams.forEach((param) => {
+        getPropKeys(param).forEach((paramItem) => {
+            if (!keysOfTemplateObject.includes(paramItem)) {
+                LoggerManager.error(`${paramItem} missed in TemplateObject`);
+                process.exit();
+            }
+        });
+    });
+}
 
 function reqParamValidation(): void {
     const reqParamsForTask: any[] = [
         new TaskBasicInfoEditParam(true),
+
         new TaskCreateParam(true),
+
         new TaskDepositImageUploadParam(true),
+
+        new TaskExecutorReceiptNotRequiredParam(true),
         new TaskExecutorReceiptUploadParam(true),
+
+        new TaskPayToExecutorImageUploadParam(true),
+        new TaskPublisherVisitParam(true),
     ];
     reqParamValidationAgainstTask(reqParamsForTask);
 
@@ -125,6 +147,11 @@ function reqParamValidation(): void {
         new UserAccountInfoEditParam(true),
     ];
     reqParamValidationAgainstUser(reqParamsForUser);
+
+    const reqParamsForTemplate: any[] = [
+        new TemplateEditParam(true),
+    ];
+    reqParamValidationAgainstTemplate(reqParamsForTemplate);
 }
 
 /**

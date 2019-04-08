@@ -13,38 +13,38 @@ export default new Router({
       // route level code-splitting
       // this generates a separate chunk for this route
       // which is lazy-loaded when the route is visited.
-      component: () => import('./views/LoginVue.vue'),
+      component: () => import(/* webpackChunkName: "0" */'./views/LoginVue.vue'),
     },
     {
       // Admin View
       path: `/${RoutePathItem.Admin}`,
       name: RouterName.Admin,
-      component: () => import('./views/AdminVue.vue'),
+      component: () => import(/* webpackChunkName: "1" */'./views/AdminVue.vue'),
       children: [
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Notification}`,
           name: RouterName.Admin_Notification,
-          component: () => import('./views/NotificationManagementVue.vue'),
+          component: () => import(/* webpackChunkName: "2" */'./views/NotificationManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_User}`,
           name: RouterName.Admin_User,
-          component: () => import('./views/UserManagementVue.vue'),
+          component: () => import(/* webpackChunkName: "3" */'./views/UserManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Task}`,
           name: RouterName.Admin_Task,
-          component: () => import('./views/AdminTaskVue.vue'),
+          component: () => import(/* webpackChunkName: "4" */'./views/AdminTaskVue.vue'),
         },
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Template}`,
           name: RouterName.Admin_Template,
-          component: () => import('./views/QualificationTemplateVue.vue'),
+          component: () => import(/* webpackChunkName: "5" */'./views/QualificationTemplateVue.vue'),
         },
         {
           path: `/${RoutePathItem.Admin}/${RoutePathItem.Admin_Protocol}`,
           name: RouterName.Admin_Procotol,
-          component: () => import('./views/AdminProtocolVue.vue'),
+          component: () => import(/* webpackChunkName: "6" */'./views/AdminProtocolVue.vue'),
         },
       ],
     },
@@ -55,46 +55,46 @@ export default new Router({
       // route level code-splitting
       // this generates a separate chunk for this route
       // which is lazy-loaded when the route is visited.
-      component: () => import('./views/AdminRegisterVue.vue'),
+      component: () => import(/* webpackChunkName: "7" */'./views/AdminRegisterVue.vue'),
     },
     {
       // Error View
       path: `/${RoutePathItem.Error}`,
       name: RouterName.Error,
-      component: () => import('./views/ErrorVue.vue'),
+      component: () => import(/* webpackChunkName: "8" */'./views/ErrorVue.vue'),
     },
     {
       // User Register View
       path: `/${RoutePathItem.UserRegister}`,
       name: RouterName.UserRegister,
-      component: () => import('./views/UserRegisterVue.vue'),
+      component: () => import(/* webpackChunkName: "9" */'./views/UserRegisterVue.vue'),
     },
 
     {
       // Publisher View
       path: `/${RoutePathItem.Publisher}`,
       name: RouterName.Publisher,
-      component: () => import('./views/PublisherVue.vue'),
+      component: () => import(/* webpackChunkName: "10" */'./views/PublisherVue.vue'),
       children: [
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Task}`,
           name: RouterName.Publisher_Task,
-          component: () => import('./views/PublisherTaskVue.vue'),
+          component: () => import(/* webpackChunkName: "11" */'./views/PublisherTaskVue.vue'),
         },
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Template}`,
           name: RouterName.Publisher_Template,
-          component: () => import('./views/TemplateManagementVue.vue'),
+          component: () => import(/* webpackChunkName: "12" */'./views/TemplateManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_Notification}`,
           name: RouterName.Publisher_Notification,
-          component: () => import('./views/NotificationManagementVue.vue'),
+          component: () => import(/* webpackChunkName: "13" */'./views/NotificationManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Publisher}/${RoutePathItem.Publisher_UserInfo}`,
           name: RouterName.Publisher_UserInfo,
-          component: () => import('./views/UserInfoVue.vue'),
+          component: () => import(/* webpackChunkName: "14" */'./views/UserInfoVue.vue'),
         },
       ],
     },
@@ -103,22 +103,22 @@ export default new Router({
       // Executor View
       path: `/${RoutePathItem.Executor}`,
       name: RouterName.Executor,
-      component: () => import('./views/ExecutorVue.vue'),
+      component: () => import(/* webpackChunkName: "15" */'./views/ExecutorVue.vue'),
       children: [
         {
           path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Task}`,
           name: RouterName.Executor_Task,
-          component: () => import('./views/ExecutorTaskVue.vue'),
+          component: () => import(/* webpackChunkName: "16" */'./views/ExecutorTaskVue.vue'),
         },
         {
           path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_Notification}`,
           name: RouterName.Executor_Notification,
-          component: () => import('./views/NotificationManagementVue.vue'),
+          component: () => import(/* webpackChunkName: "17" */'./views/NotificationManagementVue.vue'),
         },
         {
           path: `/${RoutePathItem.Executor}/${RoutePathItem.Executor_UserInfo}`,
           name: RouterName.Executor_UserInfo,
-          component: () => import('./views/UserInfoVue.vue'),
+          component: () => import(/* webpackChunkName: "18" */'./views/UserInfoVue.vue'),
         },
       ],
     },

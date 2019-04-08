@@ -1,7 +1,6 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { RouterUtils } from 'client/common/RouterUtils';
 import { ComponentUtils } from 'client/components/ComponentUtils';
-import { IStoreActionArgs } from 'client/VuexOperations/IStoreActionArgs';
 import { IStoreState } from 'client/VuexOperations/IStoreState';
 import { StoreActionNames } from 'client/VuexOperations/StoreActionNames';
 import { StoreMutationNames } from 'client/VuexOperations/StoreMutationNames';
@@ -9,7 +8,6 @@ import { CommonUtils } from 'common/CommonUtils';
 import { FileAPIScenario } from 'common/FileAPIScenario';
 import { FileDownloadParam } from 'common/requestParams/FileDownloadParam';
 import { SessionCreateParam } from 'common/requestParams/SessionCreateParam';
-import { UserPasswordRecoverParam } from 'common/requestParams/UserPasswordRecoverParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
 import { UserView } from 'common/responseResults/UserView';
@@ -96,40 +94,19 @@ export class LoginTS extends Vue {
         this.isLogin = false;
     }
     private resetPassword(): void {
-        if (CommonUtils.isNullOrEmpty(this.loginFormDatas.name)) {
-            this.$message.warning('请先输入账号，之后再点击忘记密码');
-            return;
-        }
-
         const confirm = this.$confirm(
-            `此操作会发送密码重置的请求给平台管理员，确认要通知吗？`,
+            `忘记密码，请用账户注册邮箱，向public@khoodys.com发送邮件，申请重置密码，平台运营会在一个工作日内处理并邮件回复。`,
             '提示', {
-                confirmButtonText: '确定',
+                confirmButtonText: '复制邮箱地址到剪切板',
+                cancelButtonText: '关闭',
                 type: 'warning',
                 center: true,
                 closeOnClickModal: false,
             });
         confirm.then(() => {
-            (async () => {
-                this.isSubmitting = true;
-                const store = (this.$store as Store<IStoreState>);
-                const apiResult: ApiResult = await store.dispatch(
-                    StoreActionNames.userPasswordRecover,
-                    {
-                        data: { name: this.loginFormDatas.name } as UserPasswordRecoverParam,
-                    } as IStoreActionArgs);
-                if (apiResult.code === ApiResultCode.Success) {
-                    this.$message.success(`提交申请成功，等待密码重置，新密码会发送到您注册邮箱中`);
-                } else {
-                    this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-                }
-            })().finally(() => {
-                this.isSubmitting = false;
-            });
-        }).catch(() => {
-            // do nothing for cancel
-        });
-
+            ComponentUtils.copyEmailAddressToClipboard('public@khoodys.com');
+            this.$message.success('复制成功');
+        }).catch(() => { });
     }
     //#endregion
 

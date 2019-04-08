@@ -10,6 +10,7 @@ import { UserRole } from 'common/UserRole';
 import { UserType } from 'common/UserTypes';
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import { Store } from 'vuex';
+import { EventNames } from 'client/common/EventNames';
 interface IFormData {
     name?: string;
     password?: string;
@@ -17,10 +18,6 @@ interface IFormData {
     email?: string;
     telephone?: string;
     type: UserType;
-}
-enum EventNames {
-    RegisterSuccess = 'success',
-    RegisterFailure = 'failure',
 }
 
 const compToBeRegistered: any = {
@@ -133,7 +130,7 @@ export class BasicUserRegisterTS extends Vue {
                     if (apiResult.code !== ApiResultCode.Success) {
                         this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                     } else {
-                        this.$emit(EventNames.RegisterSuccess, apiResult.data);
+                        this.$emit(EventNames.Success, apiResult.data);
                     }
                     this.isSubmitting = false;
                 })();

@@ -1,6 +1,7 @@
 import { ApiErrorHandler } from 'client/common/ApiErrorHandler';
 import { msgConnectionIssue } from 'client/common/Constants';
 import { RouterUtils } from 'client/common/RouterUtils';
+import { StoreUtils } from 'client/common/StoreUtils';
 import { ViewTextUtils } from 'client/common/ViewTextUtils';
 import { ComponentUtils } from 'client/components/ComponentUtils';
 import FileCheckDialogVue from 'client/components/FileCheckDialogVue.vue';
@@ -23,6 +24,7 @@ import { UserQualificationCheckParam } from 'common/requestParams/UserQualificat
 import { UserRemoveParam } from 'common/requestParams/UserRemoveParam';
 import { ApiResult } from 'common/responseResults/APIResult';
 import { ApiResultCode } from 'common/responseResults/ApiResultCode';
+import { PasswordResetResult } from 'common/responseResults/PasswordResetResult';
 import { UserView } from 'common/responseResults/UserView';
 import { UserRole } from 'common/UserRole';
 import { UserState } from 'common/UserState';
@@ -43,8 +45,8 @@ const compToBeRegistered: any = {
  */
 export class UserManagementTS extends Vue {
     // #region -- reference by template
-    private readonly executorTabName = 'executorTab';
-    private readonly publisherTabName = 'publisherTab';
+    private readonly userTableRefName: string = 'userTable';
+    private readonly typeFilter = [{ text: '企业', value: UserType.Corp }, { text: '个人', value: UserType.Individual }];
     private executorSearch: string = '';
     private publisherSearch: string = '';
     private idCheckDialogVisible: boolean = false;
@@ -53,47 +55,11 @@ export class UserManagementTS extends Vue {
     private get selectedUserUid(): string {
         return this.selectedUser == null ? '' : this.selectedUser.uid as string;
     }
-    private get publisherObjs(): UserView[] {
-        return this.storeState.userObjs.filter((item) => {
-            if (CommonUtils.isNullOrEmpty(this.publisherSearch)) {
-                if (CommonUtils.isPublisher(item)) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                if (CommonUtils.isPublisher(item) &&
-                    (item.name as string).toLowerCase().includes(this.publisherSearch.toLowerCase())) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        });
-    }
-    private get executorObjs(): UserView[] {
-        return this.storeState.userObjs.filter((item) => {
-            if (CommonUtils.isNullOrEmpty(this.executorSearch)) {
-                if (CommonUtils.isExecutor(item)) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                if (CommonUtils.isExecutor(item) &&
-                    (item.name as string).toLowerCase().includes(this.executorSearch.toLowerCase())) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        });
-    }
     private isSearchReady(user: UserView): boolean {
         return true;
     }
     private getUserState(user: UserView): string {
-        return ComponentUtils.getUserStateText(user);
+        return ViewTextUtils.getUserStateText(user);
     }
     private getPersonName(user: UserView): string {
         if (user.type === UserType.Corp) {
@@ -105,16 +71,15 @@ export class UserManagementTS extends Vue {
     private getUserRole(user: UserView): string {
         return ViewTextUtils.getUserRoleText((user.roles as UserRole[])[0]);
     }
-    private getRegisterDate(user: UserView): string {
-        return ViewTextUtils.convertTimeStampToDate(user.createTime as number);
-    }
 
     private isDisabled(index: number, user: UserView): boolean {
         return user.state === UserState.Disabled;
     }
 
     private realNameSort(a: UserView, b: UserView): number {
-        return (a.realName as string).localeCompare(b.realName as string, 'zh-CN');
+        const aRealName = a.realName as string || '';
+        const bRealName = b.realName as string || '';
+        return aRealName.localeCompare(bRealName, 'zh-CN');
     }
 
     /**
@@ -190,7 +155,7 @@ export class UserManagementTS extends Vue {
 
     private onUserPasswordReset(index: number, user: UserView): void {
         const confirm = this.$confirm(
-            `确认要重置用户${user.name}的密码吗？系统会产生一个新的随机密码并发送到用户的邮箱中。`,
+            `系统会产生一个新的随机密码，确认要重置用户${user.name}的密码吗？`,
             '提示', {
                 confirmButtonText: '确定',
                 type: 'warning',
@@ -206,7 +171,20 @@ export class UserManagementTS extends Vue {
                         data: { uid: user.uid } as UserPasswordResetParam,
                     } as IStoreActionArgs);
                 if (apiResult.code === ApiResultCode.Success) {
-                    this.$message.success(`提交成功，新密码已经发往用户的邮箱中`);
+                    const resultConfirm = this.$confirm(
+                        `提交成功，新密码为：${(apiResult.data as PasswordResetResult).password}，用户邮箱为：${user.email}`,
+                        '提示', {
+                            confirmButtonText: '复制密码到剪切板',
+                            cancelButtonText: '关闭',
+                            type: 'warning',
+                            center: true,
+                            closeOnClickModal: false,
+                        });
+                    resultConfirm.then(() => {
+                        ComponentUtils.copyEmailAddressToClipboard(
+                            (apiResult.data as PasswordResetResult).password as string);
+                        this.$message.success('复制成功');
+                    }).catch(() => { });
                 } else {
                     this.$message.error(`提交失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
                 }
@@ -214,7 +192,14 @@ export class UserManagementTS extends Vue {
         }).catch(() => {
             // do nothing for cancel
         });
+    }
 
+    private onRowClick(task: UserView, column: any): void {
+        (this.$refs[this.userTableRefName] as any).toggleRowExpansion(task);
+    }
+
+    private typeFilterHandler(value: UserType, row: UserView, column: any): boolean {
+        return value === row.type;
     }
     // #endregion
 
@@ -249,7 +234,7 @@ export class UserManagementTS extends Vue {
 
     // #region methods and props referred by Id check dialog
     private isIdToBeChecked(user: UserView): boolean {
-        return ComponentUtils.isAllRequiredIdsUploaded(user) && user.idState === CheckState.ToBeChecked;
+        return CommonUtils.isAllRequiredIdsUploaded(user) && user.idState === CheckState.ToBeChecked;
     }
 
     private onIdCheck(index: number, user: UserView): void {
@@ -330,7 +315,7 @@ export class UserManagementTS extends Vue {
     // #region -- vue life-circle methods
     private mounted(): void {
         (async () => {
-            this.$$pullUserObjs();
+            await StoreUtils.$$pullAllUsers(this.store);
         })();
     }
     // #endregion
@@ -338,15 +323,5 @@ export class UserManagementTS extends Vue {
     // #region -- internal variables and methods
     private readonly store = (this.$store as Store<IStoreState>);
     private readonly storeState = (this.$store.state as IStoreState);
-    /**
-     * pull user objects from server
-     */
-    private async $$pullUserObjs(): Promise<void> {
-        const apiResult: ApiResult = await this.store.dispatch(
-            StoreActionNames.userQuery, { notUseLocalData: true } as IStoreActionArgs);
-        if (apiResult.code !== ApiResultCode.Success) {
-            this.$message.error(`获取用户信息失败：${ApiErrorHandler.getTextByCode(apiResult)}`);
-        }
-    }
     // #endregion
 }

@@ -1,7 +1,8 @@
 <template>
   <el-dialog
-    width="450"
+    width="450px"
     title="尽调结果上传"
+    custom-class="dialog-task-result-upload"
     :show-close="false"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
@@ -40,7 +41,7 @@
 </template>
 
 <script lang="ts">
-import { TaskResultUploadDialogTS } from "./TaskResultUploadDialogTS";
+import { TaskResultUploadDialogTS } from './TaskResultUploadDialogTS';
 export default class TaskResultUploadDialogVue extends TaskResultUploadDialogTS {}
 </script>
 
